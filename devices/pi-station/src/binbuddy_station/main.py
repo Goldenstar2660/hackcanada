@@ -54,7 +54,12 @@ class StationRuntime:
             )
         )
         disposal_method = self.rules.disposal_method_for_item(classification.predicted_item)
-        snapshot = self.session.set_guidance(classification.predicted_item, disposal_method)
+        snapshot = self.session.set_guidance(
+            classification.predicted_item,
+            disposal_method,
+            classification.confidence,
+            classification.llm_fallback_used,
+        )
         self.esp_client.send_guidance(
             GuidanceCommand(
                 disposal_method=disposal_method,
@@ -68,17 +73,12 @@ class StationRuntime:
         zone: str,
         classification_image_source: str = "camera://placeholder",
     ) -> tuple[SessionSnapshot, DisposalEvent | None]:
-        classification = self.classifier.classify(
-            ClassificationRequest(
-                image_source=classification_image_source,
-                confidence_threshold=self.settings.low_confidence_threshold,
-            )
-        )
+        del classification_image_source
         self.session.track_hand(zone=zone, hand_present=True)
         snapshot = self.session.track_hand(zone=zone, hand_present=False)
         event = None
         if snapshot.actual_disposal_zone is not None:
-            event = create_disposal_event(self.settings.station_id, snapshot, classification)
+            event = create_disposal_event(self.settings.station_id, snapshot, self.rules)
         return snapshot, event
 
 

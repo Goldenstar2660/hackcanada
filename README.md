@@ -30,7 +30,14 @@ The product specification in `spec/binbuddy-spec.md` is the source of truth for 
 
 ## Getting Started
 
-Phase 1 creates the repository foundation only. Runtime-specific setup arrives in later phases.
+The repository already includes the current scaffold for every planned surface:
+
+* `apps/web` for the dashboard shell
+* `services/backend-functions` for the Firebase backend shell
+* `devices/pi-station` for the Raspberry Pi runtime scaffold
+* `firmware/esp8266-controller` for the ESP8266 firmware scaffold
+* `packages/contracts`, `packages/rules`, `packages/analytics`, and `packages/tooling` for shared schemas and assets
+* `infra/firebase` for Firebase configuration, rules, and indexes
 
 If `just` is installed, list the available root tasks with:
 
@@ -38,6 +45,24 @@ If `just` is installed, list the available root tasks with:
 just --list
 ```
 
+Run the supported root validation workflow with:
+
+```bash
+just validate
+```
+
+That recipe executes the Phase 6 command set from the repository root:
+
+```bash
+corepack pnpm lint
+corepack pnpm build
+corepack pnpm test
+cd devices/pi-station && uv run pytest
+cd firmware/esp8266-controller && ../../.venv/bin/pio run
+```
+
+If the workspace-local PlatformIO binary is not present at `.venv/bin/pio`, the firmware step falls back to a globally installed `pio` executable.
+
 ## Current Status
 
-This repository now includes the Phase 2 TypeScript workspace shell for the dashboard, backend functions, and shared packages. Raspberry Pi and firmware projects remain intentionally outside the workspace and will be bootstrapped in later implementation phases.
+This repository now includes the TypeScript workspace scaffold, the Raspberry Pi runtime scaffold, the ESP8266 PlatformIO scaffold, schema-first shared contracts, rules and analytics placeholders, and the Firebase infrastructure boundary. The repository is still in foundation mode, so many modules remain placeholders, but the surface boundaries and validation entry points are in place.

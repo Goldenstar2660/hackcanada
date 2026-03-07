@@ -25,10 +25,19 @@ The controller owns ultrasonic sensing, LED output, acknowledgements, and health
 
 ## Flashing And Validation
 
-Run the firmware build from this directory:
+The supported repository-level validation path is `just validate` from the workspace root. That recipe prefers the workspace-local PlatformIO binary at `.venv/bin/pio` and falls back to a global `pio` installation when needed.
+
+To run the firmware build directly from this directory, use one of these commands:
+
+```bash
+../../.venv/bin/pio run
+```
 
 ```bash
 pio run
 ```
 
-If your board is connected and PlatformIO is installed, you can upload later with the standard PlatformIO upload workflow for the selected environment.
+Use the workspace-local command when the repository virtual environment provides PlatformIO. Use the global command only if PlatformIO is installed on your system PATH.
+
+If your board is connected, you can upload later with the standard PlatformIO upload workflow for the selected environment.
+

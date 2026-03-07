@@ -17,6 +17,8 @@ class SessionSnapshot:
     phase: SessionPhase = SessionPhase.IDLE
     predicted_item: str | None = None
     correct_disposal_method: str | None = None
+    model_confidence: float | None = None
+    llm_fallback_used: bool = False
     latest_hand_zone: str | None = None
     hand_present: bool = False
     actual_disposal_zone: str | None = None
@@ -34,12 +36,20 @@ class SessionStateMachine:
         self._snapshot = SessionSnapshot(phase=SessionPhase.DETECTING)
         return self.snapshot
 
-    def set_guidance(self, predicted_item: str, disposal_method: str) -> SessionSnapshot:
+    def set_guidance(
+        self,
+        predicted_item: str,
+        disposal_method: str,
+        model_confidence: float,
+        llm_fallback_used: bool,
+    ) -> SessionSnapshot:
         self._snapshot = replace(
             self._snapshot,
             phase=SessionPhase.WAITING_FOR_DISPOSAL,
             predicted_item=predicted_item,
             correct_disposal_method=disposal_method,
+            model_confidence=model_confidence,
+            llm_fallback_used=llm_fallback_used,
         )
         return self.snapshot
 

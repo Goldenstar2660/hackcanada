@@ -12,6 +12,9 @@ class RulesPreset:
     def disposal_method_for_item(self, item_name: str) -> str:
         return self.item_to_disposal_method.get(item_name, "garbage")
 
+    def disposal_method_for_zone(self, zone: str) -> str | None:
+        return self.zone_to_disposal_method.get(zone)
+
 
 def load_rules_preset(version: str) -> RulesPreset:
     return RulesPreset(
