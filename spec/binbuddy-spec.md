@@ -106,10 +106,18 @@ These are not separate KPIs. Users determine them by comparing historical or gro
 
 ## Live monitoring page
 - view live device status
-- view current camera feed when active
+- view current session state
 - view current detected item
 - view current disposal decision
 - view latest event from the station in real time
+
+## Demo data seeding
+- seed historical disposal events for multiple stations, floors, and time periods
+- seed known changes such as signage updates, campaign dates, and layout variants
+- seed before / after patterns that visibly change compliance rates over time
+- seed confusion-item and contamination-item trends that improve after interventions
+- seed different performance levels by location, time of day, and station
+- mark seeded records as demo data for presentation and filtering
 
 ## Configurable business rules
 - supported item set
@@ -142,4 +150,5 @@ Two hardware units:
 - Firebase Firestore is used as the database
 - Firebase Cloud Functions is used as the website backend
 - Pi sends event and live-status data to Firebase for dashboard and live monitoring
+- Camera preview is developer-only and opens on the operator laptop when Pi code is run over SSH
 - Dashboard/backend can be cloud hosted
