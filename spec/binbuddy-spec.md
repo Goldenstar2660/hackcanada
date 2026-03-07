@@ -104,6 +104,13 @@ These are not separate KPIs. Users determine them by comparing historical or gro
 - compare signage or layout variants
 - support before / after and A/B analysis using historical data
 
+## Live monitoring page
+- view live device status
+- view current camera feed when active
+- view current detected item
+- view current disposal decision
+- view latest event from the station in real time
+
 ## Configurable business rules
 - supported item set
 - item → disposal-method mapping
@@ -132,5 +139,7 @@ Two hardware units:
 - ESP8266 and Pi communicate over Wi-Fi
 - Pi runs offline on-device inference
 - LLM is fallback only
+- Firebase Firestore is used as the database
+- Firebase Cloud Functions is used as the website backend
+- Pi sends event and live-status data to Firebase for dashboard and live monitoring
 - Dashboard/backend can be cloud hosted
-- Firebase is acceptable for event storage and dashboard data
