@@ -51,3 +51,4 @@ temp/
 
 # .copilot-tracking/
 devices/pi-station/training_data/
+devices/pi-station/work_output/
