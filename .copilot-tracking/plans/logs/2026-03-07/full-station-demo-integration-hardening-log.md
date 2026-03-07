@@ -11,7 +11,7 @@ Gaps and deviations identified during implementation.
 
 * DR-01: Real Firebase rehearsal prerequisites remain external to the repository.
   * Source: .copilot-tracking/research/2026-03-07/full-station-demo-integration-hardening-research.md (Lines 251-278)
-  * Reason: The workspace shell did not contain the required Firebase project, storage, device credential, or web env values, so the thin-slice rehearsal could only be validated locally.
+  * Reason: A direct workspace check confirmed that `apps/web/.env` is present with the required `VITE_FIREBASE_*` keys, `devices/pi-station/.env` is present with the Pi runtime keys, `services/backend-functions/.env.vastum-binsight` is present with backend bucket and device-credential values, and the `secrets/` folder contains a Firebase Admin SDK JSON file. The repo now supports `BINSIGHT_FIREBASE_PROJECT_ID` as a non-reserved local-config fallback for deploy commands, the seed script, and the Pi runtime. The remaining gaps are the non-project-id shell exports required during seeding and completion of the live Firebase rehearsal itself.
   * Impact: High
 
 ### Implementation Deviations
@@ -31,9 +31,9 @@ Gaps and deviations identified during implementation.
 
 ## Suggested Follow-On Work
 
-* WI-01: Add a web environment template — Document the required `VITE_FIREBASE_*` variables in an `apps/web/.env.example` file so the Vite host can be bootstrapped without guessing configuration names. (high)
-  * Source: Phase 4, Step 4.2
-  * Dependency: None
+* WI-01: Finish the live rehearsal shell wiring — Export `BINSIGHT_STORAGE_BUCKET`, `BINSIGHT_DEVICE_CREDENTIALS_JSON`, and `GOOGLE_APPLICATION_CREDENTIALS` in the active shell before seed commands, then run the real Firebase rehearsal. (high)
+  * Source: Phase 5, Step 5.1
+  * Dependency: Access to the demo Firebase project values, device shared secret, and service-account credential path
 * WI-02: Confirm SPA deep-link hosting behavior — Verify static hosting rewrites for routes such as `/stations/:stationId/live` before demo deployment. (medium)
   * Source: Phase 4, Step 4.1
   * Dependency: Web deploy target selection

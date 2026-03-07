@@ -7,7 +7,7 @@
     "backend:build": "corepack pnpm --filter @binsight/backend-functions run build",
     "backend:seed:demo": "corepack pnpm --filter @binsight/backend-functions run seed:demo",
     "build": "corepack pnpm -r run build",
-    "firebase:deploy:firestore": "corepack pnpm dlx firebase-tools@latest deploy --config infra/firebase/firebase.json --only firestore:rules,firestore:indexes --project \"$FIREBASE_PROJECT_ID\"",
+    "firebase:deploy:firestore": "node scripts/firebase-cli.mjs deploy --config infra/firebase/firebase.json --only firestore:rules,firestore:indexes",
     "firebase:deploy:functions": "corepack pnpm --filter @binsight/backend-functions run deploy:functions",
     "lint": "corepack pnpm -r run lint",
     "test": "corepack pnpm -r --if-present run test",

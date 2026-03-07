@@ -17,6 +17,8 @@ Resume the integration-hardening plan by hardening the Pi runtime publication se
 * apps/web/src/main.tsx - Added the browser bootstrap that initializes Firebase and mounts the dashboard.
 * apps/web/src/vite-env.d.ts - Added typed Vite environment variable declarations for the web host.
 * apps/web/.env.example - Added the minimal Firebase web configuration template required by the Vite host.
+* scripts/firebase-project-id.mjs - Added a shared Firebase project-id resolver that supports `FIREBASE_PROJECT_ID` and `BINSIGHT_FIREBASE_PROJECT_ID` plus backend env-file fallback.
+* scripts/firebase-cli.mjs - Added a Firebase CLI wrapper that resolves the project id automatically before deploy commands.
 * services/backend-functions/scripts/seed-demo-data.mjs - Added a demo seeding workflow for stations, live-status stubs, history, and analytics-ready event coverage.
 
 ### Modified
@@ -56,6 +58,12 @@ Resume the integration-hardening plan by hardening the Pi runtime publication se
 * apps/web/README.md - Documented the Vite host startup, Firebase env requirements, and operator login sequence.
 * devices/pi-station/README.md - Documented the final Pi runtime startup sequence for the thin-slice demo path.
 * services/backend-functions/README.md - Documented the demo seed command and the backend credential prerequisites required before rehearsal.
+* package.json - Updated Firestore deploy to resolve the Firebase project id from `BINSIGHT_FIREBASE_PROJECT_ID` when `FIREBASE_PROJECT_ID` is unset.
+* justfile - Updated rehearsal deploy and seed tasks to fall back to `BINSIGHT_FIREBASE_PROJECT_ID` automatically.
+* services/backend-functions/.env.example - Added the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` local-config key for backend env files.
+* services/backend-functions/.env.vastum-binsight - Added `BINSIGHT_FIREBASE_PROJECT_ID=vastum-binsight` for local project-id fallback.
+* devices/pi-station/src/binsight_station/main.py - Added Pi runtime fallback from `FIREBASE_PROJECT_ID` to `BINSIGHT_FIREBASE_PROJECT_ID`.
+* devices/pi-station/.env.example - Updated the Pi env template to prefer the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` key.
 
 ### Removed
 
@@ -74,7 +82,11 @@ Resume the integration-hardening plan by hardening the Pi runtime publication se
 * Phase 3 publication hardening started from a branch where the authenticated device publisher path already existed.
 	* The plan originally framed Step 3.1 as implementing the authenticated ingress transport, but the checked-out branch already contained that transport, so this pass narrowed to explicit endpoint configuration, timeout hardening, and bootstrap documentation.
 * Phase 5 remains blocked on live Firebase provisioning rather than source changes.
-	* The full thin-slice rehearsal could not be completed because the shell environment lacked `FIREBASE_PROJECT_ID`, `BINSIGHT_STORAGE_BUCKET`, `BINSIGHT_DEVICE_CREDENTIALS_JSON`, `GOOGLE_APPLICATION_CREDENTIALS`, and `VITE_FIREBASE_*`, so the demo seed path and browser login path could not be exercised against a real project.
+	* A direct follow-up check confirmed that `apps/web/.env` already contains the required `VITE_FIREBASE_*` values, `devices/pi-station/.env` is now present with the Pi runtime settings, `services/backend-functions/.env.vastum-binsight` already contains backend bucket and device-credential settings, and a Firebase Admin SDK JSON file exists under `secrets/`. The repo now resolves the project id automatically from `BINSIGHT_FIREBASE_PROJECT_ID` when `FIREBASE_PROJECT_ID` is unset. The remaining blockers are the non-project-id shell inputs required during seeding and completion of the real Firebase rehearsal itself.
+* The backend Firebase env guidance was corrected after verifying the Functions runtime behavior.
+	* `services/backend-functions/.env.$FIREBASE_PROJECT_ID` may now carry the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` repo-local config key together with `BINSIGHT_STORAGE_BUCKET` and `BINSIGHT_DEVICE_CREDENTIALS_JSON`. `FIREBASE_PROJECT_ID` must still stay out of that file because Firebase rejects reserved `FIREBASE_*` keys in deploy-time env files.
+* A final Phase 5 repository audit confirmed the repo-owned rehearsal flow is already complete.
+	* `README.md`, `apps/web/README.md`, `devices/pi-station/README.md`, `services/backend-functions/README.md`, and `docs/firebase-rehearsal-runbook.md` already document the supported run order, required env files, operator login path, and live Firebase blocker details.
 
 ## Release Summary
 

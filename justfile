@@ -26,23 +26,26 @@ backend-build:
 rehearsal-build-backend: backend-build
 
 firebase-firestore-deploy:
-	@if [ -z "${FIREBASE_PROJECT_ID:-}" ]; then echo "Set FIREBASE_PROJECT_ID before running this task."; exit 1; fi
-	@if [ -f package.json ]; then corepack pnpm run firebase:deploy:firestore; else echo "TypeScript workspace is not bootstrapped yet."; fi
+	@project_id="${FIREBASE_PROJECT_ID:-${BINSIGHT_FIREBASE_PROJECT_ID:-$(node scripts/firebase-project-id.mjs 2>/dev/null || true)}}"; \
+	if [ -z "$$project_id" ]; then echo "Set FIREBASE_PROJECT_ID or BINSIGHT_FIREBASE_PROJECT_ID before running this task."; exit 1; fi; \
+	if [ -f package.json ]; then FIREBASE_PROJECT_ID="$$project_id" BINSIGHT_FIREBASE_PROJECT_ID="${BINSIGHT_FIREBASE_PROJECT_ID:-$$project_id}" corepack pnpm run firebase:deploy:firestore; else echo "TypeScript workspace is not bootstrapped yet."; fi
 
 rehearsal-deploy-firestore: firebase-firestore-deploy
 
 firebase-functions-deploy:
-	@if [ -z "${FIREBASE_PROJECT_ID:-}" ]; then echo "Set FIREBASE_PROJECT_ID before running this task."; exit 1; fi
-	@if [ -f package.json ]; then corepack pnpm run firebase:deploy:functions; else echo "TypeScript workspace is not bootstrapped yet."; fi
+	@project_id="${FIREBASE_PROJECT_ID:-${BINSIGHT_FIREBASE_PROJECT_ID:-$(node scripts/firebase-project-id.mjs 2>/dev/null || true)}}"; \
+	if [ -z "$$project_id" ]; then echo "Set FIREBASE_PROJECT_ID or BINSIGHT_FIREBASE_PROJECT_ID before running this task."; exit 1; fi; \
+	if [ -f package.json ]; then FIREBASE_PROJECT_ID="$$project_id" BINSIGHT_FIREBASE_PROJECT_ID="${BINSIGHT_FIREBASE_PROJECT_ID:-$$project_id}" corepack pnpm run firebase:deploy:functions; else echo "TypeScript workspace is not bootstrapped yet."; fi
 
 rehearsal-deploy-functions: firebase-functions-deploy
 
 seed-demo:
-	@if [ -z "${FIREBASE_PROJECT_ID:-}" ]; then echo "Set FIREBASE_PROJECT_ID before seeding demo data."; exit 1; fi
-	@if [ -z "${BINSIGHT_STORAGE_BUCKET:-}" ]; then echo "Set BINSIGHT_STORAGE_BUCKET before seeding demo data."; exit 1; fi
-	@if [ -z "${BINSIGHT_DEVICE_CREDENTIALS_JSON:-}" ]; then echo "Set BINSIGHT_DEVICE_CREDENTIALS_JSON before seeding demo data."; exit 1; fi
-	@if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then echo "Set GOOGLE_APPLICATION_CREDENTIALS before seeding demo data."; exit 1; fi
-	@if [ -f package.json ]; then corepack pnpm run backend:seed:demo; else echo "TypeScript workspace is not bootstrapped yet."; fi
+	@project_id="${FIREBASE_PROJECT_ID:-${BINSIGHT_FIREBASE_PROJECT_ID:-$(node scripts/firebase-project-id.mjs 2>/dev/null || true)}}"; \
+	if [ -z "$$project_id" ]; then echo "Set FIREBASE_PROJECT_ID or BINSIGHT_FIREBASE_PROJECT_ID before seeding demo data."; exit 1; fi; \
+	if [ -z "${BINSIGHT_STORAGE_BUCKET:-}" ]; then echo "Set BINSIGHT_STORAGE_BUCKET before seeding demo data."; exit 1; fi; \
+	if [ -z "${BINSIGHT_DEVICE_CREDENTIALS_JSON:-}" ]; then echo "Set BINSIGHT_DEVICE_CREDENTIALS_JSON before seeding demo data."; exit 1; fi; \
+	if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then echo "Set GOOGLE_APPLICATION_CREDENTIALS before seeding demo data."; exit 1; fi; \
+	if [ -f package.json ]; then FIREBASE_PROJECT_ID="$$project_id" BINSIGHT_FIREBASE_PROJECT_ID="${BINSIGHT_FIREBASE_PROJECT_ID:-$$project_id}" corepack pnpm run backend:seed:demo; else echo "TypeScript workspace is not bootstrapped yet."; fi
 
 rehearsal-seed-demo: seed-demo
 
