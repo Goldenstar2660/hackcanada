@@ -39,6 +39,11 @@ ui-debug.log
 firestore-debug.log
 pubsub-debug.log
 
+# Local secrets and credentials
+secrets/
+firebase.local.json
+services/backend-functions/firebase.local.json
+
 # Logs and temp files
 *.log
 tmp/

@@ -14,17 +14,38 @@ This package owns the TypeScript backend surface that will host Firebase Cloud F
 * Analytics aggregation and read-model support
 * Consumption of shared contracts and rules assets
 
-## Bootstrap Status
+## Firebase rehearsal runbook
 
-This package is currently a minimal TypeScript shell. Firebase runtime wiring, emulator support, and HTTP surface definitions are deferred to later phases.
+Use `../../docs/firebase-rehearsal-runbook.md` for the exact setup, deploy, seed, and startup sequence. This README keeps the backend-specific deploy and runtime contract notes.
+
+## Deploy contract
+
+Firebase deploys this package from `services/backend-functions`, but the runtime entrypoint is the built artifact at `dist/index.js`. The repository now treats the deploy flow as an explicit two-step contract:
+
+1. Build the package.
+2. Deploy the `backend-functions` Firebase codebase.
+
+The Firebase configuration under `infra/firebase/firebase.json` ignores the TypeScript source tree and upload-time documentation files. If `dist/index.js` is missing, the Functions deploy fails instead of silently compiling a different artifact.
+
+Build the backend package from the repository root with:
+
+```bash
+corepack pnpm run backend:build
+```
 
 ## Demo Bootstrap
 
 The Phase 3 demo setup expects this package to run against a real Firebase project, not only an emulator.
 
-### Required Environment
+### Deployed Functions runtime environment
 
-Set these values before deploying functions or running the seed workflow:
+Deployed Functions runtime values live in a per-project env file inside this package. Copy `.env.example` to `.env.$FIREBASE_PROJECT_ID`, then replace the placeholder values before `firebase deploy`.
+
+```bash
+cp services/backend-functions/.env.example services/backend-functions/.env.$FIREBASE_PROJECT_ID
+```
+
+The deployed env file must define these values:
 
 ```text
 FIREBASE_PROJECT_ID=your-firebase-project-id
@@ -34,14 +55,31 @@ BINSIGHT_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-st
 
 `BINSIGHT_DEVICE_CREDENTIALS_JSON` must be a JSON array. Each entry maps one Pi device identity to one station id and shared secret. The Pi runtime sends these values in the `x-binsight-device-id`, `x-binsight-station-id`, `x-binsight-timestamp`, and `x-binsight-signature` headers when it calls `ingestEvent` and `ingestLiveStatus`.
 
-The seed workflow and deployed functions also require Firebase application default credentials in the environment. `GOOGLE_APPLICATION_CREDENTIALS` is the most direct setup path for the current repository.
+Deploy Functions from the repository root with:
+
+```bash
+corepack pnpm run firebase:deploy:functions
+```
+
+### Local seed environment
+
+The local seed workflow stays on shell exports plus application default credentials. Export these values in your shell before seeding demo data:
+
+```text
+FIREBASE_PROJECT_ID=your-firebase-project-id
+BINSIGHT_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
+BINSIGHT_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+```
+
+Do not rely on the per-project Functions env file for the local seed step. The seed script reads the shell environment and authenticates through application default credentials on the operator machine.
 
 ### Seed Workflow
 
 Authenticate the Firebase Admin SDK for the target project, set the environment values above, and run:
 
 ```bash
-corepack pnpm --filter @binsight/backend-functions run seed:demo
+corepack pnpm run backend:seed:demo
 ```
 
 The seed script writes:
@@ -55,16 +93,7 @@ The script also pre-creates analytics materialization ledger documents for seede
 
 ### Thin-slice run order
 
-Use this backend order for the Phase 5 rehearsal:
-
-1. Export `FIREBASE_PROJECT_ID`, `BINSIGHT_STORAGE_BUCKET`, and `BINSIGHT_DEVICE_CREDENTIALS_JSON` for the target Firebase project.
-2. Export `GOOGLE_APPLICATION_CREDENTIALS` for an account that can seed Firestore documents in that project.
-3. Seed the demo dataset.
-4. Ensure the functions code from `services/backend-functions` and the Firestore config from `infra/firebase/firebase.json` are deployed to the same Firebase project before starting the dashboard or Pi runtime.
-
-```bash
-corepack pnpm --filter @binsight/backend-functions run seed:demo
-```
+Use `../../docs/firebase-rehearsal-runbook.md` for the complete Phase 5 rehearsal order. The backend-specific rules stay the same: build before deploy, keep deployed runtime values in `services/backend-functions/.env.$FIREBASE_PROJECT_ID`, and keep local seeding on shell exports plus `GOOGLE_APPLICATION_CREDENTIALS`.
 
 The backend surface is consumed as deployed Firebase Functions. There is no separate long-running local backend host in the Phase 5 demo path.
 
@@ -84,5 +113,5 @@ Create one Firebase Auth email and password user for the dashboard operator in t
 Install workspace dependencies from the repository root, then run the package watch script if you need local TypeScript compilation:
 
 ```bash
-pnpm --filter @binsight/backend-functions run dev
+corepack pnpm --filter @binsight/backend-functions run dev
 ```

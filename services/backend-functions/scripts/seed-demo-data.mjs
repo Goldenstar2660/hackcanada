@@ -425,7 +425,7 @@ function materializeRollups(events, stationById) {
 
     for (const seed of seeds) {
       const key = `${seed.collection}/${seed.rollupId}`;
-      const existing = rollups.get(key) ?? seed.document;
+      const existing = rollups.get(key)?.document ?? seed.document;
       rollups.set(key, {
         collection: seed.collection,
         rollupId: seed.rollupId,

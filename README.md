@@ -39,6 +39,8 @@ The repository already includes the current scaffold for every planned surface:
 * `packages/contracts`, `packages/rules`, `packages/analytics`, and `packages/tooling` for shared schemas and assets
 * `infra/firebase` for Firebase configuration, rules, and indexes
 
+For the supported Firebase demo rehearsal path, use the shared runbook in `docs/firebase-rehearsal-runbook.md`. It is the beginner-first source for configuration, deploy, seed, local dashboard startup, and Pi runtime startup.
+
 If `just` is installed, list the available root tasks with:
 
 ```bash
@@ -87,15 +89,51 @@ Observed local results:
 
 Use this order for the real station-to-cloud-to-dashboard demo once Firebase provisioning is in place:
 
-1. Provision the demo environment for all three surfaces.
-2. Seed the comparative Firebase dataset from the repository root.
-3. Confirm the backend functions and Firestore configuration are deployed for the target Firebase project.
-4. Start the Vite dashboard host from `apps/web`.
-5. Sign in with the provisioned Firebase Auth operator account.
-6. Start the Pi runtime from `devices/pi-station`.
-7. Run the live station interaction against the seeded `demo-station-001` path while the dashboard is open.
+1. Export `FIREBASE_PROJECT_ID` for the target Firebase project.
+2. Create `services/backend-functions/.env.$FIREBASE_PROJECT_ID`, `apps/web/.env`, and `devices/pi-station/.env`.
+3. Run `corepack pnpm run backend:build`.
+4. Run `corepack pnpm run firebase:deploy:firestore`.
+5. Run `corepack pnpm run firebase:deploy:functions`.
+6. Export the seed shell variables, including `GOOGLE_APPLICATION_CREDENTIALS`, then run `corepack pnpm run backend:seed:demo`.
+7. Start the dashboard with `corepack pnpm run web:dev`.
+8. Sign in with the provisioned Firebase Auth operator account.
+9. Run `cd devices/pi-station && uv run pytest`.
+10. Run `cd devices/pi-station && uv run binsight-station`.
+11. Run the live station interaction against the seeded `demo-station-001` path while the dashboard is open.
 
 The backend surface is not a long-running local process in this repository. The Pi runtime and dashboard both assume the callable and Firestore surface already exists in the target Firebase project.
+
+The supported path remains Vite-local for the dashboard and Firebase-hosted for backend and data. Firebase Hosting stays out of scope for this rehearsal cycle.
+
+## Command map
+
+Phase 1 makes the Firebase rehearsal command surface explicit at the repository root.
+
+For the exact end-to-end order, follow `docs/firebase-rehearsal-runbook.md`. The list below is the command surface that runbook uses.
+
+Use these root scripts when you want the exact repository-owned workflow:
+
+```bash
+corepack pnpm run backend:build
+corepack pnpm run firebase:deploy:firestore
+corepack pnpm run firebase:deploy:functions
+corepack pnpm run backend:seed:demo
+corepack pnpm run web:dev
+```
+
+If you prefer `just`, use the rehearsal aliases in the same order:
+
+```bash
+just rehearsal-build-backend
+just rehearsal-deploy-firestore
+just rehearsal-deploy-functions
+just rehearsal-seed-demo
+just rehearsal-web-local
+just rehearsal-pi-validate
+just rehearsal-pi-start
+```
+
+The supported rehearsal path remains unchanged for scope control: build the backend explicitly, deploy Firestore rules and indexes, deploy Functions, seed the demo data from a shell with application default credentials, then run the website locally with Vite. Firebase Hosting and emulator orchestration remain out of scope for this phase.
 
 > [!WARNING]
 > The real Firebase rehearsal was not validated in this workspace on 2026-03-07. The demo seed command failed immediately because `FIREBASE_PROJECT_ID` was not set in the shell, no Firebase application credentials were present, and no web dashboard `.env` file was provisioned. Treat live dashboard updates, seeded history, and operator login as blocked until those environment prerequisites are supplied.
@@ -103,6 +141,8 @@ The backend surface is not a long-running local process in this repository. The 
 ## Demo Bootstrap
 
 The Phase 3 demo path assumes one Firebase project shared by the Pi runtime, backend functions, and Vite dashboard.
+
+Use `docs/firebase-rehearsal-runbook.md` for the complete step-by-step setup. The notes below stay here as a quick reference.
 
 ### Cross-Surface Environment Checklist
 
@@ -128,6 +168,8 @@ FIREBASE_PROJECT_ID=your-firebase-project-id
 BINSIGHT_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
 BINSIGHT_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
 ```
+
+For deployed Functions, keep those values in `services/backend-functions/.env.$FIREBASE_PROJECT_ID`. For the local seed workflow, export the same values in your shell together with `GOOGLE_APPLICATION_CREDENTIALS`.
 
 The Vite dashboard uses `apps/web/.env` with these Firebase web SDK values:
 

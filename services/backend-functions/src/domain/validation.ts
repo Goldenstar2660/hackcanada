@@ -1,5 +1,4 @@
 import {
-  DEVICE_PAYLOAD_VERSIONS,
   type AnalyticsGroupingDimension,
   type AnalyticsQuery,
   type AnalyticsSummary,
@@ -23,6 +22,7 @@ const DISPOSAL_METHODS = ["recycle", "compost", "garbage"] as const;
 const DISPOSAL_ZONES = ["left", "middle", "right"] as const;
 const ATTEMPT_RESULTS = ["success", "failure"] as const;
 const DEVICE_STATUSES = ["online", "offline", "degraded"] as const;
+const DEVICE_PAYLOAD_VERSIONS = ["device.v1"] as const;
 const DEVICE_SESSION_PHASES = ["idle", "detecting", "guiding", "waiting_for_disposal", "complete"] as const;
 const SESSION_STATES = [
   "idle",
