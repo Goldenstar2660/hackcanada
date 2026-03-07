@@ -4,6 +4,14 @@
   font-family: "Segoe UI", sans-serif;
 }
 
+.dashboard-shell--standalone {
+  align-items: center;
+  background: #f9f8f4;
+  display: grid;
+  justify-items: center;
+  padding: 2rem;
+}
+
 .dashboard-header {
   background: linear-gradient(135deg, #f4efe7 0%, #c8e6d0 55%, #87bba2 100%);
   border-bottom: 1px solid #87bba2;
@@ -74,6 +82,22 @@
 .dashboard-main {
   background: #f9f8f4;
   padding: 1.5rem 2rem 3rem;
+}
+
+.dashboard-operator-bar {
+  align-items: center;
+  background: #132238;
+  color: #f9f8f4;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+}
+
+.dashboard-operator-meta {
+  display: inline-block;
+  margin-left: 0.75rem;
+  opacity: 0.8;
 }
 
 .dashboard-section-stack {
@@ -203,6 +227,22 @@
   margin: 0.8rem 0 0;
 }
 
+.dashboard-status {
+  border-radius: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0.8rem 0.95rem;
+}
+
+.dashboard-status--warning {
+  background: #fff2dd;
+  color: #7a4b00;
+}
+
+.dashboard-status--empty {
+  background: #eef4ef;
+  color: #2f4f43;
+}
+
 .dashboard-card--selected {
   border-color: #2b5f75;
 }
@@ -306,6 +346,11 @@
 .dashboard-button--ghost {
   background: #ffffff;
   color: #2b5f75;
+}
+
+.dashboard-card--auth {
+  max-width: 30rem;
+  width: 100%;
 }
 
 @media (max-width: 900px) {

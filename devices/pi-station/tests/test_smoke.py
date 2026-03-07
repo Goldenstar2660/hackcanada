@@ -62,7 +62,7 @@ def test_runtime_starts_session_from_stable_esp_presence_frames() -> None:
     assert snapshot.phase == SessionPhase.WAITING_FOR_DISPOSAL
     assert status.payload_version == "device.v1"
     assert status.station_id == runtime.settings.station_id
-    assert status.camera_feed_active is True
+    assert status.camera_feed_active is False
     assert status.current_hand_zone is None
     assert status.device_health.cloud_sync == "online"
     assert snapshot.correct_disposal_method in {"recycle", "compost", "garbage"}

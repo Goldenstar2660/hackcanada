@@ -8,6 +8,10 @@
   "supportedItems": [
     "plastic-bottle",
     "banana-peel",
+    "coffee-cup",
+    "pizza-box",
+    "paper-takeout-container",
+    "apple-core",
     "unknown-item",
     "fallback-item"
   ],
@@ -18,6 +22,22 @@
     },
     {
       "itemType": "banana-peel",
+      "disposalMethod": "compost"
+    },
+    {
+      "itemType": "coffee-cup",
+      "disposalMethod": "garbage"
+    },
+    {
+      "itemType": "pizza-box",
+      "disposalMethod": "garbage"
+    },
+    {
+      "itemType": "paper-takeout-container",
+      "disposalMethod": "recycle"
+    },
+    {
+      "itemType": "apple-core",
       "disposalMethod": "compost"
     },
     {

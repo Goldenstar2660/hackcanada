@@ -8,11 +8,11 @@
       "@binbuddy/contracts": ["../../packages/contracts/src/index.d.ts"],
       "@binbuddy/rules": ["../../packages/rules/src/index.ts"],
       "@binbuddy/tooling": ["../../packages/tooling/src/index.ts"],
-      "@binbuddy/web": ["./src/index.ts"],
-      "react/jsx-runtime": ["./src/react/jsx-runtime.ts"]
+      "@binbuddy/web": ["./src/index.ts"]
     },
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
+    "types": ["vite/client"],
     "rootDir": "src",
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"

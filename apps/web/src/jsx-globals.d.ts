@@ -1,13 +1,15 @@
-declare namespace JSX {
-  interface Element {
-    readonly __brand?: "binbuddy-jsx-element";
-  }
+import type * as React from "react";
 
-  interface ElementChildrenAttribute {
-    children: unknown;
-  }
+declare global {
+	namespace JSX {
+		type Element = React.ReactElement;
 
-  interface IntrinsicElements {
-    [elementName: string]: Record<string, unknown>;
-  }
+		interface ElementChildrenAttribute {
+			children: {};
+		}
+
+		interface IntrinsicElements extends React.JSX.IntrinsicElements {}
+	}
 }
+
+export {};

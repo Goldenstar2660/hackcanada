@@ -4,7 +4,7 @@ from collections.abc import Iterator
 
 from binbuddy_station.classification import ClassificationResult
 from binbuddy_station.esp_client import EspClient, MemoryEspTransport
-from binbuddy_station.main import StationRuntime, load_runtime_settings
+from binbuddy_station.main import DeterministicHandTracker, StationRuntime, load_runtime_settings
 from binbuddy_station.session import SessionPhase, SessionStateMachine
 
 
@@ -39,6 +39,12 @@ def _build_runtime(
 def _queue_stable_presence(transport: MemoryEspTransport, sequence: int) -> None:
     transport.queue_incoming(
         f"presence present=1 zone=off stable=1 seq={sequence}",
+    )
+
+
+def _queue_absent_presence(transport: MemoryEspTransport, sequence: int) -> None:
+    transport.queue_incoming(
+        f"presence present=0 zone=off stable=0 seq={sequence}",
     )
 
 
@@ -100,15 +106,20 @@ def test_runtime_successful_disposal_preserves_station_counters_after_reset() ->
     assert result_snapshot.phase is SessionPhase.EMIT_RESULT
     assert result_snapshot.total_attempts == 1
     assert result_snapshot.total_correct_sorts == 1
-    assert runtime.lcd_client.screen_history[-2].mode == "result"
-    assert runtime.lcd_client.screen_history[-2].line_two.strip() == "OK 1/1"
+    assert runtime.lcd_client.screen_history[-4].mode == "guidance"
+    assert runtime.lcd_client.screen_history[-4].line_one.strip() == "plastic bottle"
+    assert runtime.lcd_client.screen_history[-4].line_two.strip() == "Use recycle"
+    assert runtime.lcd_client.screen_history[-3].mode == "result"
+    assert runtime.lcd_client.screen_history[-3].line_two.strip() == "C:1 A:1"
     assert resetting_snapshot.phase is SessionPhase.RESETTING
     assert idle_snapshot.phase is SessionPhase.IDLE
     assert idle_snapshot.total_attempts == 1
     assert idle_snapshot.total_correct_sorts == 1
     assert runtime.lcd_client.last_screen is not None
     assert runtime.lcd_client.last_screen.mode == "standby"
-    assert runtime.lcd_client.last_screen.line_two.strip() == "OK 1/1"
+    assert runtime.lcd_client.last_screen.line_two.strip() == "C:1 A:1"
+    assert runtime.lcd_client.screen_history[-2].mode == "reset"
+    assert runtime.lcd_client.screen_history[-2].line_two.strip() == "C:1 A:1"
 
 
 def test_runtime_incorrect_disposal_keeps_failed_attempt_in_station_counter() -> None:
@@ -135,11 +146,11 @@ def test_runtime_incorrect_disposal_keeps_failed_attempt_in_station_counter() ->
     assert event.attempt_result == "failure"
     assert result_snapshot.total_attempts == 1
     assert result_snapshot.total_correct_sorts == 0
-    assert runtime.lcd_client.screen_history[-2].line_one.strip() == "Try again"
+    assert runtime.lcd_client.screen_history[-3].line_one.strip() == "Try again"
     assert idle_snapshot.total_attempts == 1
     assert idle_snapshot.total_correct_sorts == 0
     assert runtime.lcd_client.last_screen is not None
-    assert runtime.lcd_client.last_screen.line_two.strip() == "OK 0/1"
+    assert runtime.lcd_client.last_screen.line_two.strip() == "C:0 A:1"
 
 
 def test_runtime_fallback_classification_flow_marks_event_and_live_status() -> None:
@@ -207,3 +218,45 @@ def test_runtime_waits_for_stable_esp_presence_before_identification() -> None:
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
     assert waiting_status.to_payload()["sessionState"] == "waiting-for-disposal"
     assert waiting_snapshot.predicted_item == "plastic-bottle"
+
+
+def test_runtime_uses_deterministic_hand_tracking_without_camera_feed() -> None:
+    transport = MemoryEspTransport()
+    clock = iter([30.0, 30.4, 30.5, 30.9, 31.2, 31.6, 31.9]).__next__
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=clock,
+        esp_client=EspClient("serial://test", transport=transport),
+        hand_tracking_input=DeterministicHandTracker(("right",)),
+    )
+    runtime.classifier = StubClassifier(
+        ClassificationResult(
+            predicted_item="plastic-bottle",
+            confidence=0.97,
+            llm_fallback_used=False,
+        )
+    )
+
+    _queue_stable_presence(transport, 1)
+    runtime.start_session(image_source="demo://plastic-bottle")
+    _queue_stable_presence(transport, 2)
+    waiting_snapshot, waiting_status = runtime.start_session(image_source="demo://plastic-bottle")
+
+    assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+    assert waiting_snapshot.hand_present is False
+    assert waiting_snapshot.latest_hand_zone is None
+
+    _queue_stable_presence(transport, 3)
+    tracked_status = runtime.sync_from_esp()
+
+    assert waiting_status.to_payload()["cameraFeedActive"] is False
+    assert tracked_status.to_payload()["currentHandZone"] == "right"
+
+    _queue_absent_presence(transport, 4)
+    result_status = runtime.sync_from_esp()
+
+    assert runtime.last_event is not None
+    assert runtime.last_event.actual_disposal_zone == "right"
+    assert runtime.last_event.success is False
+    assert result_status.to_payload()["cameraFeedActive"] is False
+    assert result_status.to_payload()["latestEvent"]["actualDisposalZone"] == "right"
