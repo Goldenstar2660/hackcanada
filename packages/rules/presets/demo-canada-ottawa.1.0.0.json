@@ -1,0 +1,38 @@
+{
+  "presetId": "demo-canada-ottawa",
+  "version": "1.0.0",
+  "jurisdiction": {
+    "city": "Ottawa",
+    "provinceOrState": "Ontario"
+  },
+  "supportedItems": [
+    "plastic-bottle",
+    "banana-peel",
+    "unknown-item",
+    "fallback-item"
+  ],
+  "itemMappings": [
+    {
+      "itemType": "plastic-bottle",
+      "disposalMethod": "recycle"
+    },
+    {
+      "itemType": "banana-peel",
+      "disposalMethod": "compost"
+    },
+    {
+      "itemType": "unknown-item",
+      "disposalMethod": "garbage"
+    },
+    {
+      "itemType": "fallback-item",
+      "disposalMethod": "garbage"
+    }
+  ],
+  "zoneMapping": {
+    "left": "recycle",
+    "middle": "compost",
+    "right": "garbage"
+  },
+  "lowConfidenceThreshold": 0.65
+}
