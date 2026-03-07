@@ -25,10 +25,16 @@ run_cmd() {
     fi
 }
 
-# Use sudo for local apt commands
+# Use sudo for local apt commands if available
 SUDO=""
 if ! is_remote && [ "$(id -u)" -ne 0 ]; then
-    SUDO="sudo"
+    # Check if sudo is available
+    if ! sudo -n true 2>/dev/null; then
+        SUDO=""
+        echo "WARNING: No sudo access - will use pip --user only"
+    else
+        SUDO="sudo"
+    fi
 fi
 
 echo "=== Deploying ML Engine to ${TARGET} (runtime: $RUNTIME) ==="
@@ -47,11 +53,14 @@ if [ "$RUNTIME" = "docker" ]; then
     fi
     docker --version
 else
-    # Native/udocker: install Python deps on host
+    # Native/udocker: install Python deps (no sudo = pip --user)
     if [ "$RUNTIME" = "native" ] || [ "$RUNTIME" = "udocker" ]; then
-        $SUDO apt-get update
-        $SUDO apt-get install -y python3 python3-pip git curl tesseract-ocr libgl1-mesa-glx libglib2.0-0
-        pip3 install --no-cache-dir -r requirements.txt
+        PIP_FLAGS="--user"
+        if [ -n "$SUDO" ]; then
+            $SUDO apt-get update
+            $SUDO apt-get install -y python3 python3-pip git curl libgl1-mesa-glx libglib2.0-0 || true
+        fi
+        pip3 install $PIP_FLAGS --no-cache-dir -r requirements.txt
     fi
 fi
 '
