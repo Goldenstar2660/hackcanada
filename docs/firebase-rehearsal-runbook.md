@@ -182,6 +182,10 @@ cd /home/handwash/Projects/hackcanada
 corepack pnpm run firebase:deploy:functions
 ```
 
+The browser dashboard and device publishers call Firebase Functions through HTTPS. The repository deploy contract expects those HTTP and callable functions to stay publicly invokable at the Cloud Run transport layer, then enforce identity inside application code.
+
+If you see a browser error like `blocked by CORS policy` and Cloud Run logs show `The request was not authenticated` for an `OPTIONS` request, redeploy the backend after building. That symptom means the underlying service is blocking the preflight before the function handler can apply its Firebase Auth or device-auth checks.
+
 If you prefer `just`, use:
 
 ```bash

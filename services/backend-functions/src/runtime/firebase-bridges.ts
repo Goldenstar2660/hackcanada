@@ -11,6 +11,10 @@ import type { CallableHandler, HttpHandler } from "../functions/runtime.js";
 import { analyticsMaterializationLedgerDocumentPath, FIRESTORE_COLLECTIONS } from "../firestore/collections.js";
 import { toErrorResponse, FunctionError } from "../functions/runtime.js";
 
+const PUBLIC_INVOKER_OPTIONS = {
+  invoker: "public"
+} as const;
+
 function normalizeHeaders(headers: Request["headers"]): Readonly<Record<string, string | undefined>> {
   const normalized: Record<string, string | undefined> = {};
   for (const [name, value] of Object.entries(headers)) {
@@ -58,7 +62,7 @@ function toHttpsError(error: unknown): HttpsError {
 }
 
 export function createFirebaseHttpFunction(handler: HttpHandler): HttpsFunction {
-  return onRequest(async (request: Request, response: Response) => {
+  return onRequest(PUBLIC_INVOKER_OPTIONS, async (request: Request, response: Response) => {
     const result = await handler({
       method: request.method,
       headers: normalizeHeaders(request.headers),
@@ -77,7 +81,7 @@ export function createFirebaseHttpFunction(handler: HttpHandler): HttpsFunction 
 export function createFirebaseCallableFunction<TRequest, TResponse>(
   handler: CallableHandler<TRequest, TResponse>
 ) {
-  return onCall<TRequest, TResponse>(async (request: CallableRequest<TRequest>) => {
+  return onCall<TRequest, TResponse>(PUBLIC_INVOKER_OPTIONS, async (request: CallableRequest<TRequest>) => {
     try {
       return await handler(request.data, {
         auth: request.auth
