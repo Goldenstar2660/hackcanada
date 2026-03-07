@@ -114,10 +114,10 @@ devices/pi-station/config/training_capture.json
 
 How it works:
 
-* Press `Enter` once to start capturing images
-* Press `Enter` again to stop the current run
+* Press `Enter` once to capture one image
+* Press `Enter` again to capture one more image
 * Press `Ctrl+C` to quit
-* The config is reloaded every time you start a run
+* The config is reloaded every time you press `Enter`
 
 Default output layout:
 
@@ -129,11 +129,11 @@ Important config fields:
 
 * `label`: class name for the images, such as `engaged`, `paper`, or `plastic`
 * `outputDir`: base folder for saved images
-* `intervalSeconds`: time between photos
+* `intervalSeconds`: retained in config for compatibility, but ignored in manual one-photo-per-Enter mode
 * `width` / `height`: capture resolution
 * `imageFormat`: output format, typically `jpg` or `png`
 * `jpegQuality`: JPEG quality when saving `.jpg`
-* `maxPhotosPerRun`: `0` means unlimited until you stop manually
+* `maxPhotosPerRun`: retained in config for compatibility, but ignored in manual one-photo-per-Enter mode
 * `flip180`: rotate the saved image 180 degrees if your camera is mounted upside down
 * `swapRedBlue`: retained for compatibility with the original script, but ignored by the current CLI-camera implementation
 
