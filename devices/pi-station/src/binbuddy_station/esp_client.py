@@ -79,6 +79,7 @@ class EspClient:
         self.last_health: HealthTelemetry | None = None
         self.acknowledgements: list[EspAcknowledgement] = []
         self.last_protocol_error: str | None = None
+        self._presence_frame_count = 0
 
     def send_guidance(self, command: GuidanceCommand) -> None:
         _validate_indicator_zone(command.indicator_zone)
@@ -107,6 +108,7 @@ class EspClient:
                 return True
             if normalized_frame.startswith("presence "):
                 self.last_presence = _parse_presence_frame(normalized_frame)
+                self._presence_frame_count += 1
                 self.last_protocol_error = None
                 return True
             if normalized_frame.startswith("ack "):
@@ -123,6 +125,10 @@ class EspClient:
     @property
     def has_stable_presence(self) -> bool:
         return self.last_presence.stable and self.last_presence.hand_present
+
+    @property
+    def presence_frame_count(self) -> int:
+        return self._presence_frame_count
 
     @property
     def device_health_status(self) -> str:

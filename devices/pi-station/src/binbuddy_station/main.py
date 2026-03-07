@@ -90,6 +90,52 @@ class StationRuntime:
             cloud_sync=self.publication_client.cloud_sync_status,
         )
 
+    def _poll_esp(self) -> bool:
+        previous_presence_count = self.esp_client.presence_frame_count
+        self.esp_client.poll()
+        return self.esp_client.presence_frame_count > previous_presence_count
+
+    def _advance_session_entry(self, image_source: str, observed_presence_frame: bool) -> SessionSnapshot:
+        snapshot = self.session.snapshot
+
+        if snapshot.phase is SessionPhase.IDLE:
+            if not observed_presence_frame or not self.esp_client.has_stable_presence:
+                return snapshot
+            return self.session.begin_presence_arming(self._now())
+
+        if snapshot.phase is not SessionPhase.PRESENCE_ARMING:
+            return snapshot
+
+        now = self._now()
+        if not self.esp_client.has_stable_presence:
+            return self.session.cancel_presence_arming(now)
+        if not observed_presence_frame or not self.session.is_presence_confirmed(now):
+            return snapshot
+
+        self.session.begin_identification(now)
+        classification = self.classifier.classify(
+            ClassificationRequest(
+                image_source=image_source,
+                confidence_threshold=self.rules.low_confidence_threshold,
+            )
+        )
+        disposal_method = self.rules.disposal_method_for_item(classification.predicted_item)
+        guidance_snapshot = self.session.set_guidance(
+            classification.predicted_item,
+            disposal_method,
+            classification.confidence,
+            classification.llm_fallback_used,
+            self._now(),
+        )
+        self._send_guidance(guidance_snapshot)
+        self.lcd_client.render_guidance(
+            predicted_item=classification.predicted_item,
+            disposal_method=disposal_method,
+            total_attempts=guidance_snapshot.total_attempts,
+            total_correct_sorts=guidance_snapshot.total_correct_sorts,
+        )
+        return self.session.begin_waiting_for_disposal(self._now())
+
     def _publish_runtime_status(
         self,
         snapshot: SessionSnapshot,
@@ -97,7 +143,6 @@ class StationRuntime:
         latest_event: DisposalEvent | None = None,
         session_state_override: str | None = None,
     ) -> LiveStatus:
-        self.esp_client.poll()
         status = self.live_status_publisher.build_status(
             self.settings.station_id,
             snapshot,
@@ -121,33 +166,8 @@ class StationRuntime:
 
     def start_session(self, image_source: str = "camera://placeholder") -> tuple[SessionSnapshot, LiveStatus]:
         self.esp_client.request_health()
-        presence_started_at = self._now()
-        self.session.begin_presence_arming(presence_started_at)
-        self.session.begin_identification(
-            presence_started_at + self.session.timing.presence_debounce_seconds
-        )
-        classification = self.classifier.classify(
-            ClassificationRequest(
-                image_source=image_source,
-                confidence_threshold=self.rules.low_confidence_threshold,
-            )
-        )
-        disposal_method = self.rules.disposal_method_for_item(classification.predicted_item)
-        guidance_snapshot = self.session.set_guidance(
-            classification.predicted_item,
-            disposal_method,
-            classification.confidence,
-            classification.llm_fallback_used,
-            self._now(),
-        )
-        self._send_guidance(guidance_snapshot)
-        self.lcd_client.render_guidance(
-            predicted_item=classification.predicted_item,
-            disposal_method=disposal_method,
-            total_attempts=guidance_snapshot.total_attempts,
-            total_correct_sorts=guidance_snapshot.total_correct_sorts,
-        )
-        snapshot = self.session.begin_waiting_for_disposal(self._now())
+        observed_presence_frame = self._poll_esp()
+        snapshot = self._advance_session_entry(image_source, observed_presence_frame)
         return snapshot, self._publish_runtime_status(snapshot, latest_event=self.last_event)
 
     def _send_guidance(self, snapshot: SessionSnapshot) -> None:
@@ -163,6 +183,7 @@ class StationRuntime:
         )
 
     def sync_from_esp(self) -> LiveStatus:
+        self._poll_esp()
         return self._publish_runtime_status(self.session.snapshot, latest_event=self.last_event)
 
     def observe_hand(self, zone: str | None, hand_present: bool) -> SessionSnapshot:

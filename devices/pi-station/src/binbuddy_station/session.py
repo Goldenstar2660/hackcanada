@@ -63,6 +63,19 @@ class SessionStateMachine:
         )
         return self.snapshot
 
+    def cancel_presence_arming(self, now_monotonic: float) -> SessionSnapshot:
+        if self._snapshot.phase is not SessionPhase.PRESENCE_ARMING:
+            raise ValueError("presence arming must be active before it can be cancelled")
+
+        self._snapshot = SessionSnapshot(
+            phase=SessionPhase.IDLE,
+            latest_result_success=self._snapshot.latest_result_success,
+            total_attempts=self._snapshot.total_attempts,
+            total_correct_sorts=self._snapshot.total_correct_sorts,
+            phase_started_at_monotonic=now_monotonic,
+        )
+        return self.snapshot
+
     def is_presence_confirmed(self, now_monotonic: float) -> bool:
         if self._snapshot.phase is not SessionPhase.PRESENCE_ARMING:
             return False

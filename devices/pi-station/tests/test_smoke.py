@@ -34,12 +34,28 @@ class RecordingClassifier:
         return self.result
 
 
-def test_runtime_loads_settings_and_starts_session() -> None:
-    runtime = StationRuntime(load_runtime_settings())
+def test_runtime_starts_session_from_stable_esp_presence_frames() -> None:
+    transport = MemoryEspTransport()
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=iter([0.0, 0.4, 0.5, 1.0]).__next__,
+        esp_client=EspClient("serial://test", transport=transport),
+    )
 
+    transport.queue_incoming(
+        "health uptime_ms=42 sensor=1 indicator=1 active_zone=off",
+        "presence present=1 zone=off stable=1 seq=1",
+    )
+    arming_snapshot, arming_status = runtime.start_session()
+    transport.queue_incoming(
+        "health uptime_ms=43 sensor=1 indicator=1 active_zone=off",
+        "presence present=1 zone=off stable=1 seq=2",
+    )
     snapshot, status = runtime.start_session()
     expected_zone = runtime.rules.zone_for_disposal_method(snapshot.correct_disposal_method)
 
+    assert arming_snapshot.phase == SessionPhase.PRESENCE_ARMING
+    assert arming_status.phase == "detecting-person"
     assert snapshot.phase == SessionPhase.WAITING_FOR_DISPOSAL
     assert status.station_id == runtime.settings.station_id
     assert status.phase == "waiting-for-disposal"
@@ -49,6 +65,33 @@ def test_runtime_loads_settings_and_starts_session() -> None:
     assert runtime.lcd_client.last_screen is not None
     assert runtime.lcd_client.last_screen.mode == "guidance"
     assert status.to_payload()["sessionState"] == "waiting-for-disposal"
+
+
+def test_runtime_cancels_presence_arming_when_stable_presence_drops() -> None:
+    transport = MemoryEspTransport()
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=iter([5.0, 5.2]).__next__,
+        esp_client=EspClient("serial://test", transport=transport),
+    )
+    runtime.classifier = RecordingClassifier(
+        ClassificationResult(
+            predicted_item="plastic-bottle",
+            confidence=0.97,
+            llm_fallback_used=False,
+        )
+    )
+
+    transport.queue_incoming("presence present=1 zone=off stable=1 seq=1")
+    arming_snapshot, arming_status = runtime.start_session(image_source="camera://arming")
+    transport.queue_incoming("presence present=0 zone=off stable=0 seq=2")
+    idle_snapshot, idle_status = runtime.start_session(image_source="camera://arming")
+
+    assert arming_snapshot.phase == SessionPhase.PRESENCE_ARMING
+    assert arming_status.phase == "detecting-person"
+    assert idle_snapshot.phase == SessionPhase.IDLE
+    assert idle_status.phase == "idle"
+    assert runtime.classifier.last_request is None
 
 
 def test_session_tracks_configured_timing_windows() -> None:
@@ -91,7 +134,12 @@ def test_session_records_drop_on_hand_disappearance() -> None:
 
 
 def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
-    runtime = StationRuntime(load_runtime_settings())
+    transport = MemoryEspTransport()
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=iter([0.0, 0.4, 0.5, 1.0, 1.1, 1.2]).__next__,
+        esp_client=EspClient("serial://test", transport=transport),
+    )
     runtime.classifier = StubClassifier(
         ClassificationResult(
             predicted_item="plastic-bottle",
@@ -100,6 +148,9 @@ def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
         )
     )
 
+    transport.queue_incoming("presence present=1 zone=off stable=1 seq=1")
+    runtime.start_session(image_source="camera://first")
+    transport.queue_incoming("presence present=1 zone=off stable=1 seq=2")
     snapshot, _ = runtime.start_session(image_source="camera://first")
     drop_snapshot, event = runtime.observe_disposal(
         zone="left",
@@ -198,7 +249,12 @@ def test_rules_loader_reads_checked_in_preset_document() -> None:
 
 
 def test_runtime_uses_rules_preset_threshold_for_classification() -> None:
-    runtime = StationRuntime(load_runtime_settings())
+    transport = MemoryEspTransport()
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=iter([0.0, 0.35, 0.5, 1.0]).__next__,
+        esp_client=EspClient("serial://test", transport=transport),
+    )
     classifier = RecordingClassifier(
         ClassificationResult(
             predicted_item="unknown-item",
@@ -208,6 +264,9 @@ def test_runtime_uses_rules_preset_threshold_for_classification() -> None:
     )
     runtime.classifier = classifier
 
+    transport.queue_incoming("presence present=1 zone=off stable=1 seq=1")
+    runtime.start_session(image_source="camera://threshold-check")
+    transport.queue_incoming("presence present=1 zone=off stable=1 seq=2")
     runtime.start_session(image_source="camera://threshold-check")
 
     assert classifier.last_request is not None
@@ -262,8 +321,16 @@ def test_runtime_syncs_esp_health_into_live_status() -> None:
 
 
 def test_runtime_surfaces_live_status_publish_failures_without_crashing() -> None:
+    transport = MemoryEspTransport(
+        [
+            "presence present=1 zone=off stable=1 seq=1",
+            "presence present=1 zone=off stable=1 seq=2",
+        ]
+    )
     runtime = StationRuntime(
         load_runtime_settings(),
+        monotonic_clock=iter([0.0, 0.35, 0.5, 1.0]).__next__,
+        esp_client=EspClient("serial://test", transport=transport),
         lcd_client=LcdClient(),
         publication_client=PublicationAdapter(
             "binbuddy-demo",
@@ -278,6 +345,7 @@ def test_runtime_surfaces_live_status_publish_failures_without_crashing() -> Non
         )
     )
 
+    runtime.start_session(image_source="camera://publish-failure")
     _, status = runtime.start_session(image_source="camera://publish-failure")
 
     assert status.phase == "error"
