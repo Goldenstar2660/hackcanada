@@ -9,9 +9,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from torch.optim import AdamW
+from torchvision import datasets, transforms
 from tqdm import tqdm
 
-CLASSES = [
+DEFAULT_CLASSES = [
     "plastic bottle", "aluminum can", "paper", "cardboard",
     "pizza box", "paper cup", "coffee cup", "plastic wrapper",
     "food waste", "glass bottle", "styrofoam", "batteries"
@@ -48,6 +49,28 @@ class WasteClassifier(nn.Module):
         x = self.features(x)
         x = x.view(x.size(0), -1)
         return self.classifier(x)
+
+
+def build_imagefolder_datasets(data_path: Path):
+    """Load ImageFolder datasets from train/val directories."""
+    train_dir = data_path / "train"
+    val_dir = data_path / "val"
+
+    if not train_dir.exists() or not val_dir.exists():
+        raise FileNotFoundError(f"Expected ImageFolder at {train_dir} and {val_dir}")
+
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+    ])
+
+    train_dataset = datasets.ImageFolder(root=str(train_dir), transform=transform)
+    val_dataset = datasets.ImageFolder(root=str(val_dir), transform=transform)
+
+    if train_dataset.classes != val_dataset.classes:
+        raise ValueError("Train/val classes do not match")
+
+    return train_dataset, val_dataset, train_dataset.classes
 
 def setup_logging(log_file: str = "training.log"):
     """Configure logging to file and console."""
@@ -124,10 +147,28 @@ def main():
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
-    
+
+    class_names = DEFAULT_CLASSES
+    train_dataset = None
+    val_dataset = None
+
+    if not args.dry_run:
+        data_path = Path(args.data_path)
+        train_dir = data_path / "train"
+        val_dir = data_path / "val"
+
+        if train_dir.exists() and val_dir.exists():
+            logger.info(f"Loading ImageFolder dataset from {data_path}")
+            train_dataset, val_dataset, class_names = build_imagefolder_datasets(data_path)
+        else:
+            logger.warning(f"No ImageFolder dataset at {data_path} (train/val), using dummy dataset")
+            train_dataset = DummyDataset(num_samples=100, num_classes=len(DEFAULT_CLASSES))
+            val_dataset = DummyDataset(num_samples=50, num_classes=len(DEFAULT_CLASSES))
+
     # Create model
-    model = WasteClassifier(num_classes=len(CLASSES)).to(device)
+    model = WasteClassifier(num_classes=len(class_names)).to(device)
     logger.info(f"Model created: {sum(p.numel() for p in model.parameters())} parameters")
+    logger.info(f"Class count: {len(class_names)}")
     
     # Dry-run mode - just test architecture
     if args.dry_run:
@@ -145,19 +186,8 @@ def main():
         return
     
     # Normal training mode
-    logger.info(f"Loading dataset from {args.data_path}")
-    
-    # Check if real data exists, otherwise use dummy
-    data_path = Path(args.data_path)
-    if not (data_path / "dataset.yaml").exists():
-        logger.warning(f"No dataset found at {data_path}, using dummy dataset")
-        train_dataset = DummyDataset(num_samples=100)
-        val_dataset = DummyDataset(num_samples=50)
-    else:
-        logger.info(f"Found dataset config at {data_path / 'dataset.yaml'}")
-        train_dataset = DummyDataset(num_samples=100)
-        val_dataset = DummyDataset(num_samples=50)
-    
+    logger.info(f"Training with dataset path: {args.data_path}")
+
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
     
@@ -187,13 +217,14 @@ def main():
             "optimizer_state_dict": optimizer.state_dict(),
             "train_acc": train_acc,
             "val_acc": val_acc,
+            "classes": class_names,
         }, checkpoint_path)
         logger.info(f"Checkpoint saved to {checkpoint_path}")
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             best_path = models_dir / "best_model.pt"
-            torch.save(model.state_dict(), best_path)
+            torch.save({"model_state_dict": model.state_dict(), "classes": class_names}, best_path)
             logger.info(f"New best model saved to {best_path}")
     
     logger.info(f"\nTraining complete. Best val accuracy: {best_val_acc:.2f}%")
