@@ -38,7 +38,7 @@ Failure policy:
 * `platformio.ini` defines the PlatformIO environment
 * `include/protocol.h` declares the local command and telemetry seam
 * `src/protocol.cpp` contains placeholder encode and decode helpers
-* `src/main.cpp` wires the protocol seam into a minimal controller loop
+* `src/main.cpp` runs the local HTTP controller loop, samples the ultrasonic sensor, exposes JSON health and guidance endpoints, and keeps the Pi-to-ESP boundary local-facing
 * `test/` is reserved for firmware-native tests when behavior expands
 
 ## Flashing And Validation

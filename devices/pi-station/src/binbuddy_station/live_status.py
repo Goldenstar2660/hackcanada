@@ -17,12 +17,15 @@ class DeviceHealth:
     esp8266: str = "online"
     cloud_sync: str = "online"
 
-    def to_ingress_payload(self) -> dict[str, str]:
+    def to_payload(self) -> dict[str, str]:
         return {
             "pi": self.pi,
             "esp8266": self.esp8266,
             "cloudSync": self.cloud_sync,
         }
+
+    def to_ingress_payload(self) -> dict[str, str]:
+        return self.to_payload()
 
 
 @dataclass(slots=True)
@@ -31,16 +34,19 @@ class LatestEventSummary:
     predicted_item: str
     correct_disposal_method: str
     actual_disposal_zone: str
-    success: bool
+    attempt_result: str
 
-    def to_ingress_payload(self) -> dict[str, object]:
+    def to_payload(self) -> dict[str, object]:
         return {
             "timestamp": self.timestamp,
-            "predicted_item": self.predicted_item,
-            "correct_disposal_method": self.correct_disposal_method,
-            "actual_disposal_zone": self.actual_disposal_zone,
-            "success": self.success,
+            "predictedItem": self.predicted_item,
+            "correctDisposalMethod": self.correct_disposal_method,
+            "actualDisposalZone": self.actual_disposal_zone,
+            "attemptResult": self.attempt_result,
         }
+
+    def to_ingress_payload(self) -> dict[str, object]:
+        return self.to_payload()
 
 
 @dataclass(slots=True)
@@ -64,38 +70,6 @@ class CameraFeed:
 
 
 @dataclass(slots=True)
-class DeviceHealth:
-    pi: str = "online"
-    esp8266: str = "degraded"
-    cloud_sync: str = "degraded"
-
-    def to_payload(self) -> dict[str, str]:
-        return {
-            "pi": self.pi,
-            "esp8266": self.esp8266,
-            "cloudSync": self.cloud_sync,
-        }
-
-
-@dataclass(slots=True)
-class LatestEventSummary:
-    timestamp: str
-    predicted_item: str
-    correct_disposal_method: str
-    actual_disposal_zone: str
-    attempt_result: str
-
-    def to_payload(self) -> dict[str, str]:
-        return {
-            "timestamp": self.timestamp,
-            "predictedItem": self.predicted_item,
-            "correctDisposalMethod": self.correct_disposal_method,
-            "actualDisposalZone": self.actual_disposal_zone,
-            "attemptResult": self.attempt_result,
-        }
-
-
-@dataclass(slots=True)
 class LiveStatus:
     payload_version: str
     station_id: str
@@ -108,6 +82,23 @@ class LiveStatus:
     device_health: DeviceHealth
     latest_event: LatestEventSummary | None = None
     camera_feed: CameraFeed | None = None
+
+    def to_payload(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "stationId": self.station_id,
+            "timestamp": self.timestamp,
+            "sessionState": self.phase,
+            "cameraFeedActive": self.camera_feed_active,
+            "currentDetectedItem": self.predicted_item,
+            "currentDisposalMethod": self.disposal_method,
+            "currentHandZone": self.current_hand_zone,
+            "deviceHealth": self.device_health.to_payload(),
+        }
+        if self.latest_event is not None:
+            payload["latestEvent"] = self.latest_event.to_payload()
+        if self.camera_feed is not None:
+            payload["cameraFeed"] = self.camera_feed.to_ingress_payload()
+        return payload
 
     def to_ingress_payload(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -135,22 +126,40 @@ class LiveStatusPublisher:
         self,
         station_id: str,
         snapshot: SessionSnapshot,
-        latest_event: LatestEventSummary | None = None,
+        latest_event: DisposalEvent | LatestEventSummary | None = None,
+        device_health: DeviceHealth | None = None,
+        session_state_override: str | None = None,
         camera_feed: CameraFeed | None = None,
     ) -> LiveStatus:
+        resolved_latest_event = _as_latest_event_summary(latest_event)
         return LiveStatus(
             payload_version=DEVICE_PAYLOAD_VERSION,
             station_id=station_id,
-            phase=snapshot.phase.value,
+            phase=session_state_override or _session_state_for_phase(snapshot.phase),
             predicted_item=snapshot.predicted_item,
             disposal_method=snapshot.correct_disposal_method,
             timestamp=datetime.now(tz=timezone.utc).isoformat(),
             current_hand_zone=snapshot.latest_hand_zone,
-            camera_feed_active=snapshot.phase.value != "idle",
-            device_health=DeviceHealth(),
-            latest_event=latest_event,
+            camera_feed_active=_is_camera_feed_active(snapshot.phase),
+            device_health=device_health or DeviceHealth(),
+            latest_event=resolved_latest_event,
             camera_feed=camera_feed,
         )
+
+
+def _as_latest_event_summary(
+    latest_event: DisposalEvent | LatestEventSummary | None,
+) -> LatestEventSummary | None:
+    if latest_event is None or isinstance(latest_event, LatestEventSummary):
+        return latest_event
+
+    return LatestEventSummary(
+        timestamp=latest_event.timestamp,
+        predicted_item=latest_event.predicted_item,
+        correct_disposal_method=latest_event.correct_disposal_method,
+        actual_disposal_zone=latest_event.actual_disposal_zone,
+        attempt_result=latest_event.attempt_result,
+    )
 
 
 def _session_state_for_phase(phase: SessionPhase) -> str:
