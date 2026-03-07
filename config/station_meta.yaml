@@ -1,42 +1,28 @@
-station:
-  id: "station_001"
-  name: "BinBuddy Demo Station"
-  location:
-    floor: "1"
-    building: "Main Office"
-    zone: "Kitchen"
-  
-  hardware:
-    esp8266:
-      firmware_version: "1.0.0"
-      ip_address: "192.168.1.101"
-    raspberry_pi:
-      hostname: "binbuddy-pi"
-      camera_index: 0
-    lcd:
-      i2c_address: "0x27"
-      rows: 2
-      cols: 16
-
-  zone_mapping:
-    left: "recycle"
-    middle: "compost"  
-    right: "garbage"
-
-  inference:
-    detector_threshold: 0.65
-    attribute_threshold: 0.6
-    vlm_threshold: 0.35
-    model_path: "models/yolov8n.onnx"
-    clip_model: "ViT-B/32"
-
-  rules:
-    preset_id: "default_office"
-    preset_name: "Default Office Rules"
-
-  calibration:
-    zone_boundaries_px:
-      left: 320
-      middle: 640
-    perspective_correction: false
-    perspective_homography: null
+station_id: "station_001"
+location:
+  building: "Main Office"
+  floor: "1"
+  room: "Kitchen"
+zone_mapping:
+  left: "recycle"
+  middle: "compost"
+  right: "garbage"
+active_ruleset_id: "default_office"
+detector_threshold: 0.65
+vlm_threshold: 0.35
+cloud_fallback_enabled: false
+active_models:
+  detector:
+    path: "models/detector.onnx"
+    version: "v1.0"
+    date: "2024-01-01T00:00:00Z"
+  vlm:
+    path: "models/clip-tiny.pt"
+    version: "v1.0"
+    date: "2024-01-01T00:00:00Z"
+  attributes:
+    path: "models/attr.onnx"
+    version: "v1.0"
+    date: "2024-01-01T00:00:00Z"
+zone_boundaries_pct: [0.33, 0.66]
+perspective_homography: null

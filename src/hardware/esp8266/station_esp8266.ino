@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <time.h>
 
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
@@ -78,10 +79,14 @@ void send_pir_event() {
   char topic[64];
   sprintf(topic, "station/%s/pir", station_id);
 
-  StaticJsonDocument<128> doc;
-  doc["ts"] = "ISO8601_PLACEHOLDER";
+  StaticJsonDocument<256> doc;
+  time_t now = time(nullptr);
+  char timestamp[32];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+  doc["ts"] = timestamp;
+  doc["event"] = "motion";
 
-  char payload[128];
+  char payload[256];
   serializeJson(doc, payload);
   client.publish(topic, payload, 0);
 }
@@ -113,6 +118,9 @@ void setup() {
 
   Serial.begin(115200);
   setup_wifi();
+  
+  configTime(0, 0, "pool.ntp.org");
+  
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 }

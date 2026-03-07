@@ -3,7 +3,7 @@ uvicorn[standard]==0.23.1
 onnxruntime==1.15.1
 opencv-python==4.8.0.76
 torch==2.2.0
-tesseract-ocr==5.3.0
+# tesseract-ocr - install via system package manager (apt install tesseract-ocr)
 pytesseract==0.3.10
 firebase-admin==6.2.0
 paho-mqtt==1.6.1
