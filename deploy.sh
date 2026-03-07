@@ -8,7 +8,6 @@ set -e
 
 TARGET="${1:-local}"
 RUNTIME="${2:-native}"
-REPO_URL="https://github.com/yourusername/hackcanada.git"
 CONTAINER_NAME="waste-classifier-train"
 IMAGE_NAME="waste-classifier:latest"
 
@@ -70,15 +69,19 @@ else
 fi
 '
 
-# Step 2: Clone repo
+# Step 2: Setup repo
 echo "[2/4] Setting up repository..."
 run_cmd '
-if [ ! -d ~/hackcanada ]; then
-    git clone $REPO_URL ~/hackcanada
+if is_remote; then
+    if [ ! -d ~/hackcanada ]; then
+        echo "ERROR: Remote setup requires repo to be cloned manually or use GitHub"
+        exit 1
+    fi
+    cd ~/hackcanada
 else
-    cd ~/hackcanada && git pull
+    # Local: use current directory
+    cd "$(cd "$(dirname "$0")" && pwd)"
 fi
-cd ~/hackcanada
 '
 
 # Step 3: Build/run
