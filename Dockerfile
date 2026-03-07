@@ -1,17 +1,25 @@
-FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
+ENV CUDA_VERSION=12.1
 
 WORKDIR /workspace
 
-# Install Python and essential packages
+# Install Python, CUDA libraries, and essentials
 RUN apt-get update && apt-get install -y \
     python3.10 \
     python3-pip \
+    python3.10-dev \
     git \
     curl \
     tesseract-ocr \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    # CUDA runtime libraries for GPU support
+    libcuda1 \
+    libcudnn8 \
+    libnccl2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
