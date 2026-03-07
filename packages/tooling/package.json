@@ -1,0 +1,17 @@
+{
+  "name": "@binbuddy/tooling",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node scripts/schema-tooling.mjs validate && node ../../node_modules/typescript/bin/tsc -p tsconfig.json",
+    "contracts:schemas:validate": "node scripts/schema-tooling.mjs validate",
+    "contracts:types:generate": "node scripts/schema-tooling.mjs generate-types",
+    "lint": "node scripts/schema-tooling.mjs validate && node ../../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "json-schema-to-typescript": "^15.0.4"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.binbuddy.app/domain/rules-preset.schema.json",
+  "title": "RulesPreset",
+  "description": "Canonical local rules preset that drives disposal method guidance on the station runtime.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "presetId",
+    "version",
+    "jurisdiction",
+    "supportedItems",
+    "itemMappings",
+    "zoneMapping",
+    "lowConfidenceThreshold"
+  ],
+  "$defs": {
+    "disposalMethod": {
+      "type": "string",
+      "enum": ["recycle", "compost", "garbage"]
+    },
+    "itemMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["itemType", "disposalMethod"],
+      "properties": {
+        "itemType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposalMethod": {
+          "$ref": "#/$defs/disposalMethod"
+        }
+      }
+    }
+  },
+  "properties": {
+    "presetId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable preset identifier used by station metadata and backend configuration."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version for the preset data artifact."
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["city", "provinceOrState"],
+      "properties": {
+        "city": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provinceOrState": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "description": "Region-specific policy context for the preset."
+    },
+    "supportedItems": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Supported item labels that the station is allowed to classify for this preset."
+    },
+    "itemMappings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/itemMapping"
+      },
+      "minItems": 1,
+      "description": "Explicit item to disposal method mappings applied during live guidance."
+    },
+    "zoneMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["left", "middle", "right"],
+      "properties": {
+        "left": {
+          "$ref": "#/$defs/disposalMethod"
+        },
+        "middle": {
+          "$ref": "#/$defs/disposalMethod"
+        },
+        "right": {
+          "$ref": "#/$defs/disposalMethod"
+        }
+      },
+      "description": "Mapping from physical demo zones to disposal methods."
+    },
+    "lowConfidenceThreshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Threshold below which the station may invoke fallback classification."
+    }
+  }
+}

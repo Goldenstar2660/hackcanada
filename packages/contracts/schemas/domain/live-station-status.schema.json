@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.binbuddy.app/domain/live-station-status.schema.json",
+  "title": "LiveStationStatus",
+  "description": "Canonical live station snapshot published by the Raspberry Pi so the dashboard can render current device health and in-session guidance state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stationId",
+    "timestamp",
+    "sessionState",
+    "cameraFeedActive",
+    "deviceHealth"
+  ],
+  "$defs": {
+    "disposalMethod": {
+      "type": "string",
+      "enum": ["recycle", "compost", "garbage"]
+    },
+    "disposalZone": {
+      "type": "string",
+      "enum": ["left", "middle", "right"]
+    },
+    "deviceStatus": {
+      "type": "string",
+      "enum": ["online", "offline", "degraded"]
+    },
+    "sessionState": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "detecting-person",
+        "identifying-item",
+        "guiding-user",
+        "waiting-for-disposal",
+        "syncing",
+        "error"
+      ]
+    },
+    "latestEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timestamp",
+        "predictedItem",
+        "correctDisposalMethod",
+        "actualDisposalZone",
+        "attemptResult"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "predictedItem": {
+          "type": "string",
+          "minLength": 1
+        },
+        "correctDisposalMethod": {
+          "$ref": "#/$defs/disposalMethod"
+        },
+        "actualDisposalZone": {
+          "$ref": "#/$defs/disposalZone"
+        },
+        "attemptResult": {
+          "type": "string",
+          "enum": ["success", "failure"]
+        }
+      }
+    }
+  },
+  "properties": {
+    "stationId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique station identifier."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time when this live snapshot was emitted."
+    },
+    "sessionState": {
+      "$ref": "#/$defs/sessionState",
+      "description": "Current station runtime stage within the live control loop."
+    },
+    "cameraFeedActive": {
+      "type": "boolean",
+      "description": "Whether the station camera feed should be considered active for live monitoring."
+    },
+    "currentDetectedItem": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "description": "Latest in-session detected item label when available."
+    },
+    "currentDisposalMethod": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/disposalMethod"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current disposal guidance emitted to the user during an active session."
+    },
+    "currentHandZone": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/disposalZone"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Most recent tracked hand zone for the active disposal session."
+    },
+    "deviceHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pi", "esp8266", "cloudSync"],
+      "properties": {
+        "pi": {
+          "$ref": "#/$defs/deviceStatus"
+        },
+        "esp8266": {
+          "$ref": "#/$defs/deviceStatus"
+        },
+        "cloudSync": {
+          "$ref": "#/$defs/deviceStatus"
+        }
+      },
+      "description": "High-level health signals for the station runtime and connected hardware."
+    },
+    "latestEvent": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/latestEvent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Most recent disposal attempt emitted by this station, if one is available."
+    }
+  }
+}

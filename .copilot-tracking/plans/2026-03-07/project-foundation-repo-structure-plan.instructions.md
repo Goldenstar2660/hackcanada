@@ -44,57 +44,57 @@ Create the BinBuddy repository foundation as a surface-first monorepo with isola
 
 ## Implementation Checklist
 
-### [ ] Implementation Phase 1: Establish repository foundation
+### [x] Implementation Phase 1: Establish repository foundation
 
 <!-- parallelizable: false -->
 
-* [ ] Step 1.1: Create the surface-first directory tree and ownership docs
+* [x] Step 1.1: Create the surface-first directory tree and ownership docs
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 12-39)
-* [ ] Step 1.2: Add root orchestration and contribution scaffolding
+* [x] Step 1.2: Add root orchestration and contribution scaffolding
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 41-61)
 
-### [ ] Implementation Phase 2: Bootstrap TypeScript surfaces and shared workspace packages
+### [x] Implementation Phase 2: Bootstrap TypeScript surfaces and shared workspace packages
 
 <!-- parallelizable: false -->
 
-* [ ] Step 2.1: Initialize the root TypeScript workspace
+* [x] Step 2.1: Initialize the root TypeScript workspace
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 67-86)
-* [ ] Step 2.2: Scaffold web, backend, and shared package shells
+* [x] Step 2.2: Scaffold web, backend, and shared package shells
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 88-110)
-* [ ] Step 2.3: Validate TypeScript workspace bootstrapping
+* [x] Step 2.3: Validate TypeScript workspace bootstrapping
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 112-119)
 
-### [ ] Implementation Phase 3: Bootstrap the Raspberry Pi station runtime
+### [x] Implementation Phase 3: Bootstrap the Raspberry Pi station runtime
 
 <!-- parallelizable: true -->
 
-* [ ] Step 3.1: Initialize the Pi Python project and runtime package
+* [x] Step 3.1: Initialize the Pi Python project and runtime package
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 125-150)
-* [ ] Step 3.2: Define Pi runtime modules around the live control loop
+* [x] Step 3.2: Define Pi runtime modules around the live control loop
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 152-176)
-* [ ] Step 3.3: Validate Pi runtime scaffolding
+* [x] Step 3.3: Validate Pi runtime scaffolding
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 178-184)
 
 ### [ ] Implementation Phase 4: Bootstrap the ESP8266 firmware project
 
 <!-- parallelizable: true -->
 
-* [ ] Step 4.1: Initialize the PlatformIO firmware layout
+* [x] Step 4.1: Initialize the PlatformIO firmware layout
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 190-211)
-* [ ] Step 4.2: Create a narrow local protocol boundary for Pi communication
+* [x] Step 4.2: Create a narrow local protocol boundary for Pi communication
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 213-234)
 * [ ] Step 4.3: Validate firmware scaffolding
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 236-241)
 
-### [ ] Implementation Phase 5: Seed shared contracts, rules assets, analytics definitions, and Firebase infrastructure
+### [x] Implementation Phase 5: Seed shared contracts, rules assets, analytics definitions, and Firebase infrastructure
 
 <!-- parallelizable: false -->
 
-* [ ] Step 5.1: Author canonical JSON Schemas and generation hooks
+* [x] Step 5.1: Author canonical JSON Schemas and generation hooks
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 247-271)
-* [ ] Step 5.2: Add versioned rules and analytics assets
+* [x] Step 5.2: Add versioned rules and analytics assets
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 273-292)
-* [ ] Step 5.3: Add Firebase infrastructure and backend wiring placeholders
+* [x] Step 5.3: Add Firebase infrastructure and backend wiring placeholders
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 294-318)
 
 ### [ ] Implementation Phase 6: Validation
@@ -105,10 +105,10 @@ Create the BinBuddy repository foundation as a surface-first monorepo with isola
   * Execute all lint commands for the TypeScript workspace and schema tooling
   * Execute build commands for the TypeScript workspace and firmware project
   * Execute the Pi runtime test suite and smoke checks
-* [ ] Step 6.2: Fix minor validation issues
+* [x] Step 6.2: Fix minor validation issues
   * Iterate on straightforward lint, build, or test failures
   * Keep fixes scoped to the foundation work described in this plan
-* [ ] Step 6.3: Report blocking issues
+* [x] Step 6.3: Report blocking issues
   * Document issues that require additional research or a follow-on plan
   * Avoid large-scale refactors during validation
 

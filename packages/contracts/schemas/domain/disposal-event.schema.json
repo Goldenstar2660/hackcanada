@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.binbuddy.app/domain/disposal-event.schema.json",
+  "title": "DisposalEvent",
+  "description": "Canonical disposal attempt event authored by the Raspberry Pi station runtime after a user finishes a sorting attempt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stationId",
+    "timestamp",
+    "predictedItem",
+    "correctDisposalMethod",
+    "actualDisposalZone",
+    "attemptResult",
+    "modelConfidence",
+    "llmFallbackUsed"
+  ],
+  "$defs": {
+    "disposalMethod": {
+      "type": "string",
+      "enum": ["recycle", "compost", "garbage"]
+    },
+    "disposalZone": {
+      "type": "string",
+      "enum": ["left", "middle", "right"]
+    },
+    "attemptResult": {
+      "type": "string",
+      "enum": ["success", "failure"]
+    }
+  },
+  "properties": {
+    "stationId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique station identifier used across live status, events, and analytics aggregation."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time when the disposal attempt was finalized."
+    },
+    "predictedItem": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Final resolved item label produced by local or fallback classification."
+    },
+    "correctDisposalMethod": {
+      "$ref": "#/$defs/disposalMethod",
+      "description": "Expected disposal method after applying the active local rules preset."
+    },
+    "actualDisposalZone": {
+      "$ref": "#/$defs/disposalZone",
+      "description": "Most recent tracked hand zone before the hand disappeared."
+    },
+    "attemptResult": {
+      "$ref": "#/$defs/attemptResult",
+      "description": "Outcome of comparing the correct disposal method against the detected disposal zone."
+    },
+    "modelConfidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score from the classification path that determined the final item label."
+    },
+    "llmFallbackUsed": {
+      "type": "boolean",
+      "description": "Whether the station used the fallback LLM path because local confidence was below the configured threshold."
+    }
+  }
+}

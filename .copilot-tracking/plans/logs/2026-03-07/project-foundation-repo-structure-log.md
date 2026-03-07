@@ -29,9 +29,22 @@ Gaps and differences identified between research findings and the implementation
   * Reason: The research recommends a narrow protocol, but message shapes still need dedicated runtime-level design work
   * Impact: Medium
 
-### Plan Deviations from Research
+### Implementation Deviations
 
-No plan deviations from research are currently identified.
+* DD-01: TypeScript workspace validation used Corepack-managed pnpm instead of direct pnpm commands
+  * Plan specifies: Run `pnpm install`, `pnpm lint`, and `pnpm build`
+  * Implementation differs: Used `corepack pnpm` because `pnpm` was not installed on PATH
+  * Rationale: This preserved the planned workspace validation without changing repository scope or toolchain boundaries
+
+* DD-02: Firmware validation is deferred until PlatformIO is installed in the environment
+  * Plan specifies: Run `pio run`
+  * Implementation differs: Firmware sources were scaffolded and editor diagnostics were checked, but the PlatformIO build could not run
+  * Rationale: The environment lacks the `pio` executable, so build verification is blocked by tooling availability rather than source changes
+
+* DD-03: Tooling package build script invokes schema tooling directly rather than shelling out to pnpm recursively
+  * Plan specifies: Validate the TypeScript workspace and schema tooling through normal root workspace commands
+  * Implementation differs: The tooling package build script was changed to call the local schema script directly
+  * Rationale: Recursive workspace builds in this environment did not expose `pnpm` inside child package scripts, so direct script execution preserved the intended validation outcome
 
 ## Implementation Paths Considered
 
@@ -67,3 +80,21 @@ No plan deviations from research are currently identified.
 * WI-02: Design the Pi-to-ESP local protocol — Specify command, acknowledgement, sensor, and health telemetry payloads that the Pi will translate into shared contracts (Medium)
   * Source: DR-02 and research follow-on guidance
   * Dependency: Completion of the Pi runtime and firmware project scaffolding
+* WI-03: Choose the dashboard runtime stack — Decide whether `apps/web` will use React, Next.js, Vite, or another TypeScript web stack before feature implementation begins (Medium)
+  * Source: Phase 2 completion
+  * Dependency: Completion of the repository foundation and TypeScript workspace bootstrap
+* WI-04: Add real Firebase backend wiring — Replace backend compile-time stubs with deployment, emulator, and integration wiring after shared contracts and infrastructure placeholders are in place (Medium)
+  * Source: Phase 2 completion
+  * Dependency: Completion of Phase 5 shared contracts and Firebase infrastructure scaffolding
+* WI-05: Connect Pi runtime seams to real adapters — Replace placeholder inference, shared-rules loading, and Firebase publishing seams after shared contracts and rules assets are seeded (Medium)
+  * Source: Phase 3 completion
+  * Dependency: Completion of Phase 5 shared contracts, rules assets, and infrastructure scaffolding
+* WI-06: Add versioned preset data — Seed the first jurisdiction-specific disposal rules under `packages/rules/presets` and matching fixtures under `packages/rules/fixtures` (Medium)
+  * Source: Phase 5 completion
+  * Dependency: Selection of the first local rules preset for the demo
+* WI-07: Expand backend schema usage — Wire backend handlers and HTTP descriptions to the canonical schemas without redefining domain contracts (Medium)
+  * Source: Phase 5 completion
+  * Dependency: Follow-on backend feature planning
+* WI-08: Document or install PlatformIO for validation — Ensure firmware validation environments provide `pio`, or document the requirement in setup guidance and validation workflows (Low)
+  * Source: Phase 6 completion
+  * Dependency: Decision on whether firmware validation is mandatory in all developer environments

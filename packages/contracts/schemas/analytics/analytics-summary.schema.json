@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.binbuddy.app/analytics/analytics-summary.schema.json",
+  "title": "AnalyticsSummary",
+  "description": "Canonical analytics read model returned by backend reporting endpoints and reused by the dashboard.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["generatedAt", "timeRange", "totals"],
+  "$defs": {
+    "disposalMethod": {
+      "type": "string",
+      "enum": ["recycle", "compost", "garbage"]
+    },
+    "metricTotals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "totalAttempts",
+        "totalCorrectSorts",
+        "firstTryCorrectRate",
+        "participationComplianceScore"
+      ],
+      "properties": {
+        "totalAttempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalCorrectSorts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "firstTryCorrectRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "participationComplianceScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  },
+  "properties": {
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time when the analytics summary was materialized."
+    },
+    "timeRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "description": "Inclusive UTC time window represented by this summary."
+    },
+    "totals": {
+      "$ref": "#/$defs/metricTotals",
+      "description": "Headline metrics shown at the top of the dashboard."
+    },
+    "groupedResults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["groupKey", "groupLabel", "metrics"],
+        "properties": {
+          "groupKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "groupLabel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metrics": {
+            "$ref": "#/$defs/metricTotals"
+          }
+        }
+      },
+      "description": "Optional grouped rollups for station, floor, building, location, or experiment views."
+    },
+    "topContaminationItems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["itemType", "incorrectAttempts"],
+        "properties": {
+          "itemType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "incorrectAttempts": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "description": "Items most often sorted into the wrong zone for the selected query scope."
+    },
+    "worstTimesOfDay": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["bucketLabel", "totalAttempts", "firstTryCorrectRate"],
+        "properties": {
+          "bucketLabel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "totalAttempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "firstTryCorrectRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "description": "Time buckets with the lowest first-try correct rates."
+    },
+    "binPurity": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "disposalMethod",
+          "bucketLabel",
+          "totalAttempts",
+          "correctAttempts",
+          "purityRate"
+        ],
+        "properties": {
+          "disposalMethod": {
+            "$ref": "#/$defs/disposalMethod"
+          },
+          "bucketLabel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "totalAttempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "correctAttempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "purityRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "description": "Correct sorting percentage per disposal method and time bucket."
+    },
+    "leaderboard": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scopeType", "scopeId", "scopeLabel", "rank", "participationComplianceScore"],
+        "properties": {
+          "scopeType": {
+            "type": "string",
+            "enum": ["floor", "building"]
+          },
+          "scopeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scopeLabel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "participationComplianceScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "description": "Ranked leaderboard entries for floor or building comparison views."
+    },
+    "chartSeries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric", "points"],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "minLength": 1
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["bucketStart", "bucketLabel", "value"],
+              "properties": {
+                "bucketStart": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "bucketLabel": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Historical chart points for trend lines and before or after analysis views."
+    }
+  }
+}
