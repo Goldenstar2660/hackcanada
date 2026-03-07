@@ -36,10 +36,10 @@ Gaps and differences identified between research findings and the implementation
   * Implementation differs: Used `corepack pnpm` because `pnpm` was not installed on PATH
   * Rationale: This preserved the planned workspace validation without changing repository scope or toolchain boundaries
 
-* DD-02: Firmware validation is deferred until PlatformIO is installed in the environment
+* DD-02: Firmware validation used a workspace-local PlatformIO installation rather than a preinstalled `pio` binary on PATH
   * Plan specifies: Run `pio run`
-  * Implementation differs: Firmware sources were scaffolded and editor diagnostics were checked, but the PlatformIO build could not run
-  * Rationale: The environment lacks the `pio` executable, so build verification is blocked by tooling availability rather than source changes
+  * Implementation differs: The first `pio run` attempt failed because `pio` was not on PATH, so PlatformIO was installed into the workspace Python environment and the firmware build was rerun with the local executable
+  * Rationale: This completed the required firmware validation without changing repository code or broadening the project toolchain scope
 
 * DD-03: Tooling package build script invokes schema tooling directly rather than shelling out to pnpm recursively
   * Plan specifies: Validate the TypeScript workspace and schema tooling through normal root workspace commands
@@ -95,6 +95,6 @@ Gaps and differences identified between research findings and the implementation
 * WI-07: Expand backend schema usage — Wire backend handlers and HTTP descriptions to the canonical schemas without redefining domain contracts (Medium)
   * Source: Phase 5 completion
   * Dependency: Follow-on backend feature planning
-* WI-08: Document or install PlatformIO for validation — Ensure firmware validation environments provide `pio`, or document the requirement in setup guidance and validation workflows (Low)
+* WI-08: Document PlatformIO setup for validation — Ensure firmware validation environments provide `pio`, or document the requirement in setup guidance and validation workflows (Low)
   * Source: Phase 6 completion
   * Dependency: Decision on whether firmware validation is mandatory in all developer environments

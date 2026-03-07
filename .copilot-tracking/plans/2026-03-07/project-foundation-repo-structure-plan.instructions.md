@@ -75,7 +75,7 @@ Create the BinBuddy repository foundation as a surface-first monorepo with isola
 * [x] Step 3.3: Validate Pi runtime scaffolding
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 178-184)
 
-### [ ] Implementation Phase 4: Bootstrap the ESP8266 firmware project
+### [x] Implementation Phase 4: Bootstrap the ESP8266 firmware project
 
 <!-- parallelizable: true -->
 
@@ -83,7 +83,7 @@ Create the BinBuddy repository foundation as a surface-first monorepo with isola
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 190-211)
 * [x] Step 4.2: Create a narrow local protocol boundary for Pi communication
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 213-234)
-* [ ] Step 4.3: Validate firmware scaffolding
+* [x] Step 4.3: Validate firmware scaffolding
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 236-241)
 
 ### [x] Implementation Phase 5: Seed shared contracts, rules assets, analytics definitions, and Firebase infrastructure
@@ -97,11 +97,11 @@ Create the BinBuddy repository foundation as a surface-first monorepo with isola
 * [x] Step 5.3: Add Firebase infrastructure and backend wiring placeholders
   * Details: .copilot-tracking/details/2026-03-07/project-foundation-repo-structure-details.md (Lines 294-318)
 
-### [ ] Implementation Phase 6: Validation
+### [x] Implementation Phase 6: Validation
 
 <!-- parallelizable: false -->
 
-* [ ] Step 6.1: Run full project validation
+* [x] Step 6.1: Run full project validation
   * Execute all lint commands for the TypeScript workspace and schema tooling
   * Execute build commands for the TypeScript workspace and firmware project
   * Execute the Pi runtime test suite and smoke checks

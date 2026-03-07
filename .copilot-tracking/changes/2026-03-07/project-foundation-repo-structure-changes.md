@@ -6,7 +6,7 @@
 
 ## Summary
 
-Scaffold the repository foundation for BinBuddy as a surface-first monorepo with isolated runtime toolchains, shared contract boundaries, and Firebase infrastructure placeholders.
+Scaffold the repository foundation for BinBuddy as a surface-first monorepo with isolated runtime toolchains, shared contract boundaries, Firebase infrastructure placeholders, and completed cross-surface validation.
 
 ## Changes
 
@@ -102,17 +102,17 @@ Scaffold the repository foundation for BinBuddy as a surface-first monorepo with
 
 ## Additional or Deviating Changes
 
-* Root task validation was limited to static scaffolding checks because `just` is not installed in the environment.
+* Root task validation was limited to direct tool invocations because `just` is not installed in the environment.
 	* Reason: The phase required adding orchestration scaffolding, but the runtime binary is unavailable for command execution.
 * TypeScript workspace validation used `corepack pnpm` rather than a globally installed `pnpm` binary.
 	* Reason: `pnpm` was not available on PATH, but Corepack was available and produced the required package manager behavior.
-* Firmware scaffold validation remains incomplete.
-	* Reason: `pio` is not installed in the environment, so the PlatformIO build command could not be executed.
+* Firmware validation used a workspace-local PlatformIO installation instead of a preinstalled `pio` binary on PATH.
+	* Reason: The initial `pio run` attempt failed because PlatformIO was not available globally, so validation continued with the local executable after installation in the workspace environment.
 * Tooling package build execution was adjusted during schema validation.
 	* Reason: Recursive workspace builds in this environment did not expose `pnpm` inside child package scripts, so the build script now invokes the schema tooling directly.
-* Final repository validation remains partially blocked.
-	* Reason: `corepack pnpm lint`, `corepack pnpm build`, `corepack pnpm test`, and `uv run pytest` passed, but `pio run` could not execute because PlatformIO is not installed.
+* Full repository validation passed after the firmware toolchain was made available locally.
+	* Reason: `corepack pnpm lint`, `corepack pnpm build`, `corepack pnpm test`, `uv run pytest`, and the firmware PlatformIO build all completed successfully.
 
 ## Release Summary
 
-The repository now has a surface-first monorepo foundation aligned to the BinBuddy spec, including root ownership boundaries, a TypeScript workspace for web, backend, and shared packages, an independent `uv`-managed Raspberry Pi runtime scaffold, an isolated PlatformIO firmware scaffold, canonical JSON Schema contracts with generated TypeScript declarations, shared rules and analytics placeholders, and Firebase infrastructure placeholders. Validation passed for the TypeScript workspace, schema tooling, and Pi runtime. Firmware validation remains blocked by the missing `pio` executable in the current environment.
+The repository now has a surface-first monorepo foundation aligned to the BinBuddy spec, including root ownership boundaries, a TypeScript workspace for web, backend, and shared packages, an independent `uv`-managed Raspberry Pi runtime scaffold, an isolated PlatformIO firmware scaffold, canonical JSON Schema contracts with generated TypeScript declarations, shared rules and analytics placeholders, and Firebase infrastructure placeholders. Validation passed for the TypeScript workspace, schema tooling, Pi runtime, and firmware scaffold, completing the Cycle 1 foundation implementation.
