@@ -46,7 +46,6 @@ if command -v nvidia-smi &> /dev/null; then
     nvidia-smi --query-gpu=name,memory.total --format=csv
     
     if [ "$RUNTIME" = "docker" ]; then
-        # Install NVIDIA Container Toolkit for Docker
         distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
         curl -fsSL https://nvidia.github.io/nvidia-docker/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-docker.gpg 2>/dev/null || true
         curl -fsSL https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
@@ -72,54 +71,43 @@ fi
 ls -la ~/hackcanada
 EOF
 
-# Step 4: Build image
-echo "[4/6] Building container image..."
+# Step 4: Setup environment
+echo "[4/6] Setting up training environment..."
 ssh "$REMOTE_HOST" << EOF
 cd ~/hackcanada
 
 if [ "$RUNTIME" = "udocker" ]; then
-    # uDocker: import instead of build
-    udocker pull ubuntu:22.04
-    udocker create --name=$IMAGE_NAME ubuntu:22.04
-    # Install deps in container
-    udocker run $IMAGE_NAME apt-get update
-    udocker run $IMAGE_NAME apt-get install -y python3 python3-pip git curl tesseract-ocr libgl1-mesa-glx libglib2.0-0
-    udocker run $IMAGE_NAME pip3 install --no-cache-dir -r requirements.txt
-    echo "Image prepared for udocker"
+    # uDocker: install deps directly on host (simpler)
+    apt-get update
+    apt-get install -y python3 python3-pip git curl tesseract-ocr libgl1-mesa-glx libglib2.0-0
+    pip3 install --no-cache-dir -r requirements.txt
+    echo "Dependencies installed on host for uDocker"
 elif [ "$RUNTIME" = "docker" ]; then
     docker build -t $IMAGE_NAME .
     echo "Docker image built: $IMAGE_NAME"
 fi
 EOF
 
-# Step 5: Start container
-echo "[5/6] Starting training container..."
+# Step 5: Start training
+echo "[5/6] Starting training..."
 ssh "$REMOTE_HOST" << EOF
 cd ~/hackcanada
 tmux kill-session -t training 2>/dev/null || true
 
 if [ "$RUNTIME" = "udocker" ]; then
-    # uDocker: use --nv flag for GPU, set env vars
-    tmux new-session -d -s training "udocker run --nv \\
-        -e NVIDIA_VISIBLE_DEVICES=all \\
-        -e CUDA_VISIBLE_DEVICES=0 \\
-        -v \$(pwd)/hackcanada/data:/data \\
-        -v \$(pwd)/hackcanada/models:/models \\
-        -v \$(pwd)/hackcanada/training.log:/workspace/training.log \\
-        --name $CONTAINER_NAME \\
-        $IMAGE_NAME \\
-        python3 src/train.py --epochs 10 --batch-size 32"
+    # Run directly on host (udocker is for systems without Docker)
+    tmux new-session -d -s training "python3 src/train.py --epochs 10 --batch-size 32"
 elif [ "$RUNTIME" = "docker" ]; then
     tmux new-session -d -s training "docker run --gpus all --runtime nvidia \\
-        -v \$(pwd)/hackcanada/data:/data \\
-        -v \$(pwd)/hackcanada/models:/models \\
-        -v \$(pwd)/hackcanada/training.log:/workspace/training.log \\
+        -v \$(pwd)/data:/data \\
+        -v \$(pwd)/models:/models \\
+        -v \$(pwd)/training.log:/workspace/training.log \\
         --name $CONTAINER_NAME \\
         $IMAGE_NAME \\
         python3 src/train.py --epochs 10 --batch-size 32"
 fi
 
-echo "Container started in tmux session 'training'"
+echo "Training started in tmux session 'training'"
 EOF
 
 # Step 6: Verify
