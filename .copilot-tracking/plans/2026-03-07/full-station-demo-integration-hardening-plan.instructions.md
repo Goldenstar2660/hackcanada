@@ -121,7 +121,7 @@ Harden the Binsight demo around one reliable station-to-cloud-to-dashboard slice
 
 * [ ] Step 5.1: Rehearse the full thin-slice demo path.
   * Details: .copilot-tracking/details/2026-03-07/full-station-demo-integration-hardening-details.md (Lines 325-347)
-  * Status: Repo-owned rehearsal documentation and project-id fallback support are complete. The live Firebase rehearsal remains blocked on the remaining seed-time shell inputs, project-side operator setup, and completion of the real Firebase run.
+  * Status: The laptop-safe rehearsal path is complete: Firestore and Functions deployed to `vastum-binsight`, demo data seeded successfully, the Vite dashboard started locally, and the Pi runtime startup command was validated from this machine. The remaining unchecked work is the physical station rehearsal that requires the real Pi and ESP hardware for presence sensing, LED guidance, disposal observation, LCD verification, and live dashboard updates during an actual sort.
 * [x] Step 5.2: Run full project validation.
   * Details: .copilot-tracking/details/2026-03-07/full-station-demo-integration-hardening-details.md (Lines 349-358)
 * [x] Step 5.3: Fix minor validation issues.

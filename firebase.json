@@ -1,0 +1,24 @@
+{
+  "functions": [
+    {
+      "source": "services/backend-functions",
+      "codebase": "backend-functions",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local",
+        "src",
+        "scripts",
+        "README.md",
+        ".env.example",
+        "tsconfig.json"
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "infra/firebase/firestore.rules",
+    "indexes": "infra/firebase/firestore.indexes.json"
+  }
+}

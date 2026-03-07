@@ -17,8 +17,10 @@ Resume the integration-hardening plan by hardening the Pi runtime publication se
 * apps/web/src/main.tsx - Added the browser bootstrap that initializes Firebase and mounts the dashboard.
 * apps/web/src/vite-env.d.ts - Added typed Vite environment variable declarations for the web host.
 * apps/web/.env.example - Added the minimal Firebase web configuration template required by the Vite host.
+* firebase.json - Added a tracked repository-root Firebase deploy configuration that resolves the backend Functions source and Firestore assets correctly on the laptop.
 * scripts/firebase-project-id.mjs - Added a shared Firebase project-id resolver that supports `FIREBASE_PROJECT_ID` and `BINSIGHT_FIREBASE_PROJECT_ID` plus backend env-file fallback.
 * scripts/firebase-cli.mjs - Added a Firebase CLI wrapper that resolves the project id automatically before deploy commands.
+* scripts/pnpm-cli.mjs - Added a pnpm wrapper that falls back to `npx pnpm@10.6.3` when Corepack fails on this laptop.
 * services/backend-functions/scripts/seed-demo-data.mjs - Added a demo seeding workflow for stations, live-status stubs, history, and analytics-ready event coverage.
 
 ### Modified
@@ -58,12 +60,17 @@ Resume the integration-hardening plan by hardening the Pi runtime publication se
 * apps/web/README.md - Documented the Vite host startup, Firebase env requirements, and operator login sequence.
 * devices/pi-station/README.md - Documented the final Pi runtime startup sequence for the thin-slice demo path.
 * services/backend-functions/README.md - Documented the demo seed command and the backend credential prerequisites required before rehearsal.
-* package.json - Updated Firestore deploy to resolve the Firebase project id from `BINSIGHT_FIREBASE_PROJECT_ID` when `FIREBASE_PROJECT_ID` is unset.
+* package.json - Updated root workspace scripts to use the tracked Firebase deploy config and a pnpm fallback wrapper so deploy, lint, build, and test run on the laptop.
 * justfile - Updated rehearsal deploy and seed tasks to fall back to `BINSIGHT_FIREBASE_PROJECT_ID` automatically.
 * services/backend-functions/.env.example - Added the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` local-config key for backend env files.
 * services/backend-functions/.env.vastum-binsight - Added `BINSIGHT_FIREBASE_PROJECT_ID=vastum-binsight` for local project-id fallback.
 * devices/pi-station/src/binsight_station/main.py - Added Pi runtime fallback from `FIREBASE_PROJECT_ID` to `BINSIGHT_FIREBASE_PROJECT_ID`.
 * devices/pi-station/.env.example - Updated the Pi env template to prefer the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` key.
+* devices/pi-station/src/binsight_station/main.py - Preserved local session state and LCD output when cloud publication fails so laptop validation and real station behavior stay best-effort instead of surfacing false runtime errors.
+* devices/pi-station/tests/test_runtime_session.py - Isolated runtime tests from checked-in device credentials by injecting a no-op publication adapter.
+* devices/pi-station/tests/test_smoke.py - Isolated smoke tests from real publish credentials so the laptop suite remains hermetic.
+* docs/firebase-rehearsal-runbook.md - Updated the rehearsal note to point at the tracked root Firebase deploy config.
+* services/backend-functions/package.json - Pointed the package-level Functions deploy script at the tracked root Firebase config.
 
 ### Removed
 
@@ -87,7 +94,11 @@ Resume the integration-hardening plan by hardening the Pi runtime publication se
 	* `services/backend-functions/.env.$FIREBASE_PROJECT_ID` may now carry the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` repo-local config key together with `BINSIGHT_STORAGE_BUCKET` and `BINSIGHT_DEVICE_CREDENTIALS_JSON`. `FIREBASE_PROJECT_ID` must still stay out of that file because Firebase rejects reserved `FIREBASE_*` keys in deploy-time env files.
 * A final Phase 5 repository audit confirmed the repo-owned rehearsal flow is already complete.
 	* `README.md`, `apps/web/README.md`, `devices/pi-station/README.md`, `services/backend-functions/README.md`, and `docs/firebase-rehearsal-runbook.md` already document the supported run order, required env files, operator login path, and live Firebase blocker details.
+* The final unchecked Phase 5 work is now hardware-only, not repo-owned configuration.
+	* This laptop successfully deployed Firestore and Functions to `vastum-binsight`, seeded the demo dataset, started the Vite dashboard locally, and validated `uv run binsight-station`. The only remaining rehearsal steps require the real Raspberry Pi and ESP hardware to produce live presence, LED, LCD, and disposal events.
+* Root workspace validation scripts required a repo-level fallback because Corepack is failing in this environment.
+	* The new `scripts/pnpm-cli.mjs` wrapper keeps the repo-owned `lint`, `build`, `test`, `backend:build`, `backend:seed:demo`, and `web:dev` commands usable on this laptop by falling back to `npx pnpm@10.6.3`.
 
 ## Release Summary
 
-Phase 1, Phase 2, Phase 3, and Phase 4 are complete, and Phase 5 is partially complete. The Pi runtime surface now publishes backend ingress envelopes through a coherent publisher seam, drives a deterministic local demo loop with text-first live status and cumulative LCD output, and exposes explicit endpoint configuration for the authenticated publication path. The backend has a documented demo seed workflow that provisions multiple stations, live-status stubs, historical events, and Ottawa preset coverage for analytics, comparisons, and leaderboard views. The apps/web package builds as a Vite-hosted React browser app, initializes Firebase from environment variables, signs operators in with Firebase Auth, reads dashboard data through callable functions, and subscribes to Firestore live-status updates. Local validation passed for `corepack pnpm lint`, `corepack pnpm build`, `corepack pnpm test`, `uv run pytest`, `uv run binsight-station`, `/home/handwash/Projects/hackcanada/.venv/bin/pio run`, and `just validate`. The only remaining blocker to complete the final rehearsal is live Firebase environment provisioning for seeding, operator login, and real station-to-cloud verification.
+Phase 1, Phase 2, Phase 3, and Phase 4 are complete, and Phase 5 is complete for the laptop-safe repository scope but still pending physical-station execution. The Pi runtime surface now publishes backend ingress envelopes through a coherent publisher seam, drives a deterministic local demo loop with text-first live status and cumulative LCD output, and preserves local operator feedback when cloud publication fails. The backend has a documented demo seed workflow that provisions multiple stations, live-status stubs, historical events, and Ottawa preset coverage for analytics, comparisons, and leaderboard views, and the tracked root Firebase deploy config now supports Firestore and Functions deployment from the repository root on this laptop. The apps/web package builds as a Vite-hosted React browser app, initializes Firebase from environment variables, signs operators in with Firebase Auth, reads dashboard data through callable functions, and subscribes to Firestore live-status updates. Validation passed for `npx -y pnpm@10.6.3 run lint`, `npx -y pnpm@10.6.3 run build`, `npx -y pnpm@10.6.3 run test`, `uv run pytest`, `uv run binsight-station`, `node scripts/firebase-cli.mjs deploy --config firebase.json --only firestore:rules,firestore:indexes`, `npx -y pnpm@10.6.3 run firebase:deploy:functions`, `npx -y pnpm@10.6.3 --filter @binsight/backend-functions run seed:demo`, and local Vite startup at `http://127.0.0.1:4173/`. The remaining unchecked work is the real Pi-plus-ESP station rehearsal, which cannot be completed from this laptop because the physical hardware is not attached here.

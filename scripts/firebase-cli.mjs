@@ -4,8 +4,10 @@ import { requireFirebaseProjectId } from "./firebase-project-id.mjs";
 const projectId = requireFirebaseProjectId();
 const args = process.argv.slice(2);
 const hasProjectArgument = args.includes("--project");
-const command = process.platform === "win32" ? "corepack.cmd" : "corepack";
-const commandArgs = ["pnpm", "dlx", "firebase-tools@latest", ...args];
+const command = process.platform === "win32" ? "cmd.exe" : "corepack";
+const commandArgs = process.platform === "win32"
+  ? ["/d", "/s", "/c", "npx", "-y", "firebase-tools@latest", ...args]
+  : ["pnpm", "dlx", "firebase-tools@latest", ...args];
 
 if (!hasProjectArgument) {
   commandArgs.push("--project", projectId);

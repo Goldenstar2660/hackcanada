@@ -16,7 +16,7 @@ Use this runbook for the supported rehearsal path in this repository:
 This runbook does not add Firebase Hosting, emulator orchestration, or a redesigned long-running Pi runtime.
 
 > [!NOTE]
-> The supported website path for this rehearsal is `corepack pnpm run web:dev`. `infra/firebase/firebase.json` intentionally keeps Firebase Hosting out of scope for this cycle.
+> The supported website path for this rehearsal is `corepack pnpm run web:dev`. The tracked deploy surface is `firebase.json` at the repository root, and it intentionally keeps Firebase Hosting out of scope for this cycle.
 
 > [!IMPORTANT]
 > The dashboard, backend, and Pi runtime must all target the same `FIREBASE_PROJECT_ID`. The backend `BINSIGHT_DEVICE_CREDENTIALS_JSON` entry and the Pi `BINSIGHT_DEVICE_ID` plus `BINSIGHT_DEVICE_SHARED_SECRET` must also match.

@@ -11,7 +11,7 @@ Gaps and deviations identified during implementation.
 
 * DR-01: Real Firebase rehearsal prerequisites remain external to the repository.
   * Source: .copilot-tracking/research/2026-03-07/full-station-demo-integration-hardening-research.md (Lines 251-278)
-  * Reason: A direct workspace check confirmed that `apps/web/.env` is present with the required `VITE_FIREBASE_*` keys, `devices/pi-station/.env` is present with the Pi runtime keys, `services/backend-functions/.env.vastum-binsight` is present with backend bucket and device-credential values, and the `secrets/` folder contains a Firebase Admin SDK JSON file. The repo now supports `BINSIGHT_FIREBASE_PROJECT_ID` as a non-reserved local-config fallback for deploy commands, the seed script, and the Pi runtime. The remaining gaps are the non-project-id shell exports required during seeding and completion of the live Firebase rehearsal itself.
+  * Reason: A direct workspace check confirmed that `apps/web/.env` is present with the required `VITE_FIREBASE_*` keys, `devices/pi-station/.env` is present with the Pi runtime keys, `services/backend-functions/.env.vastum-binsight` is present with backend bucket and device-credential values, and the `secrets/` folder contains a Firebase Admin SDK JSON file. Firestore and Functions were deployed to `vastum-binsight`, and the demo dataset was seeded successfully from this laptop. The remaining gap is no longer repo-owned bootstrap. It is the physical station rehearsal that requires the actual Pi and ESP hardware for a live sort.
   * Impact: High
 
 ### Implementation Deviations
@@ -28,12 +28,13 @@ Gaps and deviations identified during implementation.
   * Plan specifies: Basic Firebase Auth users are acceptable for operator access, while operator-facing access remains aligned to the backend auth model.
   * Implementation differs: The web host and backend operator-auth checks now allow any signed-in Firebase user instead of requiring explicit operator claims.
   * Rationale: This keeps the selected basic email/password login path usable without a separate custom-claims provisioning step during the current cycle.
+* DD-04: Root deploy and validation scripts required laptop-specific fallback handling.
+  * Plan specifies: Final rehearsal and validation use the repository-owned `pnpm` and Firebase command surface directly.
+  * Implementation differs: The repo now includes `firebase.json` at the root plus `scripts/pnpm-cli.mjs` so the tracked deploy scripts work from the repository root and the root package scripts fall back to `npx pnpm@10.6.3` when Corepack fails on this machine.
+  * Rationale: Without these changes, the documented deploy and validation commands were not reproducible on the laptop even though the underlying code and Firebase project were ready.
 
 ## Suggested Follow-On Work
 
-* WI-01: Finish the live rehearsal shell wiring — Export `BINSIGHT_STORAGE_BUCKET`, `BINSIGHT_DEVICE_CREDENTIALS_JSON`, and `GOOGLE_APPLICATION_CREDENTIALS` in the active shell before seed commands, then run the real Firebase rehearsal. (high)
-  * Source: Phase 5, Step 5.1
-  * Dependency: Access to the demo Firebase project values, device shared secret, and service-account credential path
 * WI-02: Confirm SPA deep-link hosting behavior — Verify static hosting rewrites for routes such as `/stations/:stationId/live` before demo deployment. (medium)
   * Source: Phase 4, Step 4.1
   * Dependency: Web deploy target selection
@@ -52,6 +53,9 @@ Gaps and deviations identified during implementation.
 * WI-07: Provision the live demo Firebase environment — Set `FIREBASE_PROJECT_ID`, `BINSIGHT_STORAGE_BUCKET`, `BINSIGHT_DEVICE_CREDENTIALS_JSON`, `GOOGLE_APPLICATION_CREDENTIALS`, and `VITE_FIREBASE_*`, then rerun the seed and rehearsal flow. (high)
   * Source: Phase 5, Step 5.4
   * Dependency: Access to the demo Firebase project and operator account provisioning
+* WI-08: Run the physical-station rehearsal on the actual hardware — Use the deployed `vastum-binsight` backend, seeded dataset, local Vite dashboard, and the real Pi plus ESP station to verify presence sensing, LED guidance, LCD output, disposal capture, and live dashboard updates during a real sort. (high)
+  * Source: Phase 5, Step 5.1
+  * Dependency: Access to the Raspberry Pi, ESP controller, and the assembled station rig
 
 ## User Decisions
 

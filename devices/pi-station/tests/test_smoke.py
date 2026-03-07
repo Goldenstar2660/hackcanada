@@ -43,6 +43,7 @@ def test_runtime_starts_session_from_stable_esp_presence_frames() -> None:
         load_runtime_settings(),
         monotonic_clock=iter([0.0, 0.4, 0.5, 1.0]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
+        publication_client=PublicationAdapter("test-project"),
     )
 
     transport.queue_incoming(
@@ -79,6 +80,7 @@ def test_runtime_cancels_presence_arming_when_stable_presence_drops() -> None:
         load_runtime_settings(),
         monotonic_clock=iter([5.0, 5.2]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
+        publication_client=PublicationAdapter("test-project"),
     )
     runtime.classifier = RecordingClassifier(
         ClassificationResult(
@@ -145,6 +147,7 @@ def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
         load_runtime_settings(),
         monotonic_clock=iter([0.0, 0.4, 0.5, 1.0, 1.1, 1.2]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
+        publication_client=PublicationAdapter("test-project"),
     )
     runtime.classifier = StubClassifier(
         ClassificationResult(

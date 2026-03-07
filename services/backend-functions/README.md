@@ -25,7 +25,7 @@ Firebase deploys this package from `services/backend-functions`, but the runtime
 1. Build the package.
 2. Deploy the `backend-functions` Firebase codebase.
 
-The Firebase configuration under `infra/firebase/firebase.json` ignores the TypeScript source tree and upload-time documentation files. If `dist/index.js` is missing, the Functions deploy fails instead of silently compiling a different artifact.
+The Firebase configuration under `firebase.json` ignores the TypeScript source tree and upload-time documentation files. If `dist/index.js` is missing, the Functions deploy fails instead of silently compiling a different artifact.
 
 Build the backend package from the repository root with:
 

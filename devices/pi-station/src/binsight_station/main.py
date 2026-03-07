@@ -269,13 +269,12 @@ class StationRuntime:
         try:
             self.publication_client.publish_live_status(status)
         except PublicationError:
-            self.lcd_client.render_error("Offline publish")
             status = self.live_status_publisher.build_status(
                 self.settings.station_id,
                 snapshot,
                 latest_event=latest_event,
                 device_health=self._device_health(),
-                session_state_override="error",
+                session_state_override=session_state_override,
             )
         self.last_live_status = status
         return status
@@ -336,7 +335,7 @@ class StationRuntime:
         try:
             self.publication_client.publish_disposal_event(event)
         except PublicationError:
-            self._publish_runtime_status(result_snapshot, latest_event=event, session_state_override="error")
+            self._publish_runtime_status(result_snapshot, latest_event=event)
             return event
 
         self._publish_runtime_status(result_snapshot, latest_event=event)
