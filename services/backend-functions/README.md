@@ -25,7 +25,7 @@ Firebase deploys this package from `services/backend-functions`, but the runtime
 1. Build the package.
 2. Deploy the `backend-functions` Firebase codebase.
 
-The Firebase configuration under `infra/firebase/firebase.json` ignores the TypeScript source tree and upload-time documentation files. If `dist/index.js` is missing, the Functions deploy fails instead of silently compiling a different artifact.
+The Firebase configuration under `firebase.json` ignores the TypeScript source tree and upload-time documentation files. If `dist/index.js` is missing, the Functions deploy fails instead of silently compiling a different artifact.
 
 Build the backend package from the repository root with:
 
@@ -48,10 +48,12 @@ cp services/backend-functions/.env.example services/backend-functions/.env.$FIRE
 The deployed env file must define these values:
 
 ```text
-FIREBASE_PROJECT_ID=your-firebase-project-id
+BINSIGHT_FIREBASE_PROJECT_ID=your-firebase-project-id
 BINSIGHT_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
 BINSIGHT_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
 ```
+
+`BINSIGHT_FIREBASE_PROJECT_ID` is safe to keep in `services/backend-functions/.env.$FIREBASE_PROJECT_ID` as repo-local config. Do not add `FIREBASE_PROJECT_ID` to that file because Firebase Functions deploy treats `FIREBASE_` as a reserved prefix and rejects those keys in project env files.
 
 `BINSIGHT_DEVICE_CREDENTIALS_JSON` must be a JSON array. Each entry maps one Pi device identity to one station id and shared secret. The Pi runtime sends these values in the `x-binsight-device-id`, `x-binsight-station-id`, `x-binsight-timestamp`, and `x-binsight-signature` headers when it calls `ingestEvent` and `ingestLiveStatus`.
 
@@ -66,13 +68,13 @@ corepack pnpm run firebase:deploy:functions
 The local seed workflow stays on shell exports plus application default credentials. Export these values in your shell before seeding demo data:
 
 ```text
-FIREBASE_PROJECT_ID=your-firebase-project-id
+BINSIGHT_FIREBASE_PROJECT_ID=your-firebase-project-id
 BINSIGHT_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
 BINSIGHT_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 ```
 
-Do not rely on the per-project Functions env file for the local seed step. The seed script reads the shell environment and authenticates through application default credentials on the operator machine.
+The seed script now accepts either `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`. Do not rely on the per-project Functions env file for the other seed inputs. The script still reads `BINSIGHT_STORAGE_BUCKET`, `BINSIGHT_DEVICE_CREDENTIALS_JSON`, and `GOOGLE_APPLICATION_CREDENTIALS` from the shell environment and authenticates through application default credentials on the operator machine.
 
 ### Seed Workflow
 
@@ -93,7 +95,7 @@ The script also pre-creates analytics materialization ledger documents for seede
 
 ### Thin-slice run order
 
-Use `../../docs/firebase-rehearsal-runbook.md` for the complete Phase 5 rehearsal order. The backend-specific rules stay the same: build before deploy, keep deployed runtime values in `services/backend-functions/.env.$FIREBASE_PROJECT_ID`, and keep local seeding on shell exports plus `GOOGLE_APPLICATION_CREDENTIALS`.
+Use `../../docs/firebase-rehearsal-runbook.md` for the complete Phase 5 rehearsal order. The backend-specific rules stay the same: build before deploy, keep only non-reserved runtime values in `services/backend-functions/.env.$FIREBASE_PROJECT_ID`, and keep local seeding on shell exports plus `GOOGLE_APPLICATION_CREDENTIALS`.
 
 The backend surface is consumed as deployed Firebase Functions. There is no separate long-running local backend host in the Phase 5 demo path.
 
@@ -102,7 +104,7 @@ The backend surface is consumed as deployed Firebase Functions. There is no sepa
 The backend package passed the Phase 5 local TypeScript lint and build on 2026-03-07.
 
 > [!WARNING]
-> The real Firebase rehearsal is still blocked in this workspace. On 2026-03-07, `corepack pnpm --filter @binsight/backend-functions run seed:demo` failed immediately with `FIREBASE_PROJECT_ID is required for the demo seed workflow.` No Firebase application credentials or backend environment variables were present in the shell at validation time.
+> The real Firebase rehearsal is still blocked in this workspace. On 2026-03-07, `corepack pnpm --filter @binsight/backend-functions run seed:demo` failed immediately because no project id was available in the shell. The repo now accepts `BINSIGHT_FIREBASE_PROJECT_ID` as a fallback for deploy and seed commands, but the seed step still requires `BINSIGHT_STORAGE_BUCKET`, `BINSIGHT_DEVICE_CREDENTIALS_JSON`, and `GOOGLE_APPLICATION_CREDENTIALS` in the active shell.
 
 ### Operator User Path
 

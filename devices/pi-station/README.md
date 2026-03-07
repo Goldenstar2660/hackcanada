@@ -165,7 +165,7 @@ The minimum Phase 1 configuration set is:
 * `RULES_PRESET_ID`: Active rules preset id, currently `demo-canada-ottawa`
 * `RULES_PRESET_VERSION`: Active rules preset version, currently `1.0.0`
 * `ESP_ENDPOINT`: ESP8266 base URL on the shared network, for example `http://192.168.4.1`
-* `FIREBASE_PROJECT_ID`: Firebase project id for the demo environment
+* `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`: Firebase project id for the demo environment. The runtime prefers `FIREBASE_PROJECT_ID` when both are set, but it accepts the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` fallback for repo-local config.
 * `BINSIGHT_DEVICE_ID`: Device id that will be used for authenticated backend publication
 * `BINSIGHT_DEVICE_SHARED_SECRET`: Shared secret paired with the device id for backend ingress
 * `PRESENCE_DEBOUNCE_SECONDS`: Stable presence window before identification starts
@@ -200,6 +200,6 @@ uv run binsight-station
 From the workspace root, `just validate` should also pass the Pi validation step once the workspace dependencies are installed.
 
 > [!WARNING]
-> The local Phase 5 startup command was validated on 2026-03-07, but a real cloud rehearsal was not. The workspace did not include a provisioned `devices/pi-station/.env`, reachable Firebase credentials, or a seeded backend project, so live cloud publication remains blocked until those values are supplied.
+> The local Phase 5 startup command was validated on 2026-03-07, but a real cloud rehearsal was not. The repo now accepts `BINSIGHT_FIREBASE_PROJECT_ID` in `devices/pi-station/.env`, yet live cloud publication still depends on reachable Firebase credentials and a seeded backend project.
 
 Hardware integration, cloud publication, and model execution beyond the current seams remain follow-on work.

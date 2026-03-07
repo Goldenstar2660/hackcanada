@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.json",
     "dev": "node ../../node_modules/typescript/bin/tsc -w -p tsconfig.json --preserveWatchOutput",
-    "deploy:functions": "corepack pnpm dlx firebase-tools@latest deploy --config ../../infra/firebase/firebase.json --only functions:backend-functions --project \"$FIREBASE_PROJECT_ID\"",
+    "deploy:functions": "node ../../scripts/firebase-cli.mjs deploy --config ../../firebase.json --only functions:backend-functions",
     "lint": "node ../../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json",
     "seed:demo": "node scripts/seed-demo-data.mjs"
   },

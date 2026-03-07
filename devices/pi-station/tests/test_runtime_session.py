@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from binsight_station.classification import ClassificationResult
 from binsight_station.esp_client import EspClient, MemoryEspTransport
 from binsight_station.main import DeterministicHandTracker, StationRuntime, load_runtime_settings
+from binsight_station.publishers import PublicationAdapter
 from binsight_station.session import SessionPhase, SessionStateMachine
 
 
@@ -33,6 +34,7 @@ def _build_runtime(
         load_runtime_settings(),
         monotonic_clock=lambda: next(clock),
         esp_client=EspClient("serial://test", transport=resolved_transport),
+        publication_client=PublicationAdapter("test-project"),
     )
 
 

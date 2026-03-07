@@ -16,7 +16,7 @@ Use this runbook for the supported rehearsal path in this repository:
 This runbook does not add Firebase Hosting, emulator orchestration, or a redesigned long-running Pi runtime.
 
 > [!NOTE]
-> The supported website path for this rehearsal is `corepack pnpm run web:dev`. `infra/firebase/firebase.json` intentionally keeps Firebase Hosting out of scope for this cycle.
+> The supported website path for this rehearsal is `corepack pnpm run web:dev`. The tracked deploy surface is `firebase.json` at the repository root, and it intentionally keeps Firebase Hosting out of scope for this cycle.
 
 > [!IMPORTANT]
 > The dashboard, backend, and Pi runtime must all target the same `FIREBASE_PROJECT_ID`. The backend `BINSIGHT_DEVICE_CREDENTIALS_JSON` entry and the Pi `BINSIGHT_DEVICE_ID` plus `BINSIGHT_DEVICE_SHARED_SECRET` must also match.
@@ -54,7 +54,7 @@ Complete these manual Firebase prerequisites before you continue:
 
 Run the live rehearsal in this order after the manual prerequisites are complete:
 
-1. Export `FIREBASE_PROJECT_ID`
+1. Set `BINSIGHT_FIREBASE_PROJECT_ID` in local config or export `FIREBASE_PROJECT_ID`
 2. Create the local configuration files for Functions, web, and Pi
 3. Build the backend
 4. Deploy Firestore rules and indexes
@@ -67,10 +67,16 @@ Run the live rehearsal in this order after the manual prerequisites are complete
 
 ## Choose the Firebase Project
 
-Export the Firebase project id once for the rest of the commands in this runbook:
+Use one of these project-id inputs for the rest of the commands in this runbook:
 
 ```bash
 export FIREBASE_PROJECT_ID=your-firebase-project-id
+```
+
+or keep this non-reserved value in local config such as `services/backend-functions/.env.$FIREBASE_PROJECT_ID`:
+
+```text
+BINSIGHT_FIREBASE_PROJECT_ID=your-firebase-project-id
 ```
 
 ## Create the Local Configuration Files
@@ -81,11 +87,13 @@ Create the deployed Functions env file for the selected Firebase project:
 cd /home/handwash/Projects/hackcanada
 cp services/backend-functions/.env.example "services/backend-functions/.env.$FIREBASE_PROJECT_ID"
 cat > "services/backend-functions/.env.$FIREBASE_PROJECT_ID" <<EOF
-FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
+BINSIGHT_FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
 BINSIGHT_STORAGE_BUCKET=${FIREBASE_PROJECT_ID}.firebasestorage.app
 BINSIGHT_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
 EOF
 ```
+
+Keep `BINSIGHT_FIREBASE_PROJECT_ID` in `services/backend-functions/.env.$FIREBASE_PROJECT_ID` if you want repo-local project-id fallback. Do not add `FIREBASE_PROJECT_ID` there because Firebase rejects reserved prefixes such as `FIREBASE_`, `X_GOOGLE_`, and `EXT_` in deploy-time env files.
 
 Create the web dashboard env file:
 
@@ -114,7 +122,7 @@ STATION_ID=demo-station-001
 RULES_PRESET_ID=demo-canada-ottawa
 RULES_PRESET_VERSION=1.0.0
 ESP_ENDPOINT=http://192.168.4.1
-FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
+BINSIGHT_FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
 FIREBASE_FUNCTIONS_REGION=us-central1
 FIREBASE_FUNCTIONS_BASE_URL=
 BINSIGHT_DEVICE_ID=pi-demo-001
@@ -130,6 +138,7 @@ Update the placeholder values before you continue:
 
 * Replace the Firebase web app placeholders in `apps/web/.env` with the values from the Firebase console
 * Replace `replace-with-demo-secret` in both `devices/pi-station/.env` and `services/backend-functions/.env.$FIREBASE_PROJECT_ID` with the same shared secret
+* Keep `FIREBASE_PROJECT_ID` out of `services/backend-functions/.env.$FIREBASE_PROJECT_ID`; use `BINSIGHT_FIREBASE_PROJECT_ID` for repo-local config and pass the actual Firebase project id through `--project`, shell exports for seed commands, `apps/web/.env`, and the Pi runtime env
 * Keep `demo-station-001` and `pi-demo-001` unchanged unless you also update both files to a new station and device pair
 
 ## Build the Backend
@@ -185,6 +194,7 @@ just rehearsal-deploy-functions
 Export the local seed environment in the shell you will use for seeding:
 
 ```bash
+export BINSIGHT_FIREBASE_PROJECT_ID=your-firebase-project-id
 export BINSIGHT_STORAGE_BUCKET="${FIREBASE_PROJECT_ID}.firebasestorage.app"
 export BINSIGHT_DEVICE_CREDENTIALS_JSON='[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]'
 export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
@@ -205,7 +215,7 @@ just rehearsal-seed-demo
 ```
 
 > [!NOTE]
-> The seed script reads shell exports plus application default credentials from `GOOGLE_APPLICATION_CREDENTIALS`. It does not read `services/backend-functions/.env.$FIREBASE_PROJECT_ID`.
+> The seed script accepts either `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`, then reads the remaining shell exports plus application default credentials from `GOOGLE_APPLICATION_CREDENTIALS`. It does not read `BINSIGHT_STORAGE_BUCKET` or `BINSIGHT_DEVICE_CREDENTIALS_JSON` from `services/backend-functions/.env.$FIREBASE_PROJECT_ID`.
 
 ## Start the Dashboard
 

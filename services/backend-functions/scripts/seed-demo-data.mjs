@@ -456,9 +456,9 @@ async function commitInChunks(firestore, writes) {
 }
 
 async function main() {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.BINSIGHT_FIREBASE_PROJECT_ID;
   if (!projectId) {
-    throw new Error("FIREBASE_PROJECT_ID is required for the demo seed workflow.");
+    throw new Error("FIREBASE_PROJECT_ID or BINSIGHT_FIREBASE_PROJECT_ID is required for the demo seed workflow.");
   }
 
   const storageBucket = process.env.BINSIGHT_STORAGE_BUCKET;

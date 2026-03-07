@@ -82,13 +82,14 @@ class RuntimeSettings:
 def load_runtime_settings() -> RuntimeSettings:
     project_root = Path(__file__).resolve().parents[2]
     load_dotenv(project_root / ".env")
+    firebase_project_id = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("BINSIGHT_FIREBASE_PROJECT_ID") or "binsight-demo"
 
     return RuntimeSettings(
         station_id=os.getenv("STATION_ID", "demo-station-001"),
         rules_preset_id=os.getenv("RULES_PRESET_ID", "demo-canada-ottawa"),
         rules_preset_version=os.getenv("RULES_PRESET_VERSION", "1.0.0"),
         esp_endpoint=os.getenv("ESP_ENDPOINT", "http://192.168.4.1"),
-        firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "binsight-demo"),
+        firebase_project_id=firebase_project_id,
         firebase_functions_region=os.getenv("FIREBASE_FUNCTIONS_REGION", "us-central1"),
         firebase_functions_base_url=_optional_env("FIREBASE_FUNCTIONS_BASE_URL"),
         binsight_device_id=_optional_env("BINSIGHT_DEVICE_ID"),
@@ -268,13 +269,12 @@ class StationRuntime:
         try:
             self.publication_client.publish_live_status(status)
         except PublicationError:
-            self.lcd_client.render_error("Offline publish")
             status = self.live_status_publisher.build_status(
                 self.settings.station_id,
                 snapshot,
                 latest_event=latest_event,
                 device_health=self._device_health(),
-                session_state_override="error",
+                session_state_override=session_state_override,
             )
         self.last_live_status = status
         return status
@@ -335,7 +335,7 @@ class StationRuntime:
         try:
             self.publication_client.publish_disposal_event(event)
         except PublicationError:
-            self._publish_runtime_status(result_snapshot, latest_event=event, session_state_override="error")
+            self._publish_runtime_status(result_snapshot, latest_event=event)
             return event
 
         self._publish_runtime_status(result_snapshot, latest_event=event)

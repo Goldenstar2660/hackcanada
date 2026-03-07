@@ -89,7 +89,7 @@ Observed local results:
 
 Use this order for the real station-to-cloud-to-dashboard demo once Firebase provisioning is in place:
 
-1. Export `FIREBASE_PROJECT_ID` for the target Firebase project.
+1. Set `BINSIGHT_FIREBASE_PROJECT_ID` in local config or export `FIREBASE_PROJECT_ID` for the target Firebase project.
 2. Create `services/backend-functions/.env.$FIREBASE_PROJECT_ID`, `apps/web/.env`, and `devices/pi-station/.env`.
 3. Run `corepack pnpm run backend:build`.
 4. Run `corepack pnpm run firebase:deploy:firestore`.
@@ -136,7 +136,7 @@ just rehearsal-pi-start
 The supported rehearsal path remains unchanged for scope control: build the backend explicitly, deploy Firestore rules and indexes, deploy Functions, seed the demo data from a shell with application default credentials, then run the website locally with Vite. Firebase Hosting and emulator orchestration remain out of scope for this phase.
 
 > [!WARNING]
-> The real Firebase rehearsal was not validated in this workspace on 2026-03-07. The demo seed command failed immediately because `FIREBASE_PROJECT_ID` was not set in the shell, no Firebase application credentials were present, and no web dashboard `.env` file was provisioned. Treat live dashboard updates, seeded history, and operator login as blocked until those environment prerequisites are supplied.
+> The real Firebase rehearsal was not validated in this workspace on 2026-03-07. A follow-up workspace check confirmed that `apps/web/.env`, `devices/pi-station/.env`, `services/backend-functions/.env.vastum-binsight`, and a Firebase Admin SDK JSON file under `secrets/` are now present. The repository now accepts `BINSIGHT_FIREBASE_PROJECT_ID` as a local-config fallback for deploy, seed, and Pi runtime startup. The remaining blockers are completion of the real project-side rehearsal and the non-project-id shell inputs still required by the seed step.
 
 ## Demo Bootstrap
 
@@ -153,7 +153,7 @@ STATION_ID=demo-station-001
 RULES_PRESET_ID=demo-canada-ottawa
 RULES_PRESET_VERSION=1.0.0
 ESP_ENDPOINT=http://192.168.4.1
-FIREBASE_PROJECT_ID=your-firebase-project-id
+BINSIGHT_FIREBASE_PROJECT_ID=your-firebase-project-id
 FIREBASE_FUNCTIONS_REGION=us-central1
 FIREBASE_FUNCTIONS_BASE_URL=
 BINSIGHT_DEVICE_ID=pi-demo-001
@@ -164,12 +164,12 @@ BINSIGHT_PUBLICATION_TIMEOUT_SECONDS=5.0
 Backend functions use environment variables or deployment secrets for these minimum values:
 
 ```text
-FIREBASE_PROJECT_ID=your-firebase-project-id
+BINSIGHT_FIREBASE_PROJECT_ID=your-firebase-project-id
 BINSIGHT_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
 BINSIGHT_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
 ```
 
-For deployed Functions, keep those values in `services/backend-functions/.env.$FIREBASE_PROJECT_ID`. For the local seed workflow, export the same values in your shell together with `GOOGLE_APPLICATION_CREDENTIALS`.
+For deployed Functions, keep only non-reserved keys in `services/backend-functions/.env.$FIREBASE_PROJECT_ID`. `BINSIGHT_FIREBASE_PROJECT_ID` is safe to keep there as repo-local config, but `FIREBASE_PROJECT_ID` must stay out because Firebase rejects reserved env keys with prefixes such as `FIREBASE_`. Deploy scripts, `just` rehearsal tasks, the seed workflow, and the Pi runtime now accept `BINSIGHT_FIREBASE_PROJECT_ID` as a fallback when `FIREBASE_PROJECT_ID` is not already exported.
 
 The Vite dashboard uses `apps/web/.env` with these Firebase web SDK values:
 
@@ -188,7 +188,7 @@ VITE_FIREBASE_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
 Seeded historical data is required for the demo because the live station will not generate enough attempts to populate analytics, comparisons, history, and leaderboard views on its own.
 
 1. Authenticate the Firebase Admin SDK against the demo project. `GOOGLE_APPLICATION_CREDENTIALS` is the most direct path for this repository.
-2. Set `FIREBASE_PROJECT_ID` and `BINSIGHT_STORAGE_BUCKET` for the target project.
+2. Set `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`, plus `BINSIGHT_STORAGE_BUCKET`, for the target project.
 3. Run the seed command from the repository root.
 
 ```bash

@@ -49,5 +49,5 @@ services/backend-functions/firebase.local.json
 tmp/
 temp/
 
-.copilot-tracking/
+# .copilot-tracking/
 devices/pi-station/training_data/
