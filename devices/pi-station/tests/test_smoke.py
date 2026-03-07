@@ -1,5 +1,8 @@
 from binbuddy_station.classification import ClassificationResult
 from binbuddy_station.esp_client import BackendIngressIdentity
+from binbuddy_station.esp_client import EspClient
+from binbuddy_station.esp_client import GuidanceCommand
+from binbuddy_station.esp_client import MemoryEspTransport
 from binbuddy_station.events import create_disposal_event
 from binbuddy_station.lcd_client import LcdClient
 from binbuddy_station.live_status import DeviceHealth, LiveStatusPublisher
