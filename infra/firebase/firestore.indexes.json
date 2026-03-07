@@ -1,4 +1,59 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "disposalEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "stationId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "stations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "buildingId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "floorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "locationLabel",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "stationName",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "stations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "signageVariant",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "layoutVariant",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "stationName",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

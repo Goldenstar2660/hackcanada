@@ -37,6 +37,10 @@
         "error"
       ]
     },
+    "cameraFeedStatus": {
+      "type": "string",
+      "enum": ["active", "inactive", "stale", "unavailable"]
+    },
     "latestEvent": {
       "type": "object",
       "additionalProperties": false,
@@ -65,6 +69,28 @@
         "attemptResult": {
           "type": "string",
           "enum": ["success", "failure"]
+        }
+      }
+    },
+    "cameraFeed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "storageObjectPath", "contentType", "lastUpdatedAt"],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/cameraFeedStatus"
+        },
+        "storageObjectPath": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "contentType": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "lastUpdatedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
         }
       }
     }
@@ -142,6 +168,17 @@
         }
       ],
       "description": "Most recent disposal attempt emitted by this station, if one is available."
+    },
+    "cameraFeed": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/cameraFeed"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Latest-frame camera transport metadata carried in live status so operators can refresh the current image and detect stale feed state."
     }
   }
 }
