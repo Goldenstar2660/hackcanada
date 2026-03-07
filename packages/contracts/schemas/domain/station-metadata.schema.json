@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.binbuddy.app/domain/station-metadata.schema.json",
+  "$id": "https://schemas.binsight.app/domain/station-metadata.schema.json",
   "title": "StationMetadata",
   "description": "Canonical station metadata used for dashboard filtering, grouping, and experiment comparisons.",
   "type": "object",

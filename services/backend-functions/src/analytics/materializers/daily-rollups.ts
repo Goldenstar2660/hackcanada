@@ -1,6 +1,6 @@
 import { ANALYTICS_EXPERIMENT_DIMENSIONS, createBuildingDayRollupId, createExperimentDayRollupId, createFloorDayRollupId, createStationDayRollupId } from "../../firestore/collections.js";
 
-import type { DisposalEvent } from "@binbuddy/contracts";
+import type { DisposalEvent } from "@binsight/contracts";
 
 import type {
   AnalyticsRollupDocument,

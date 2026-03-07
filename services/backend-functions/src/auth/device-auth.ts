@@ -25,10 +25,10 @@ export interface DeviceAuthenticatorOptions {
   readonly now?: () => string;
 }
 
-const DEVICE_ID_HEADER = "x-binbuddy-device-id";
-const DEVICE_STATION_HEADER = "x-binbuddy-station-id";
-const DEVICE_TIMESTAMP_HEADER = "x-binbuddy-timestamp";
-const DEVICE_SIGNATURE_HEADER = "x-binbuddy-signature";
+const DEVICE_ID_HEADER = "x-binsight-device-id";
+const DEVICE_STATION_HEADER = "x-binsight-station-id";
+const DEVICE_TIMESTAMP_HEADER = "x-binsight-timestamp";
+const DEVICE_SIGNATURE_HEADER = "x-binsight-signature";
 
 function getHeader(request: HttpRequest, name: string): string | undefined {
   const headers = request.headers ?? {};
@@ -56,7 +56,7 @@ function constantTimeEquals(left: string, right: string): boolean {
 }
 
 export function buildDeviceSignature(deviceId: string, stationId: string, timestamp: string, sharedSecret: string): string {
-  return `binbuddy-v1:${deviceId}:${stationId}:${timestamp}:${sharedSecret}`;
+  return `binsight-v1:${deviceId}:${stationId}:${timestamp}:${sharedSecret}`;
 }
 
 export function createDeviceAuthenticator(options: DeviceAuthenticatorOptions): DeviceAuthenticator {

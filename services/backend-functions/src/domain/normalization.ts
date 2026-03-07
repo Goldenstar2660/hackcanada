@@ -9,7 +9,7 @@ import type {
   DeviceSessionPhase,
   DisposalEvent,
   LiveStationStatus
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 export const DEFAULT_DEVICE_HEALTH: DeviceHealth = {
   pi: "online",

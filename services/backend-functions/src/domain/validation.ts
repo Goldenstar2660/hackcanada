@@ -17,7 +17,7 @@ import {
   type RulesPresetSummary,
   type StationMetadata,
   type StationRecord
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 const DISPOSAL_METHODS = ["recycle", "compost", "garbage"] as const;
 const DISPOSAL_ZONES = ["left", "middle", "right"] as const;

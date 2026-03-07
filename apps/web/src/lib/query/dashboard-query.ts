@@ -4,7 +4,7 @@ import type {
   EventHistoryQuery,
   MetricKey,
   StationRecord
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 export interface DashboardTimeRange {
   readonly start: string;

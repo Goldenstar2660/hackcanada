@@ -1,13 +1,13 @@
 ---
 title: Infrastructure Boundary
-description: Ownership notes for infrastructure assets in the BinBuddy repository
+description: Ownership notes for infrastructure assets in the Binsight repository
 ---
 
 ## Purpose
 
 This folder contains infrastructure-facing assets.
 
-For BinBuddy, this area is reserved for Firebase configuration, Firestore rules, indexes, emulator wiring, and other deployment-time infrastructure artifacts.
+For Binsight, this area is reserved for Firebase configuration, Firestore rules, indexes, emulator wiring, and other deployment-time infrastructure artifacts.
 
 ## Ownership Boundary
 

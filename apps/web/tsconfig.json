@@ -3,12 +3,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@binbuddy/analytics": ["../../packages/analytics/src/index.ts"],
-      "@binbuddy/backend-functions": ["../../services/backend-functions/src/index.ts"],
-      "@binbuddy/contracts": ["../../packages/contracts/src/index.d.ts"],
-      "@binbuddy/rules": ["../../packages/rules/src/index.ts"],
-      "@binbuddy/tooling": ["../../packages/tooling/src/index.ts"],
-      "@binbuddy/web": ["./src/index.ts"]
+      "@binsight/analytics": ["../../packages/analytics/src/index.ts"],
+      "@binsight/backend-functions": ["../../services/backend-functions/src/index.ts"],
+      "@binsight/contracts": ["../../packages/contracts/src/index.d.ts"],
+      "@binsight/rules": ["../../packages/rules/src/index.ts"],
+      "@binsight/tooling": ["../../packages/tooling/src/index.ts"],
+      "@binsight/web": ["./src/index.ts"]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",

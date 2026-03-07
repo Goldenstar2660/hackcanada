@@ -1,13 +1,13 @@
 ---
 title: Firmware Boundary
-description: Ownership notes for embedded firmware projects in the BinBuddy repository
+description: Ownership notes for embedded firmware projects in the Binsight repository
 ---
 
 ## Purpose
 
 This folder contains embedded firmware projects.
 
-For BinBuddy, the ESP8266 controller belongs here because it owns ultrasonic sensing, LED control, acknowledgements, and health telemetry for the station hardware.
+For Binsight, the ESP8266 controller belongs here because it owns ultrasonic sensing, LED control, acknowledgements, and health telemetry for the station hardware.
 
 ## Ownership Boundary
 

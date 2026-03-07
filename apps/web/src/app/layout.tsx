@@ -14,9 +14,9 @@ function isRouteSelected(currentPath: string, routePath: string): boolean {
 
 export function DashboardLayout(props: DashboardLayoutProps): JSX.Element {
   return (
-    <div data-surface="binbuddy-dashboard" className="dashboard-shell">
+    <div data-surface="binsight-dashboard" className="dashboard-shell">
       <header className="dashboard-header">
-        <p className="dashboard-eyebrow">BinBuddy operator dashboard</p>
+        <p className="dashboard-eyebrow">Binsight operator dashboard</p>
         <h1 className="dashboard-title">{props.title}</h1>
         <p className="dashboard-description">{props.description}</p>
       </header>

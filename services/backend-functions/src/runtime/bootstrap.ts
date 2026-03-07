@@ -24,14 +24,14 @@ export interface BackendRuntimeServices {
 let cachedServices: BackendRuntimeServices | null = null;
 
 function parseDeviceCredentialsFromEnvironment(): readonly DeviceCredentialRecord[] {
-  const raw = process.env.BINBUDDY_DEVICE_CREDENTIALS_JSON;
+  const raw = process.env.BINSIGHT_DEVICE_CREDENTIALS_JSON;
   if (!raw) {
     return [];
   }
 
   const parsed = JSON.parse(raw) as unknown;
   if (!Array.isArray(parsed)) {
-    throw new Error("BINBUDDY_DEVICE_CREDENTIALS_JSON must be a JSON array.");
+    throw new Error("BINSIGHT_DEVICE_CREDENTIALS_JSON must be a JSON array.");
   }
 
   return parsed.map((entry, index) => {
@@ -59,7 +59,7 @@ export function createBackendRuntimeServices(): BackendRuntimeServices {
   const repositories = createFirestorePhase2Repositories(firestore);
   const storage = getStorage(app);
   const latestCameraFrameStorage = createFirebaseStorageLatestCameraFrameStorage(
-    storage.bucket(process.env.BINBUDDY_STORAGE_BUCKET)
+    storage.bucket(process.env.BINSIGHT_STORAGE_BUCKET)
   );
   const analyticsMaterializer = createAnalyticsMaterializer({
     analyticsRollupRepository: repositories.analyticsRollupRepository,

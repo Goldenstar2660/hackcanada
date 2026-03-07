@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.binbuddy.app/domain/live-station-status.schema.json",
+  "$id": "https://schemas.binsight.app/domain/live-station-status.schema.json",
   "title": "LiveStationStatus",
   "description": "Canonical live station snapshot published by the Raspberry Pi so the dashboard can render current device health and in-session guidance state.",
   "type": "object",

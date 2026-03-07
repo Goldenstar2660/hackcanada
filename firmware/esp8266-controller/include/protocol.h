@@ -1,10 +1,10 @@
-#ifndef BINBUDDY_PROTOCOL_H
-#define BINBUDDY_PROTOCOL_H
+#ifndef BINSIGHT_PROTOCOL_H
+#define BINSIGHT_PROTOCOL_H
 
 #include <Arduino.h>
 #include <stdint.h>
 
-namespace binbuddy {
+namespace binsight {
 
 enum class IndicatorZone : uint8_t {
   Off = 0,
@@ -46,6 +46,6 @@ String encodePresenceTelemetry(const PresenceTelemetry& telemetry);
 String encodeIndicatorAcknowledgement(IndicatorZone zone);
 bool decodeControllerCommand(const String& frame, ControllerCommand* outCommand);
 
-}  // namespace binbuddy
+}  // namespace binsight
 
 #endif

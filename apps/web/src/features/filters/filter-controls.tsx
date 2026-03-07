@@ -1,4 +1,4 @@
-import type { StationDirectoryResponse, StationRecord } from "@binbuddy/contracts";
+import type { StationDirectoryResponse, StationRecord } from "@binsight/contracts";
 
 import type { DashboardFilterState } from "../../lib/query/dashboard-query.js";
 

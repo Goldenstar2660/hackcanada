@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.binbuddy.app/domain/rules-preset.schema.json",
+  "$id": "https://schemas.binsight.app/domain/rules-preset.schema.json",
   "title": "RulesPreset",
   "description": "Canonical local rules preset that drives disposal method guidance on the station runtime.",
   "type": "object",

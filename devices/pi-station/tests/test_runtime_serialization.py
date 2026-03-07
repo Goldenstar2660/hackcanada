@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from binbuddy_station.events import create_disposal_event
-from binbuddy_station.live_status import DeviceHealth, LiveStatusPublisher
-from binbuddy_station.publishers import PublicationAdapter
-from binbuddy_station.rules import load_rules_preset
-from binbuddy_station.session import SessionStateMachine
+from binsight_station.events import create_disposal_event
+from binsight_station.live_status import DeviceHealth, LiveStatusPublisher
+from binsight_station.publishers import PublicationAdapter
+from binsight_station.rules import load_rules_preset
+from binsight_station.session import SessionStateMachine
 
 
 def _resolved_snapshot(*, zone: str, llm_fallback_used: bool = False):
@@ -102,7 +102,7 @@ def test_publication_adapter_uses_device_ingress_payloads() -> None:
         latest_event=event,
         device_health=DeviceHealth(pi="online", esp8266="online", cloud_sync="online"),
     )
-    publisher = PublicationAdapter("binbuddy-demo")
+    publisher = PublicationAdapter("binsight-demo")
 
     published_event = publisher.publish_disposal_event(event)
     published_status = publisher.publish_live_status(status)

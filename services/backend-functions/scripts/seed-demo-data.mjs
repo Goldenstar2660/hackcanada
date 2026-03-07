@@ -461,7 +461,7 @@ async function main() {
     throw new Error("FIREBASE_PROJECT_ID is required for the demo seed workflow.");
   }
 
-  const storageBucket = process.env.BINBUDDY_STORAGE_BUCKET;
+  const storageBucket = process.env.BINSIGHT_STORAGE_BUCKET;
   initializeApp({
     credential: applicationDefault(),
     projectId,

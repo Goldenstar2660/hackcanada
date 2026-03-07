@@ -1,4 +1,4 @@
-import type { EventHistoryResponse } from "@binbuddy/contracts";
+import type { EventHistoryResponse } from "@binsight/contracts";
 
 export interface EventHistoryPanelProps {
   readonly response: EventHistoryResponse;

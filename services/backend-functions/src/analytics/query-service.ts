@@ -6,7 +6,7 @@ import type {
   EventHistoryResponse,
   StationDirectoryResponse,
   StationRecord
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 import { DIRECT_OPERATOR_READ_COLLECTIONS } from "../firestore/collections.js";
 import { joinStationRecord } from "../domain/contracts.js";

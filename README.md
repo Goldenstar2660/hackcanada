@@ -1,13 +1,13 @@
 ---
-title: BinBuddy
-description: Surface-first repository overview and setup entry point for the BinBuddy smart waste-sorting station project
+title: Binsight
+description: Surface-first repository overview and setup entry point for the Binsight smart waste-sorting station project
 ---
 
 ## Overview
 
-BinBuddy is a smart waste-sorting station for shared spaces. The repository is organized around product surfaces instead of a single language workspace so the Raspberry Pi runtime, ESP8266 firmware, dashboard, backend, and shared assets can evolve without collapsing their toolchains into one stack.
+Binsight is a smart waste-sorting station for shared spaces. The repository is organized around product surfaces instead of a single language workspace so the Raspberry Pi runtime, ESP8266 firmware, dashboard, backend, and shared assets can evolve without collapsing their toolchains into one stack.
 
-The product specification in `spec/binbuddy-spec.md` is the source of truth for scope, business logic, and technical boundaries.
+The product specification in `spec/binsight-spec.md` is the source of truth for scope, business logic, and technical boundaries.
 
 ## Repository Layout
 
@@ -71,7 +71,7 @@ The Phase 5 local validation pass completed on 2026-03-07 with this run order:
 2. `corepack pnpm build`
 3. `corepack pnpm test`
 4. `cd devices/pi-station && uv run pytest`
-5. `cd devices/pi-station && uv run binbuddy-station`
+5. `cd devices/pi-station && uv run binsight-station`
 6. `cd firmware/esp8266-controller && ../../.venv/bin/pio run`
 7. `just validate`
 
@@ -79,7 +79,7 @@ Observed local results:
 
 * The TypeScript workspace linted and built successfully
 * The Pi test suite passed with 21 tests
-* `uv run binbuddy-station` started successfully and exited with `station=demo-station-001 phase=idle item=None disposal=None`
+* `uv run binsight-station` started successfully and exited with `station=demo-station-001 phase=idle item=None disposal=None`
 * The ESP8266 PlatformIO build completed successfully
 * `just validate` passed end to end
 
@@ -116,17 +116,17 @@ ESP_ENDPOINT=http://192.168.4.1
 FIREBASE_PROJECT_ID=your-firebase-project-id
 FIREBASE_FUNCTIONS_REGION=us-central1
 FIREBASE_FUNCTIONS_BASE_URL=
-BINBUDDY_DEVICE_ID=pi-demo-001
-BINBUDDY_DEVICE_SHARED_SECRET=replace-with-demo-secret
-BINBUDDY_PUBLICATION_TIMEOUT_SECONDS=5.0
+BINSIGHT_DEVICE_ID=pi-demo-001
+BINSIGHT_DEVICE_SHARED_SECRET=replace-with-demo-secret
+BINSIGHT_PUBLICATION_TIMEOUT_SECONDS=5.0
 ```
 
 Backend functions use environment variables or deployment secrets for these minimum values:
 
 ```text
 FIREBASE_PROJECT_ID=your-firebase-project-id
-BINBUDDY_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
-BINBUDDY_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
+BINSIGHT_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
+BINSIGHT_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
 ```
 
 The Vite dashboard uses `apps/web/.env` with these Firebase web SDK values:
@@ -146,11 +146,11 @@ VITE_FIREBASE_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
 Seeded historical data is required for the demo because the live station will not generate enough attempts to populate analytics, comparisons, history, and leaderboard views on its own.
 
 1. Authenticate the Firebase Admin SDK against the demo project. `GOOGLE_APPLICATION_CREDENTIALS` is the most direct path for this repository.
-2. Set `FIREBASE_PROJECT_ID` and `BINBUDDY_STORAGE_BUCKET` for the target project.
+2. Set `FIREBASE_PROJECT_ID` and `BINSIGHT_STORAGE_BUCKET` for the target project.
 3. Run the seed command from the repository root.
 
 ```bash
-corepack pnpm --filter @binbuddy/backend-functions run seed:demo
+corepack pnpm --filter @binsight/backend-functions run seed:demo
 ```
 
 The seed command provisions the Ottawa preset at version `1.0.0`, three demo stations, live-status stubs, deterministic disposal-event history, and analytics rollups for station, floor, building, signage, layout, and location comparisons.

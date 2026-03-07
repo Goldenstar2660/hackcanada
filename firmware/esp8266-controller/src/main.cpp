@@ -17,19 +17,19 @@ constexpr uint32_t kUltrasonicPulseTimeoutUs = 30000;
 constexpr uint16_t kPresenceDistanceThresholdCm = 75;
 constexpr uint8_t kPresenceStableSampleCount = 2;
 
-#ifdef BINBUDDY_WIFI_SSID
-constexpr char kWifiSsid[] = BINBUDDY_WIFI_SSID;
+#ifdef BINSIGHT_WIFI_SSID
+constexpr char kWifiSsid[] = BINSIGHT_WIFI_SSID;
 #else
 constexpr char kWifiSsid[] = "Golden's iPhone";
 #endif
 
-#ifdef BINBUDDY_WIFI_PASS
-constexpr char kWifiPass[] = BINBUDDY_WIFI_PASS;
+#ifdef BINSIGHT_WIFI_PASS
+constexpr char kWifiPass[] = BINSIGHT_WIFI_PASS;
 #else
 constexpr char kWifiPass[] = "";
 #endif
 
-binbuddy::IndicatorZone activeZone = binbuddy::IndicatorZone::Off;
+binsight::IndicatorZone activeZone = binsight::IndicatorZone::Off;
 ESP8266WebServer server(80);
 uint32_t lastPresenceSampleMs = 0;
 uint32_t lastWifiReconnectAttemptMs = 0;
@@ -92,13 +92,13 @@ void samplePresenceSensor() {
   ++presenceSequence;
 }
 
-void applyIndicator(const binbuddy::IndicatorZone zone) {
+void applyIndicator(const binsight::IndicatorZone zone) {
   activeZone = zone;
 
-  digitalWrite(kLeftIndicatorPin, zone == binbuddy::IndicatorZone::Left ? HIGH : LOW);
+  digitalWrite(kLeftIndicatorPin, zone == binsight::IndicatorZone::Left ? HIGH : LOW);
   digitalWrite(kMiddleIndicatorPin,
-               zone == binbuddy::IndicatorZone::Middle ? HIGH : LOW);
-  digitalWrite(kRightIndicatorPin, zone == binbuddy::IndicatorZone::Right ? HIGH : LOW);
+               zone == binsight::IndicatorZone::Middle ? HIGH : LOW);
+  digitalWrite(kRightIndicatorPin, zone == binsight::IndicatorZone::Right ? HIGH : LOW);
 }
 
 String boolJson(const bool value) {
@@ -107,18 +107,18 @@ String boolJson(const bool value) {
 
 String healthPayloadJson() {
   const bool handPresent = rawPresenceDetected;
-  const binbuddy::IndicatorZone handZone =
-      handPresent ? activeZone : binbuddy::IndicatorZone::Off;
+  const binsight::IndicatorZone handZone =
+      handPresent ? activeZone : binsight::IndicatorZone::Off;
 
   String payload = "{";
   payload += "\"transport\":\"http\",";
   payload += "\"sensorOnline\":" + boolJson(sensorOnline) + ",";
   payload += "\"indicatorOnline\":true,";
   payload += "\"uptimeMs\":" + String(millis()) + ",";
-  payload += "\"activeZone\":\"" + String(binbuddy::indicatorZoneName(activeZone)) + "\",";
+  payload += "\"activeZone\":\"" + String(binsight::indicatorZoneName(activeZone)) + "\",";
   payload += "\"presence\":{";
   payload += "\"handPresent\":" + boolJson(handPresent) + ",";
-  payload += "\"handZone\":\"" + String(binbuddy::indicatorZoneName(handZone)) + "\",";
+  payload += "\"handZone\":\"" + String(binsight::indicatorZoneName(handZone)) + "\",";
   payload += "\"stable\":" + boolJson(handPresent && stablePresenceDetected) + ",";
   payload += "\"sequence\":" + String(presenceSequence);
   payload += "},";
@@ -197,7 +197,7 @@ bool extractJsonIntField(const String& body, const char* fieldName, int* outValu
   return true;
 }
 
-bool resolveSignalZone(const String& body, binbuddy::IndicatorZone* outZone) {
+bool resolveSignalZone(const String& body, binsight::IndicatorZone* outZone) {
   if (outZone == nullptr) {
     return false;
   }
@@ -205,7 +205,7 @@ bool resolveSignalZone(const String& body, binbuddy::IndicatorZone* outZone) {
   String zoneToken;
   if (extractJsonStringField(body, "indicatorZone", &zoneToken) ||
       extractJsonStringField(body, "zone", &zoneToken)) {
-    return binbuddy::parseIndicatorZone(zoneToken, outZone);
+    return binsight::parseIndicatorZone(zoneToken, outZone);
   }
 
   int step = 0;
@@ -215,13 +215,13 @@ bool resolveSignalZone(const String& body, binbuddy::IndicatorZone* outZone) {
 
   switch (step) {
     case 1:
-      *outZone = binbuddy::IndicatorZone::Left;
+      *outZone = binsight::IndicatorZone::Left;
       return true;
     case 2:
-      *outZone = binbuddy::IndicatorZone::Middle;
+      *outZone = binsight::IndicatorZone::Middle;
       return true;
     case 3:
-      *outZone = binbuddy::IndicatorZone::Right;
+      *outZone = binsight::IndicatorZone::Right;
       return true;
     default:
       return false;
@@ -238,7 +238,7 @@ String acknowledgementJson(const char* command, const char* value = nullptr) {
 }
 
 void resetControllerState() {
-  applyIndicator(binbuddy::IndicatorZone::Off);
+  applyIndicator(binsight::IndicatorZone::Off);
 }
 
 void handleHealth() {
@@ -254,7 +254,7 @@ void handleSignal() {
   }
 
   const String body = server.arg("plain");
-  binbuddy::IndicatorZone nextZone = binbuddy::IndicatorZone::Off;
+  binsight::IndicatorZone nextZone = binsight::IndicatorZone::Off;
   if (!resolveSignalZone(body, &nextZone)) {
     server.send(400, "application/json",
                 "{\"error\":\"unsupported signal payload\"}");
@@ -263,7 +263,7 @@ void handleSignal() {
 
   applyIndicator(nextZone);
   server.send(200, "application/json",
-              acknowledgementJson("indicator", binbuddy::indicatorZoneName(nextZone)));
+              acknowledgementJson("indicator", binsight::indicatorZoneName(nextZone)));
 }
 
 void handleReset() {
@@ -288,7 +288,7 @@ void ensureWifiConnected() {
   lastWifiReconnectAttemptMs = now;
   WiFi.disconnect();
   WiFi.begin(kWifiSsid, kWifiPass);
-  Serial.println("binbuddy wifi reconnect attempt");
+  Serial.println("binsight wifi reconnect attempt");
 }
 
 void configureHttpServer() {
@@ -315,7 +315,7 @@ void setup() {
   pinMode(kLeftIndicatorPin, OUTPUT);
   pinMode(kMiddleIndicatorPin, OUTPUT);
   pinMode(kRightIndicatorPin, OUTPUT);
-  applyIndicator(binbuddy::IndicatorZone::Off);
+  applyIndicator(binsight::IndicatorZone::Off);
   pinMode(kUltrasonicTriggerPin, OUTPUT);
   digitalWrite(kUltrasonicTriggerPin, LOW);
   pinMode(kUltrasonicEchoPin, INPUT);
@@ -327,7 +327,7 @@ void setup() {
   samplePresenceSensor();
   lastPresenceSampleMs = millis();
   lastWifiReconnectAttemptMs = millis();
-  Serial.println("binbuddy firmware boot http-server-ready");
+  Serial.println("binsight firmware boot http-server-ready");
 }
 
 void loop() {

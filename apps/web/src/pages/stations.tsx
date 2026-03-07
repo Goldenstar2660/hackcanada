@@ -1,4 +1,4 @@
-import type { StationDirectoryResponse } from "@binbuddy/contracts";
+import type { StationDirectoryResponse } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 

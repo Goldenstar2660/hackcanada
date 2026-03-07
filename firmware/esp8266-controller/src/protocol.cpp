@@ -1,6 +1,6 @@
 #include "protocol.h"
 
-namespace binbuddy {
+namespace binsight {
 
 namespace {
 
@@ -108,4 +108,4 @@ bool decodeControllerCommand(const String& frame, ControllerCommand* outCommand)
   return parseIndicatorZone(zoneToken, &outCommand->zone);
 }
 
-}  // namespace binbuddy
+}  // namespace binsight

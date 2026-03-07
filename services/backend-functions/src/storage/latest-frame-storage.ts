@@ -1,4 +1,4 @@
-import type { CameraFeedMetadata } from "@binbuddy/contracts";
+import type { CameraFeedMetadata } from "@binsight/contracts";
 
 export const DEFAULT_CAMERA_FRAME_STALE_AFTER_MS = 30_000;
 export const DEFAULT_CAMERA_FRAME_CONTENT_TYPE = "image/jpeg";

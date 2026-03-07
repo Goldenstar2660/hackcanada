@@ -5,7 +5,7 @@ import type {
   RulesPreset,
   StationMetadata,
   StationRecord
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 import {
   assertAnalyticsSummary,

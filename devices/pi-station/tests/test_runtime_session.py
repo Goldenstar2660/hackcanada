@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from binbuddy_station.classification import ClassificationResult
-from binbuddy_station.esp_client import EspClient, MemoryEspTransport
-from binbuddy_station.main import DeterministicHandTracker, StationRuntime, load_runtime_settings
-from binbuddy_station.session import SessionPhase, SessionStateMachine
+from binsight_station.classification import ClassificationResult
+from binsight_station.esp_client import EspClient, MemoryEspTransport
+from binsight_station.main import DeterministicHandTracker, StationRuntime, load_runtime_settings
+from binsight_station.session import SessionPhase, SessionStateMachine
 
 
 class StubClassifier:

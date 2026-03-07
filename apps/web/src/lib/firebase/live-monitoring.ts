@@ -1,4 +1,4 @@
-import type { LiveStationStatus } from "@binbuddy/contracts";
+import type { LiveStationStatus } from "@binsight/contracts";
 
 import type { LiveStatusClient } from "./live-status.js";
 

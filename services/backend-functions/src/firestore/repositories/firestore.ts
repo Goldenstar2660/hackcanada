@@ -4,7 +4,7 @@ import type {
   LiveStationStatus,
   RulesPreset,
   StationMetadata
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 import type {
   CollectionReference,

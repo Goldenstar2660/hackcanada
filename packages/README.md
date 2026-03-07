@@ -1,13 +1,13 @@
 ---
 title: Packages Boundary
-description: Ownership notes for shared packages and data-first contracts in the BinBuddy repository
+description: Ownership notes for shared packages and data-first contracts in the Binsight repository
 ---
 
 ## Purpose
 
 This folder contains shared packages and versioned assets.
 
-For BinBuddy, this boundary is reserved for canonical contracts, rules presets, analytics definitions, and supporting tooling that can be shared across the dashboard and backend while remaining consumable by the Raspberry Pi runtime.
+For Binsight, this boundary is reserved for canonical contracts, rules presets, analytics definitions, and supporting tooling that can be shared across the dashboard and backend while remaining consumable by the Raspberry Pi runtime.
 
 ## Ownership Boundary
 

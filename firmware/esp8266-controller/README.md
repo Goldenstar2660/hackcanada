@@ -1,11 +1,11 @@
 ---
 title: ESP8266 Controller Firmware
-description: PlatformIO firmware scaffold for the BinBuddy ESP8266 controller
+description: PlatformIO firmware scaffold for the Binsight ESP8266 controller
 ---
 
 ## Purpose
 
-This project contains the embedded firmware for the BinBuddy ESP8266 controller.
+This project contains the embedded firmware for the Binsight ESP8266 controller.
 
 The controller owns ultrasonic sensing, LED output, acknowledgements, and health telemetry. It does not own dashboard contracts, Firebase payloads, or disposal event creation.
 
@@ -59,5 +59,5 @@ Use the workspace-local command when the repository virtual environment provides
 
 If your board is connected, you can upload later with the standard PlatformIO upload workflow for the selected environment.
 
-To override the default Wi-Fi credentials at build time, add `-D BINBUDDY_WIFI_SSID=\"your-ssid\"` and `-D BINBUDDY_WIFI_PASS=\"your-password\"` to `build_flags` in `platformio.ini`.
+To override the default Wi-Fi credentials at build time, add `-D BINSIGHT_WIFI_SSID=\"your-ssid\"` and `-D BINSIGHT_WIFI_PASS=\"your-password\"` to `build_flags` in `platformio.ini`.
 

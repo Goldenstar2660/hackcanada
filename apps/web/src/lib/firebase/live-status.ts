@@ -1,4 +1,4 @@
-import type { LiveStationStatus } from "@binbuddy/contracts";
+import type { LiveStationStatus } from "@binsight/contracts";
 import type { IdTokenResult, User } from "firebase/auth";
 import type { Firestore } from "firebase/firestore";
 
@@ -11,7 +11,7 @@ export interface OperatorSession {
   readonly email?: string | null;
   readonly claims?: {
     readonly admin?: boolean;
-    readonly binbuddyOperator?: boolean;
+    readonly binsightOperator?: boolean;
     readonly role?: string;
     readonly roles?: readonly string[];
   };
@@ -46,7 +46,7 @@ function hasOperatorClaims(session: OperatorSession | null | undefined): boolean
   const claims = session.claims;
   return (
     claims?.admin === true
-    || claims?.binbuddyOperator === true
+    || claims?.binsightOperator === true
     || claims?.role === "admin"
     || claims?.role === "operator"
     || claims?.roles?.includes("admin") === true
@@ -89,7 +89,7 @@ function normalizeRoleClaims(claims: IdTokenResult["claims"]): OperatorSession["
 
   return {
     admin: claims.admin === true,
-    binbuddyOperator: claims.binbuddyOperator === true,
+    binsightOperator: claims.binsightOperator === true,
     role: typeof claims.role === "string" ? claims.role : undefined,
     roles: Array.isArray(roles) && roles.every((entry) => typeof entry === "string") ? roles : undefined
   };

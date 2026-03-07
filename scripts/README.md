@@ -1,6 +1,6 @@
 ---
 title: Scripts Boundary
-description: Ownership notes for repository automation scripts in the BinBuddy repository
+description: Ownership notes for repository automation scripts in the Binsight repository
 ---
 
 ## Purpose

@@ -1,15 +1,15 @@
-from binbuddy_station.classification import ClassificationResult
-from binbuddy_station.esp_client import BackendIngressIdentity
-from binbuddy_station.esp_client import EspClient
-from binbuddy_station.esp_client import GuidanceCommand
-from binbuddy_station.esp_client import MemoryEspTransport
-from binbuddy_station.events import create_disposal_event
-from binbuddy_station.lcd_client import LcdClient
-from binbuddy_station.live_status import DeviceHealth, LiveStatusPublisher
-from binbuddy_station.main import StationRuntime, load_runtime_settings
-from binbuddy_station.publishers import PublicationAdapter
-from binbuddy_station.rules import load_rules_preset
-from binbuddy_station.session import SessionPhase, SessionStateMachine
+from binsight_station.classification import ClassificationResult
+from binsight_station.esp_client import BackendIngressIdentity
+from binsight_station.esp_client import EspClient
+from binsight_station.esp_client import GuidanceCommand
+from binsight_station.esp_client import MemoryEspTransport
+from binsight_station.events import create_disposal_event
+from binsight_station.lcd_client import LcdClient
+from binsight_station.live_status import DeviceHealth, LiveStatusPublisher
+from binsight_station.main import StationRuntime, load_runtime_settings
+from binsight_station.publishers import PublicationAdapter
+from binsight_station.rules import load_rules_preset
+from binsight_station.session import SessionPhase, SessionStateMachine
 
 
 class StubClassifier:
@@ -205,7 +205,7 @@ def test_backend_ingress_identity_builds_expected_headers() -> None:
 
     headers = identity.build_headers("2026-03-07T12:00:00Z")
 
-    assert headers["x-binbuddy-device-id"] == "pi-001"
-    assert headers["x-binbuddy-station-id"] == "demo-station-001"
-    assert headers["x-binbuddy-timestamp"] == "2026-03-07T12:00:00Z"
-    assert headers["x-binbuddy-signature"] == "binbuddy-v1:pi-001:demo-station-001:2026-03-07T12:00:00Z:demo-secret"
+    assert headers["x-binsight-device-id"] == "pi-001"
+    assert headers["x-binsight-station-id"] == "demo-station-001"
+    assert headers["x-binsight-timestamp"] == "2026-03-07T12:00:00Z"
+    assert headers["x-binsight-signature"] == "binsight-v1:pi-001:demo-station-001:2026-03-07T12:00:00Z:demo-secret"

@@ -7,7 +7,7 @@ applyTo: '**'
 
 The authoritative source of truth for this project is:
 
-`/spec/binbuddy-spec.md`
+`/spec/binsight-spec.md`
 
 ## Required behavior
 

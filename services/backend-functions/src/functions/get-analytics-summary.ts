@@ -1,4 +1,4 @@
-import type { AnalyticsQuery, AnalyticsSummary } from "@binbuddy/contracts";
+import type { AnalyticsQuery, AnalyticsSummary } from "@binsight/contracts";
 import type { DashboardQueryService } from "../analytics/query-service.js";
 import type { CallableHandler } from "./runtime.js";
 
