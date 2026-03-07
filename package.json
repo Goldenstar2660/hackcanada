@@ -1,0 +1,14 @@
+{
+  "name": "binbuddy",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.3",
+  "scripts": {
+    "build": "corepack pnpm -r run build",
+    "lint": "corepack pnpm -r run lint",
+    "test": "corepack pnpm -r --if-present run test"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

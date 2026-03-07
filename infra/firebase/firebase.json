@@ -1,0 +1,24 @@
+{
+  "functions": [
+    {
+      "source": "../../services/backend-functions",
+      "codebase": "backend-functions"
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    }
+  }
+}

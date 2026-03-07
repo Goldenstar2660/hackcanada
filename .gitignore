@@ -1,0 +1,47 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Node and package manager outputs
+node_modules/
+.pnpm-store/
+.npm/
+dist/
+build/
+coverage/
+.turbo/
+
+# Python outputs
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# PlatformIO and firmware build outputs
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Firebase and emulator outputs
+.firebase/
+firebase-debug.log
+ui-debug.log
+firestore-debug.log
+pubsub-debug.log
+
+# Logs and temp files
+*.log
+tmp/
+temp/
+
+.copilot-tracking/

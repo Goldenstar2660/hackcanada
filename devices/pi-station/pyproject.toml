@@ -1,0 +1,28 @@
+[project]
+name = "binbuddy-station"
+version = "0.1.0"
+description = "Raspberry Pi station runtime for BinBuddy"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv>=1.0.1,<2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5,<9.0.0",
+]
+
+[project.scripts]
+binbuddy-station = "binbuddy_station.main:main"
+
+[build-system]
+requires = ["hatchling>=1.27.0,<2.0.0"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.binbuddy.app/domain/station-metadata.schema.json",
+  "title": "StationMetadata",
+  "description": "Canonical station metadata used for dashboard filtering, grouping, and experiment comparisons.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stationId",
+    "stationName",
+    "buildingId",
+    "buildingLabel",
+    "floorId",
+    "floorLabel",
+    "locationLabel",
+    "signageVariant",
+    "layoutVariant",
+    "activeRulesPresetId"
+  ],
+  "properties": {
+    "stationId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique station identifier used across telemetry, analytics, and operator views."
+    },
+    "stationName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable station label for dashboard lists."
+    },
+    "buildingId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable building identifier used for filtering and rollups."
+    },
+    "buildingLabel": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name for the building."
+    },
+    "floorId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable floor identifier used for grouping and leaderboard comparisons."
+    },
+    "floorLabel": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name for the floor."
+    },
+    "locationLabel": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Operator-facing location descriptor such as food court or exit lobby."
+    },
+    "signageVariant": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Signage experiment variant for before or after and A/B comparisons."
+    },
+    "layoutVariant": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Station layout or placement variant used for comparison analysis."
+    },
+    "activeRulesPresetId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the rules preset currently active on the station."
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.binbuddy.app/analytics/analytics-query.schema.json",
+  "title": "AnalyticsQuery",
+  "description": "Canonical analytics request contract for dashboard and backend reporting queries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["timeRange", "metrics"],
+  "$defs": {
+    "metricKey": {
+      "type": "string",
+      "enum": [
+        "totalAttempts",
+        "totalCorrectSorts",
+        "firstTryCorrectRate",
+        "participationComplianceScore",
+        "topContaminationItems",
+        "worstTimesOfDay",
+        "binPurityByHour",
+        "binPurityByDay",
+        "floorLeaderboard",
+        "buildingLeaderboard"
+      ]
+    },
+    "groupingDimension": {
+      "type": "string",
+      "enum": [
+        "stationId",
+        "buildingId",
+        "floorId",
+        "locationLabel",
+        "signageVariant",
+        "layoutVariant",
+        "disposalMethod",
+        "hour",
+        "day"
+      ]
+    }
+  },
+  "properties": {
+    "timeRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "description": "Inclusive UTC time window for analytics aggregation."
+    },
+    "stationIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Optional station filter set."
+    },
+    "buildingIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Optional building filter set."
+    },
+    "floorIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Optional floor filter set."
+    },
+    "locationLabels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Optional operator-facing location filter set."
+    },
+    "signageVariants": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Optional signage variant filter set for campaign comparisons."
+    },
+    "layoutVariants": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Optional layout or placement variant filter set."
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/metricKey"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Requested metrics or derived insight views for the query."
+    },
+    "groupBy": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/groupingDimension"
+      },
+      "uniqueItems": true,
+      "description": "Optional dimensions used to group the result set."
+    },
+    "compareBy": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/groupingDimension"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional dimension used for before or after and A/B style comparison views."
+    },
+    "timeBucket": {
+      "type": "string",
+      "enum": ["hour", "day"],
+      "description": "Optional bucket size for historical charting."
+    }
+  }
+}
