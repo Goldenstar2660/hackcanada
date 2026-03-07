@@ -131,9 +131,11 @@ Important config fields:
 * `jpegQuality`: JPEG quality when saving `.jpg`
 * `maxPhotosPerRun`: `0` means unlimited until you stop manually
 * `flip180`: rotate the saved image 180 degrees if your camera is mounted upside down
-* `swapRedBlue`: swap color channels if your camera output looks red/blue tinted
+* `swapRedBlue`: retained for compatibility with the original script, but ignored by the current CLI-camera implementation
 
-If `picamera2` is unavailable or the camera is not enabled, the command exits with a clear error message so you can fix the Pi camera setup first.
+This implementation uses the Raspberry Pi camera CLI (`rpicam-still`, or `libcamera-still` on older images), so it does **not** require installing `picamera2` or Pillow through `uv` just to run the capture command.
+
+If the Pi camera CLI is unavailable or the camera is not enabled, the command exits with a clear error message so you can fix the Pi camera setup first.
 
 ## Phase 5 startup sequence
 

@@ -45,3 +45,4 @@ tmp/
 temp/
 
 .copilot-tracking/
+devices/pi-station/training_data/

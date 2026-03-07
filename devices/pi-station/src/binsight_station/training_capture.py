@@ -13,13 +13,12 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
+import subprocess
 import threading
 from datetime import datetime
 from pathlib import Path
-from time import sleep
 from typing import Any
-
-from PIL import Image
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,45 +43,62 @@ _DEFAULT_CONFIG = {
 
 
 class PiCameraCapture:
-    """Small Picamera2 wrapper that matches the original script flow."""
+    """Small wrapper around Raspberry Pi camera CLI tools."""
 
     def __init__(self, *, width: int, height: int) -> None:
         self.width = width
         self.height = height
-        self._camera: Any | None = None
+        self._camera_command: str | None = None
 
     def start(self) -> None:
-        try:
-            from picamera2 import Picamera2  # type: ignore[import-not-found]
-        except ImportError as exc:  # pragma: no cover - depends on Pi environment
-            raise RuntimeError(
-                "Picamera2 is not installed. Run 'uv sync' on the Raspberry Pi and ensure "
-                "libcamera/picamera2 are available."
-            ) from exc
+        self._camera_command = _detect_camera_command()
 
-        self._camera = Picamera2()
-        preview_config = self._camera.create_preview_configuration(
-            main={"size": (self.width, self.height), "format": "RGB888"}
-        )
-        self._camera.configure(preview_config)
-        self._camera.start()
-        sleep(0.2)
-
-    def capture_frame(self) -> Any:
-        if self._camera is None:
+    def capture_image(self, file_path: Path, *, cfg: dict[str, Any]) -> None:
+        if self._camera_command is None:
             raise RuntimeError("Camera has not been started")
-        return self._camera.capture_array()
+
+        rotation = 180 if cfg["flip180"] else 0
+        fmt = cfg["imageFormat"]
+        command = [
+            self._camera_command,
+            "--immediate",
+            "--nopreview",
+            "--output",
+            str(file_path),
+            "--width",
+            str(self.width),
+            "--height",
+            str(self.height),
+            "--encoding",
+            fmt,
+            "--rotation",
+            str(rotation),
+            "--timeout",
+            "1ms",
+        ]
+
+        if fmt in {"jpg", "jpeg"}:
+            command.extend(["--quality", str(cfg["jpegQuality"])])
+
+        completed = subprocess.run(command, capture_output=True, text=True)
+        if completed.returncode != 0:
+            stderr = completed.stderr.strip() or completed.stdout.strip()
+            raise RuntimeError(stderr or f"{self._camera_command} failed")
 
     def stop(self) -> None:
-        if self._camera is None:
-            return
-        try:
-            self._camera.stop()
-        finally:
-            close = getattr(self._camera, "close", None)
-            if callable(close):
-                close()
-            self._camera = None
+        self._camera_command = None
+
+
+def _detect_camera_command() -> str:
+    for candidate in ("rpicam-still", "libcamera-still"):
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+
+    raise RuntimeError(
+        "No Raspberry Pi still-image camera command was found. Install or enable "
+        "'rpicam-still' (or 'libcamera-still') on the Raspberry Pi first."
+    )
 
 
 def _load_config(path: Path = _CONFIG_PATH) -> dict[str, Any]:
@@ -110,11 +126,6 @@ def _load_config(path: Path = _CONFIG_PATH) -> dict[str, Any]:
     return cfg
 
 
-def _swap_red_blue(image: Image.Image) -> Image.Image:
-    red, green, blue = image.split()
-    return Image.merge("RGB", (blue, green, red))
-
-
 def _capture_loop(
     camera: PiCameraCapture,
     out_dir: Path,
@@ -123,9 +134,7 @@ def _capture_loop(
 ) -> int:
     interval = cfg["intervalSeconds"]
     fmt = cfg["imageFormat"]
-    quality = cfg["jpegQuality"]
     max_photos = cfg["maxPhotosPerRun"]
-    flip180 = cfg["flip180"]
     swap_rb = cfg["swapRedBlue"]
 
     count = 0
@@ -134,22 +143,14 @@ def _capture_loop(
 
     while not stop_event.is_set():
         try:
-            frame = camera.capture_frame()
-            image = Image.fromarray(frame).convert("RGB")
-
-            if swap_rb:
-                image = _swap_red_blue(image)
-
-            if flip180:
-                image = image.transpose(Image.Transpose.ROTATE_180)
-
             ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             file_path = out_dir / f"{cfg['label']}_{ts}.{fmt}"
+            if swap_rb:
+                logger.warning(
+                    "swapRedBlue=true is not supported by rpicam-still/libcamera-still; ignoring setting"
+                )
 
-            save_kwargs: dict[str, Any] = {}
-            if fmt in {"jpg", "jpeg"}:
-                save_kwargs["quality"] = quality
-            image.save(file_path, **save_kwargs)
+            camera.capture_image(file_path, cfg=cfg)
 
             count += 1
             print(f"[CAPTURE] #{count}: {file_path.name}")
@@ -179,6 +180,7 @@ def main() -> int:
     print(f"  Config: {_CONFIG_PATH}")
     print("  Config is reloaded each time you press Enter to START")
     print("  Control: Press Enter to START, Enter again to STOP, Ctrl+C to quit")
+    print("  Camera backend: rpicam-still/libcamera-still")
     print("=" * 64)
 
     running = False
