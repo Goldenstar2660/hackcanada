@@ -1,0 +1,42 @@
+station:
+  id: "station_001"
+  name: "BinBuddy Demo Station"
+  location:
+    floor: "1"
+    building: "Main Office"
+    zone: "Kitchen"
+  
+  hardware:
+    esp8266:
+      firmware_version: "1.0.0"
+      ip_address: "192.168.1.101"
+    raspberry_pi:
+      hostname: "binbuddy-pi"
+      camera_index: 0
+    lcd:
+      i2c_address: "0x27"
+      rows: 2
+      cols: 16
+
+  zone_mapping:
+    left: "recycle"
+    middle: "compost"  
+    right: "garbage"
+
+  inference:
+    detector_threshold: 0.65
+    attribute_threshold: 0.6
+    vlm_threshold: 0.35
+    model_path: "models/yolov8n.onnx"
+    clip_model: "ViT-B/32"
+
+  rules:
+    preset_id: "default_office"
+    preset_name: "Default Office Rules"
+
+  calibration:
+    zone_boundaries_px:
+      left: 320
+      middle: 640
+    perspective_correction: false
+    perspective_homography: null
