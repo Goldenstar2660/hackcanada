@@ -3,6 +3,7 @@ import type { CameraFeedStatus, LiveStationStatus } from "@binbuddy/contracts";
 import type { LiveStatusClient } from "./live-status.js";
 
 export const DEFAULT_CAMERA_FEED_STALE_AFTER_MS = 60_000;
+export const DEFAULT_INITIAL_LIVE_SNAPSHOT_TIMEOUT_MS = 1_500;
 
 export interface CameraFrameResolver {
   resolveLatestFrameUrl(storageObjectPath: string): Promise<string>;
@@ -25,6 +26,7 @@ export interface LiveStationSnapshot {
 
 export interface LiveMonitoringGateway {
   createSnapshot(stationId: string, status: LiveStationStatus | null): Promise<LiveStationSnapshot>;
+  loadInitialSnapshot(stationId: string, timeoutMs?: number): Promise<LiveStationSnapshot>;
   subscribeToStation(
     stationId: string,
     onSnapshot: (snapshot: LiveStationSnapshot) => void,
@@ -127,6 +129,66 @@ export function createLiveMonitoringGateway(
 
   return {
     createSnapshot,
+
+    loadInitialSnapshot(stationId, timeoutMs = DEFAULT_INITIAL_LIVE_SNAPSHOT_TIMEOUT_MS) {
+      return new Promise<LiveStationSnapshot>((resolve, reject) => {
+        let settled = false;
+        let subscriptionReady = false;
+        let shouldUnsubscribe = false;
+        let unsubscribe: () => void = () => undefined;
+
+        const finalize = () => {
+          if (!subscriptionReady) {
+            shouldUnsubscribe = true;
+            return;
+          }
+
+          unsubscribe();
+        };
+
+        const resolveOnce = (snapshot: LiveStationSnapshot) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timeoutHandle);
+          finalize();
+          resolve(snapshot);
+        };
+
+        const rejectOnce = (error: unknown) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timeoutHandle);
+          finalize();
+          reject(error);
+        };
+
+        const timeoutHandle = setTimeout(() => {
+          void createSnapshot(stationId, null).then(resolveOnce).catch(rejectOnce);
+        }, timeoutMs);
+
+        try {
+          unsubscribe = client.subscribeToStation(
+            stationId,
+            (status) => {
+              void createSnapshot(stationId, status).then(resolveOnce).catch(rejectOnce);
+            },
+            rejectOnce
+          );
+          subscriptionReady = true;
+          if (shouldUnsubscribe) {
+            unsubscribe();
+          }
+        } catch (error) {
+          rejectOnce(error);
+        }
+      });
+    },
 
     subscribeToStation(stationId, onSnapshot, onError) {
       return client.subscribeToStation(

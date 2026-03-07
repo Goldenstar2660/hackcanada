@@ -2,7 +2,8 @@ import type {
   AnalyticsGroupingDimension,
   AnalyticsQuery,
   EventHistoryQuery,
-  MetricKey
+  MetricKey,
+  StationRecord
 } from "@binbuddy/contracts";
 
 export interface DashboardTimeRange {
@@ -67,6 +68,19 @@ function uniqueSorted(values: readonly string[] | undefined): readonly string[] 
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
 
+function normalizeTimeRangeValue(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function getQueryValues(params: URLSearchParams, key: string): readonly string[] {
+  return uniqueSorted(params.getAll(key).filter((value) => value.trim().length > 0));
+}
+
 export function createDefaultDashboardTimeRange(now: Date = new Date()): DashboardTimeRange {
   return toIsoRange(now, 7, "Last 7 days");
 }
@@ -87,6 +101,10 @@ export function normalizeDashboardFilters(
   filters: Partial<DashboardFilterState> | undefined,
   now: Date = new Date()
 ): DashboardFilterState {
+  const defaultTimeRange = createDefaultDashboardTimeRange(now);
+  const normalizedStart = normalizeTimeRangeValue(filters?.timeRange?.start) ?? defaultTimeRange.start;
+  const normalizedEnd = normalizeTimeRangeValue(filters?.timeRange?.end) ?? defaultTimeRange.end;
+
   return {
     stationIds: uniqueSorted(filters?.stationIds),
     buildingIds: uniqueSorted(filters?.buildingIds),
@@ -94,8 +112,45 @@ export function normalizeDashboardFilters(
     locationLabels: uniqueSorted(filters?.locationLabels),
     signageVariants: uniqueSorted(filters?.signageVariants),
     layoutVariants: uniqueSorted(filters?.layoutVariants),
-    timeRange: filters?.timeRange ?? createDefaultDashboardTimeRange(now)
+    timeRange: {
+      start: normalizedStart,
+      end: normalizedEnd,
+      label: filters?.timeRange?.label?.trim() || defaultTimeRange.label
+    }
   };
+}
+
+export function parseDashboardFilters(
+  params: URLSearchParams,
+  now: Date = new Date()
+): DashboardFilterState {
+  return normalizeDashboardFilters(
+    {
+      stationIds: getQueryValues(params, "stationId"),
+      buildingIds: getQueryValues(params, "buildingId"),
+      floorIds: getQueryValues(params, "floorId"),
+      locationLabels: getQueryValues(params, "location"),
+      signageVariants: getQueryValues(params, "signage"),
+      layoutVariants: getQueryValues(params, "layout"),
+      timeRange: {
+        start: params.get("timeStart") ?? "",
+        end: params.get("timeEnd") ?? "",
+        label: params.get("timeLabel") ?? ""
+      }
+    },
+    now
+  );
+}
+
+export function matchesStationFilters(station: StationRecord, filters: DashboardFilterState): boolean {
+  return (
+    (filters.stationIds.length === 0 || filters.stationIds.includes(station.stationId))
+    && (filters.buildingIds.length === 0 || filters.buildingIds.includes(station.buildingId))
+    && (filters.floorIds.length === 0 || filters.floorIds.includes(station.floorId))
+    && (filters.locationLabels.length === 0 || filters.locationLabels.includes(station.locationLabel))
+    && (filters.signageVariants.length === 0 || filters.signageVariants.includes(station.signageVariant))
+    && (filters.layoutVariants.length === 0 || filters.layoutVariants.includes(station.layoutVariant))
+  );
 }
 
 export function serializeDashboardFilters(filters: DashboardFilterState): URLSearchParams {

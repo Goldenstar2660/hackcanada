@@ -3,7 +3,7 @@ import type { DashboardFilterState } from "../lib/query/dashboard-query.js";
 
 import { DashboardLayout } from "./layout.js";
 import { getNavigationRoutes, matchDashboardRoute, renderDashboardRoute } from "./router.js";
-import { normalizeDashboardFilters } from "../lib/query/dashboard-query.js";
+import { normalizeDashboardFilters, parseDashboardFilters } from "../lib/query/dashboard-query.js";
 
 export interface DashboardAppRenderRequest {
   readonly path?: string;
@@ -13,6 +13,15 @@ export interface DashboardAppRenderRequest {
 export interface DashboardAppRenderResult {
   readonly context: DashboardPageLoadContext;
   readonly element: JSX.Element;
+}
+
+function splitRoutePath(inputPath: string): { pathname: string; searchParams: URLSearchParams } {
+  const [pathname, search = ""] = inputPath.split("?", 2);
+
+  return {
+    pathname: pathname || "/stations",
+    searchParams: new URLSearchParams(search)
+  };
 }
 
 export function createDashboardProviderRegistry(dependencies: DashboardAppDependencies): DashboardProviderRegistry {
@@ -31,8 +40,19 @@ export async function renderDashboardApplication(
   request: DashboardAppRenderRequest = {}
 ): Promise<DashboardAppRenderResult> {
   const providers = createDashboardProviderRegistry(dependencies);
-  const match = matchDashboardRoute(request.path ?? "/stations");
-  const filters = normalizeDashboardFilters(request.filters, providers.now());
+  const route = splitRoutePath(request.path ?? "/stations");
+  const match = matchDashboardRoute(route.pathname);
+  const queryFilters = parseDashboardFilters(route.searchParams, providers.now());
+  const filters = normalizeDashboardFilters(
+    request.filters
+      ? {
+        ...queryFilters,
+        ...request.filters,
+        timeRange: request.filters.timeRange ?? queryFilters.timeRange
+      }
+      : queryFilters,
+    providers.now()
+  );
   const context: DashboardPageLoadContext = {
     providers,
     match,

@@ -3,6 +3,7 @@ export const FIRESTORE_COLLECTIONS = {
   rulesPresets: "rulesPresets",
   stationLiveStatus: "stationLiveStatus",
   disposalEvents: "disposalEvents",
+  analyticsMaterializationLedger: "analyticsMaterializationLedger",
   analyticsStationDay: "analyticsStationDay",
   analyticsFloorDay: "analyticsFloorDay",
   analyticsBuildingDay: "analyticsBuildingDay",
@@ -41,6 +42,10 @@ export function stationLiveStatusDocumentPath(stationId: string): string {
 
 export function disposalEventDocumentPath(eventId: string): string {
   return `${FIRESTORE_COLLECTIONS.disposalEvents}/${eventId}`;
+}
+
+export function analyticsMaterializationLedgerDocumentPath(eventId: string): string {
+  return `${FIRESTORE_COLLECTIONS.analyticsMaterializationLedger}/${eventId}`;
 }
 
 export function createStationDayRollupId(stationId: string, dayKey: string): string {

@@ -8,11 +8,13 @@ import { FilterControls } from "../features/filters/filter-controls.js";
 export interface AnalyticsPageModel {
   readonly summary: AnalyticsSummary;
   readonly availableFilters: Awaited<ReturnType<typeof loadAnalyticsPage>>["availableFilters"];
+  readonly availableStations: Awaited<ReturnType<typeof loadAnalyticsPage>>["availableStations"];
 }
 
 export async function loadAnalyticsPage(context: DashboardPageLoadContext): Promise<{
   summary: AnalyticsSummary;
   availableFilters: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["filters"];
+  availableStations: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["stations"];
 }> {
   const [directory, summary] = await Promise.all([
     context.providers.api.getStationDirectory(),
@@ -24,7 +26,8 @@ export async function loadAnalyticsPage(context: DashboardPageLoadContext): Prom
 
   return {
     summary,
-    availableFilters: directory.filters
+    availableFilters: directory.filters,
+    availableStations: directory.stations
   };
 }
 
@@ -34,7 +37,12 @@ export function AnalyticsPage(props: {
 }): JSX.Element {
   return (
     <section>
-      <FilterControls filters={props.context.filters} availableFilters={props.model.availableFilters} />
+      <FilterControls
+        actionPath={props.context.match.path}
+        filters={props.context.filters}
+        availableFilters={props.model.availableFilters}
+        availableStations={props.model.availableStations}
+      />
       <AnalyticsSummaryPanel summary={props.model.summary} />
     </section>
   );

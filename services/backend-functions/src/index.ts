@@ -3,6 +3,16 @@ export const backendSurface = {
   purpose: "firebase-backed ingestion and analytics services"
 } as const;
 
+export {
+  ingestCameraFrame,
+  ingestEvent,
+  ingestLiveStatus,
+  getAnalyticsSummary,
+  getEventHistory,
+  getStationDirectory,
+  materializeAnalyticsOnDisposalEvent
+} from "./runtime/firebase-runtime.js";
+
 export * from "./auth/device-auth.js";
 export * from "./auth/operator-auth.js";
 export * from "./functions/runtime.js";
@@ -21,3 +31,5 @@ export * from "./domain/contracts.js";
 export * from "./domain/validation.js";
 export * from "./firestore/collections.js";
 export * from "./firestore/converters.js";
+export * from "./runtime/bootstrap.js";
+export * from "./runtime/firebase-bridges.js";

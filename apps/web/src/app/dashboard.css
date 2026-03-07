@@ -136,6 +136,10 @@
   grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
 }
 
+.dashboard-filter-grid {
+  margin-top: 1rem;
+}
+
 .dashboard-definition-grid {
   display: grid;
   gap: 0.8rem 1.2rem;
@@ -237,6 +241,71 @@
 .dashboard-dark-muted {
   margin: 0 0 0.75rem;
   opacity: 0.85;
+}
+
+.dashboard-filter-form {
+  margin-top: 0.75rem;
+}
+
+.dashboard-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dashboard-field-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dashboard-input,
+.dashboard-select,
+.dashboard-button {
+  border: 1px solid #b7c9bb;
+  border-radius: 0.75rem;
+  font: inherit;
+}
+
+.dashboard-input,
+.dashboard-select {
+  background: #ffffff;
+  color: #132238;
+  padding: 0.7rem 0.85rem;
+}
+
+.dashboard-select {
+  min-height: 7.5rem;
+}
+
+.dashboard-row--actions {
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+.dashboard-filter-hint {
+  margin: 0;
+  max-width: 48rem;
+}
+
+.dashboard-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.dashboard-button {
+  background: #2b5f75;
+  color: #f9f8f4;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+
+.dashboard-button--ghost {
+  background: #ffffff;
+  color: #2b5f75;
 }
 
 @media (max-width: 900px) {

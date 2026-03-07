@@ -8,12 +8,14 @@ export interface StationDetailPageModel {
   readonly station: StationRecord | null;
   readonly siblingStations: readonly StationRecord[];
   readonly availableFilters: Awaited<ReturnType<typeof loadStationDetailPage>>["availableFilters"];
+  readonly availableStations: readonly StationRecord[];
 }
 
 export async function loadStationDetailPage(context: DashboardPageLoadContext): Promise<{
   station: StationRecord | null;
   siblingStations: readonly StationRecord[];
   availableFilters: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["filters"];
+  availableStations: readonly StationRecord[];
 }> {
   const directory = await context.providers.api.getStationDirectory();
   const stationId = context.match.params.stationId;
@@ -25,7 +27,8 @@ export async function loadStationDetailPage(context: DashboardPageLoadContext): 
   return {
     station,
     siblingStations,
-    availableFilters: directory.filters
+    availableFilters: directory.filters,
+    availableStations: directory.stations
   };
 }
 
@@ -35,7 +38,13 @@ export function StationDetailPage(props: {
 }): JSX.Element {
   return (
     <section className="dashboard-section-stack">
-      <FilterControls filters={props.context.filters} availableFilters={props.model.availableFilters} stationCount={1} />
+      <FilterControls
+        actionPath={props.context.match.path}
+        filters={props.context.filters}
+        availableFilters={props.model.availableFilters}
+        availableStations={props.model.availableStations}
+        stationCount={1}
+      />
 
       <article className="dashboard-card">
         <div className="dashboard-row">

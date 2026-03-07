@@ -6,11 +6,13 @@ import { FilterControls } from "../features/filters/filter-controls.js";
 export interface ComparisonsPageModel {
   readonly analyses: Awaited<ReturnType<typeof loadComparisonsPage>>["analyses"];
   readonly availableFilters: Awaited<ReturnType<typeof loadComparisonsPage>>["availableFilters"];
+  readonly availableStations: Awaited<ReturnType<typeof loadComparisonsPage>>["availableStations"];
 }
 
 export async function loadComparisonsPage(context: DashboardPageLoadContext): Promise<{
   analyses: Awaited<ReturnType<typeof context.providers.api.getComparisons>>;
   availableFilters: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["filters"];
+  availableStations: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["stations"];
 }> {
   const [directory, analyses] = await Promise.all([
     context.providers.api.getStationDirectory(),
@@ -19,7 +21,8 @@ export async function loadComparisonsPage(context: DashboardPageLoadContext): Pr
 
   return {
     analyses,
-    availableFilters: directory.filters
+    availableFilters: directory.filters,
+    availableStations: directory.stations
   };
 }
 
@@ -29,7 +32,12 @@ export function ComparisonsPage(props: {
 }): JSX.Element {
   return (
     <section>
-      <FilterControls filters={props.context.filters} availableFilters={props.model.availableFilters} />
+      <FilterControls
+        actionPath={props.context.match.path}
+        filters={props.context.filters}
+        availableFilters={props.model.availableFilters}
+        availableStations={props.model.availableStations}
+      />
       <ComparisonOverview analyses={props.model.analyses} />
     </section>
   );
