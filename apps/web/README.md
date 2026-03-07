@@ -18,6 +18,26 @@ This package owns the dashboard and live monitoring web surface for Binsight. It
 
 This package now runs as a Vite-hosted React dashboard backed by Firebase Auth, Firebase callable functions, and Firestore live-status subscriptions.
 
+## Firebase rehearsal runbook
+
+Use `../../docs/firebase-rehearsal-runbook.md` for the exact setup, deploy, seed, and startup sequence. This README keeps only the package-specific dashboard notes.
+
+## Supported rehearsal path
+
+The supported rehearsal path keeps the dashboard local on Vite. It does not deploy this package through Firebase Hosting in the current scope.
+
+Start the dashboard only after you have:
+
+1. Deployed Firestore rules and indexes to the target Firebase project
+2. Deployed backend Functions to the same Firebase project
+3. Seeded the demo dataset for that project
+
+Use this command from the repository root when the backend and data plane are ready:
+
+```bash
+corepack pnpm run web:dev
+```
+
 ## Required environment
 
 Copy `.env.example` to `.env` and provide the Firebase web SDK values for the target demo project:
@@ -37,19 +57,9 @@ If any required `VITE_FIREBASE_*` value is missing, the app fails during startup
 
 ## Thin-slice operator flow
 
-Use this order for the web surface during the Phase 5 demo rehearsal:
+During the rehearsal, the dashboard expects deployed backend functions, seeded demo data, and a local `apps/web/.env` file that points at the same Firebase project as the Pi runtime.
 
-1. Ensure the backend functions are deployed to the same Firebase project that the dashboard `.env` targets.
-2. Ensure the demo seed workflow has already populated the comparison dataset.
-3. Start the Vite host from the repository root.
-
-```bash
-corepack pnpm --filter @binsight/web run dev
-```
-
-4. Open the local Vite URL in a browser.
-5. Sign in with the provisioned Firebase Auth email and password operator account.
-6. Keep the dashboard open while the Pi runtime publishes live status and disposal events.
+If you need a hosted dashboard URL later, treat Firebase Hosting as follow-on work. The current repo contract keeps the web surface local and keeps Firebase focused on backend Functions, Firestore, Auth, and Storage.
 
 ## Validation status
 

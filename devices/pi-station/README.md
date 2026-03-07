@@ -9,6 +9,10 @@ This project contains the Raspberry Pi runtime for the Binsight demo station.
 
 The Pi owns the live control loop described in the spec: session start, item classification, local rules evaluation, disposal guidance, disposal detection, event creation, and translation between a narrow ESP-facing protocol and cloud-facing payloads.
 
+## Firebase rehearsal runbook
+
+Use `../../docs/firebase-rehearsal-runbook.md` for the exact setup, deploy, seed, and startup sequence. This README keeps the Pi-specific runtime and contract notes.
+
 ## Boundary
 
 * Keep this project independent from the TypeScript workspace
@@ -82,20 +86,7 @@ uv run binsight-station
 
 ## Phase 5 startup sequence
 
-Use this run order for the Raspberry Pi surface during the thin-slice demo rehearsal:
-
-1. Copy `.env.example` to `.env` and replace the placeholder Firebase and device-auth values.
-2. Verify the local runtime gate.
-
-```bash
-uv run pytest
-```
-
-3. Start the runtime.
-
-```bash
-uv run binsight-station
-```
+For the rehearsal, copy `devices/pi-station/.env.example` to `.env`, keep the station and device credentials aligned with the backend configuration, run `uv run pytest`, then run `uv run binsight-station`.
 
 On the current Phase 5 entrypoint, the runtime loads the station configuration, polls the ESP health endpoint once, attempts to publish the current live status, prints a one-line station summary, and exits.
 
