@@ -15,6 +15,7 @@ dev = [
 
 [project.scripts]
 binsight-station = "binsight_station.main:main"
+binsight-training-capture = "binsight_station.training_capture:main"
 
 [build-system]
 requires = ["hatchling>=1.27.0,<2.0.0"]

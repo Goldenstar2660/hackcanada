@@ -68,6 +68,20 @@ Install dependencies with `uv`:
 uv sync
 ```
 
+For the training photo capture tool on a Raspberry Pi, this is the one command to run:
+
+```bash
+uv run binsight-training-capture
+```
+
+Its config file lives at:
+
+```text
+devices/pi-station/config/training_capture.json
+```
+
+Captured images are written under `devices/pi-station/training_data/<label>/` by default.
+
 Run the smoke tests:
 
 ```bash
@@ -79,6 +93,49 @@ Run the placeholder station entry point:
 ```bash
 uv run binsight-station
 ```
+
+## Training photo capture for AI datasets
+
+Use this exact command from `devices/pi-station/`:
+
+```bash
+uv run binsight-training-capture
+```
+
+Config path:
+
+```text
+devices/pi-station/config/training_capture.json
+```
+
+How it works:
+
+* Press `Enter` once to start capturing images
+* Press `Enter` again to stop the current run
+* Press `Ctrl+C` to quit
+* The config is reloaded every time you start a run
+
+Default output layout:
+
+```text
+devices/pi-station/training_data/<label>/<label>_YYYYMMDD_HHMMSS_microseconds.jpg
+```
+
+Important config fields:
+
+* `label`: class name for the images, such as `engaged`, `paper`, or `plastic`
+* `outputDir`: base folder for saved images
+* `intervalSeconds`: time between photos
+* `width` / `height`: capture resolution
+* `imageFormat`: output format, typically `jpg` or `png`
+* `jpegQuality`: JPEG quality when saving `.jpg`
+* `maxPhotosPerRun`: `0` means unlimited until you stop manually
+* `flip180`: rotate the saved image 180 degrees if your camera is mounted upside down
+* `swapRedBlue`: retained for compatibility with the original script, but ignored by the current CLI-camera implementation
+
+This implementation uses the Raspberry Pi camera CLI (`rpicam-still`, or `libcamera-still` on older images), so it does **not** require installing `picamera2` or Pillow through `uv` just to run the capture command.
+
+If the Pi camera CLI is unavailable or the camera is not enabled, the command exits with a clear error message so you can fix the Pi camera setup first.
 
 ## Phase 5 startup sequence
 
