@@ -43,3 +43,5 @@ pubsub-debug.log
 *.log
 tmp/
 temp/
+
+.copilot-tracking/
