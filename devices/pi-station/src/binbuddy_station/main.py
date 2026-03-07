@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections import deque
+from collections.abc import Sequence
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
-from typing import Callable
+from typing import Callable, Protocol
 
 from dotenv import load_dotenv
 
@@ -18,6 +20,48 @@ from .rules import RulesPreset, load_rules_preset
 from .session import SessionPhase, SessionSnapshot, SessionStateMachine, SessionTimingConfig
 
 
+DEFAULT_DEMO_CLASSIFICATION_SOURCE = "demo://plastic-bottle"
+
+
+@dataclass(slots=True, frozen=True)
+class HandTrackingObservation:
+    zone: str | None
+    hand_present: bool
+
+
+class HandTrackingInput(Protocol):
+    def observe(self, *, hand_present: bool, snapshot: SessionSnapshot) -> HandTrackingObservation | None: ...
+
+
+class DeterministicHandTracker:
+    def __init__(self, zones: Sequence[str] = ("left",)) -> None:
+        resolved_zones = tuple(zone.strip().lower() for zone in zones if zone.strip())
+        if not resolved_zones:
+            raise ValueError("deterministic hand tracker requires at least one zone")
+        for zone in resolved_zones:
+            if zone not in {"left", "middle", "right"}:
+                raise ValueError(f"unsupported deterministic hand-tracking zone: {zone}")
+
+        self._zones = deque(resolved_zones)
+        self._active_zone: str | None = None
+
+    def observe(self, *, hand_present: bool, snapshot: SessionSnapshot) -> HandTrackingObservation | None:
+        del snapshot
+
+        if hand_present:
+            if self._active_zone is None:
+                self._active_zone = self._zones[0]
+                if len(self._zones) > 1:
+                    self._zones.rotate(-1)
+            return HandTrackingObservation(zone=self._active_zone, hand_present=True)
+
+        if self._active_zone is None:
+            return None
+
+        self._active_zone = None
+        return HandTrackingObservation(zone=None, hand_present=False)
+
+
 @dataclass(slots=True)
 class RuntimeSettings:
     station_id: str
@@ -25,6 +69,11 @@ class RuntimeSettings:
     rules_preset_version: str
     esp_endpoint: str
     firebase_project_id: str
+    firebase_functions_region: str
+    firebase_functions_base_url: str | None
+    binbuddy_device_id: str | None
+    binbuddy_device_shared_secret: str | None
+    publication_timeout_seconds: float
     presence_debounce_seconds: float
     disposal_timeout_seconds: float
     reset_cooldown_seconds: float
@@ -40,9 +89,37 @@ def load_runtime_settings() -> RuntimeSettings:
         rules_preset_version=os.getenv("RULES_PRESET_VERSION", "1.0.0"),
         esp_endpoint=os.getenv("ESP_ENDPOINT", "http://192.168.4.1"),
         firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "binbuddy-demo"),
+        firebase_functions_region=os.getenv("FIREBASE_FUNCTIONS_REGION", "us-central1"),
+        firebase_functions_base_url=_optional_env("FIREBASE_FUNCTIONS_BASE_URL"),
+        binbuddy_device_id=_optional_env("BINBUDDY_DEVICE_ID"),
+        binbuddy_device_shared_secret=_optional_env("BINBUDDY_DEVICE_SHARED_SECRET"),
+        publication_timeout_seconds=float(os.getenv("BINBUDDY_PUBLICATION_TIMEOUT_SECONDS", "5.0")),
         presence_debounce_seconds=float(os.getenv("PRESENCE_DEBOUNCE_SECONDS", "0.35")),
         disposal_timeout_seconds=float(os.getenv("DISPOSAL_TIMEOUT_SECONDS", "12.0")),
         reset_cooldown_seconds=float(os.getenv("RESET_COOLDOWN_SECONDS", "1.5")),
+    )
+
+
+def _optional_env(name: str) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def create_publication_adapter(settings: RuntimeSettings) -> PublicationAdapter:
+    if not settings.binbuddy_device_id or not settings.binbuddy_device_shared_secret:
+        return PublicationAdapter(settings.firebase_project_id)
+
+    return PublicationAdapter.for_authenticated_http(
+        project_id=settings.firebase_project_id,
+        device_id=settings.binbuddy_device_id,
+        station_id=settings.station_id,
+        shared_secret=settings.binbuddy_device_shared_secret,
+        functions_region=settings.firebase_functions_region,
+        functions_base_url=settings.firebase_functions_base_url,
+        timeout_seconds=settings.publication_timeout_seconds,
     )
 
 
@@ -54,6 +131,7 @@ class StationRuntime:
         esp_client: EspClient | None = None,
         lcd_client: LcdClient | None = None,
         publication_client: PublicationAdapter | None = None,
+        hand_tracking_input: HandTrackingInput | None = None,
     ) -> None:
         self.settings = settings
         self.rules: RulesPreset = load_rules_preset(
@@ -71,7 +149,8 @@ class StationRuntime:
         self.esp_client = esp_client or EspClient(settings.esp_endpoint)
         self.lcd_client = lcd_client or LcdClient()
         self.live_status_publisher = LiveStatusPublisher()
-        self.publication_client = publication_client or PublicationAdapter(settings.firebase_project_id)
+        self.publication_client = publication_client or create_publication_adapter(settings)
+        self.hand_tracking_input = hand_tracking_input or DeterministicHandTracker()
         self._monotonic_clock = monotonic if monotonic_clock is None else monotonic_clock
         self.last_event: DisposalEvent | None = None
         self.last_live_status: LiveStatus | None = None
@@ -95,8 +174,13 @@ class StationRuntime:
         self.esp_client.poll()
         return self.esp_client.presence_frame_count > previous_presence_count
 
-    def _advance_session_entry(self, image_source: str, observed_presence_frame: bool) -> SessionSnapshot:
+    def _advance_session_entry(
+        self,
+        image_source: str | None,
+        observed_presence_frame: bool,
+    ) -> SessionSnapshot:
         snapshot = self.session.snapshot
+        classification_source = image_source or DEFAULT_DEMO_CLASSIFICATION_SOURCE
 
         if snapshot.phase is SessionPhase.IDLE:
             if not observed_presence_frame or not self.esp_client.has_stable_presence:
@@ -115,7 +199,7 @@ class StationRuntime:
         self.session.begin_identification(now)
         classification = self.classifier.classify(
             ClassificationRequest(
-                image_source=image_source,
+                image_source=classification_source,
                 confidence_threshold=self.rules.low_confidence_threshold,
             )
         )
@@ -135,6 +219,37 @@ class StationRuntime:
             total_correct_sorts=guidance_snapshot.total_correct_sorts,
         )
         return self.session.begin_waiting_for_disposal(self._now())
+
+    def _consume_hand_tracking(
+        self,
+        observed_presence_frame: bool,
+        *,
+        tracking_active_before_poll: bool,
+    ) -> tuple[SessionSnapshot, bool]:
+        snapshot = self.session.snapshot
+        if (
+            not tracking_active_before_poll
+            or snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL
+            or not observed_presence_frame
+        ):
+            return snapshot, False
+
+        observation = self.hand_tracking_input.observe(
+            hand_present=self.esp_client.last_presence.hand_present,
+            snapshot=snapshot,
+        )
+        if observation is None:
+            return snapshot, False
+
+        updated_snapshot = self.observe_hand(
+            zone=observation.zone,
+            hand_present=observation.hand_present,
+        )
+        if updated_snapshot.phase is not SessionPhase.EMIT_RESULT:
+            return updated_snapshot, False
+
+        self.emit_result()
+        return self.session.snapshot, True
 
     def _publish_runtime_status(
         self,
@@ -164,10 +279,17 @@ class StationRuntime:
         self.last_live_status = status
         return status
 
-    def start_session(self, image_source: str = "camera://placeholder") -> tuple[SessionSnapshot, LiveStatus]:
+    def start_session(self, image_source: str | None = None) -> tuple[SessionSnapshot, LiveStatus]:
+        tracking_active_before_poll = self.session.snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
         self.esp_client.request_health()
         observed_presence_frame = self._poll_esp()
         snapshot = self._advance_session_entry(image_source, observed_presence_frame)
+        snapshot, emitted_result = self._consume_hand_tracking(
+            observed_presence_frame,
+            tracking_active_before_poll=tracking_active_before_poll,
+        )
+        if emitted_result and self.last_live_status is not None:
+            return snapshot, self.last_live_status
         return snapshot, self._publish_runtime_status(snapshot, latest_event=self.last_event)
 
     def _send_guidance(self, snapshot: SessionSnapshot) -> None:
@@ -183,8 +305,16 @@ class StationRuntime:
         )
 
     def sync_from_esp(self) -> LiveStatus:
-        self._poll_esp()
-        return self._publish_runtime_status(self.session.snapshot, latest_event=self.last_event)
+        tracking_active_before_poll = self.session.snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+        self.esp_client.request_health()
+        observed_presence_frame = self._poll_esp()
+        snapshot, emitted_result = self._consume_hand_tracking(
+            observed_presence_frame,
+            tracking_active_before_poll=tracking_active_before_poll,
+        )
+        if emitted_result and self.last_live_status is not None:
+            return self.last_live_status
+        return self._publish_runtime_status(snapshot, latest_event=self.last_event)
 
     def observe_hand(self, zone: str | None, hand_present: bool) -> SessionSnapshot:
         return self.session.track_hand(zone=zone, hand_present=hand_present, now_monotonic=self._now())
@@ -214,6 +344,7 @@ class StationRuntime:
     def begin_reset(self) -> SessionSnapshot:
         self.esp_client.clear_guidance()
         snapshot = self.session.begin_resetting(self._now())
+        self.lcd_client.render_reset(snapshot.total_attempts, snapshot.total_correct_sorts)
         self._publish_runtime_status(snapshot, latest_event=self.last_event)
         return snapshot
 
@@ -226,7 +357,7 @@ class StationRuntime:
     def observe_disposal(
         self,
         zone: str,
-        classification_image_source: str = "camera://placeholder",
+        classification_image_source: str | None = None,
     ) -> tuple[SessionSnapshot, DisposalEvent | None]:
         del classification_image_source
         self.observe_hand(zone=zone, hand_present=True)

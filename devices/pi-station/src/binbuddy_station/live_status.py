@@ -176,10 +176,5 @@ def _session_state_for_phase(phase: SessionPhase) -> str:
 
 
 def _is_camera_feed_active(phase: SessionPhase) -> bool:
-    return phase in {
-        SessionPhase.IDENTIFYING,
-        SessionPhase.GUIDING,
-        SessionPhase.WAITING_FOR_DISPOSAL,
-        SessionPhase.EMIT_RESULT,
-        SessionPhase.RESETTING,
-    }
+    del phase
+    return False

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from binbuddy_station.events import create_disposal_event
 from binbuddy_station.live_status import DeviceHealth, LiveStatusPublisher
+from binbuddy_station.publishers import PublicationAdapter
 from binbuddy_station.rules import load_rules_preset
 from binbuddy_station.session import SessionStateMachine
 
@@ -72,7 +73,7 @@ def test_live_status_payload_serializes_waiting_phase_and_latest_event_summary()
         "stationId": "demo-station-001",
         "timestamp": status.timestamp,
         "sessionState": "waiting-for-disposal",
-        "cameraFeedActive": True,
+        "cameraFeedActive": False,
         "currentDetectedItem": "plastic-bottle",
         "currentDisposalMethod": "recycle",
         "currentHandZone": None,
@@ -89,3 +90,24 @@ def test_live_status_payload_serializes_waiting_phase_and_latest_event_summary()
             "attemptResult": "success",
         },
     }
+
+
+def test_publication_adapter_uses_device_ingress_payloads() -> None:
+    preset = load_rules_preset("demo-canada-ottawa", "1.0.0")
+    snapshot = _resolved_snapshot(zone="left", llm_fallback_used=True)
+    event = create_disposal_event("demo-station-001", snapshot, preset)
+    status = LiveStatusPublisher().build_status(
+        "demo-station-001",
+        snapshot,
+        latest_event=event,
+        device_health=DeviceHealth(pi="online", esp8266="online", cloud_sync="online"),
+    )
+    publisher = PublicationAdapter("binbuddy-demo")
+
+    published_event = publisher.publish_disposal_event(event)
+    published_status = publisher.publish_live_status(status)
+
+    assert published_event == event.to_ingress_payload()
+    assert publisher.published_events == [event.to_ingress_payload()]
+    assert published_status == status.to_ingress_payload()
+    assert publisher.published_live_statuses == [status.to_ingress_payload()]

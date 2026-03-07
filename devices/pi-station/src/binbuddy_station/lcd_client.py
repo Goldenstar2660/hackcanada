@@ -21,7 +21,7 @@ class LcdClient:
         return self._render(
             mode="standby",
             line_one="Ready to sort",
-            line_two=f"OK {total_correct_sorts}/{total_attempts}",
+            line_two=_station_totals_line(total_attempts, total_correct_sorts),
         )
 
     def render_guidance(
@@ -43,7 +43,14 @@ class LcdClient:
         return self._render(
             mode="result",
             line_one="Correct sort" if success else "Try again",
-            line_two=f"OK {total_correct_sorts}/{total_attempts}",
+            line_two=_station_totals_line(total_attempts, total_correct_sorts),
+        )
+
+    def render_reset(self, total_attempts: int, total_correct_sorts: int) -> LcdScreen:
+        return self._render(
+            mode="reset",
+            line_one="Resetting",
+            line_two=_station_totals_line(total_attempts, total_correct_sorts),
         )
 
     def render_error(self, message: str) -> LcdScreen:
@@ -66,3 +73,7 @@ class LcdClient:
 
 def _fit_lcd_line(value: str) -> str:
     return value[:16].ljust(16)
+
+
+def _station_totals_line(total_attempts: int, total_correct_sorts: int) -> str:
+    return f"C:{total_correct_sorts} A:{total_attempts}"

@@ -51,7 +51,7 @@ Run the supported root validation workflow with:
 just validate
 ```
 
-That recipe executes the Phase 6 command set from the repository root:
+That recipe executes the final integrated validation command set from the repository root:
 
 ```bash
 corepack pnpm lint
@@ -62,6 +62,102 @@ cd firmware/esp8266-controller && ../../.venv/bin/pio run
 ```
 
 If the workspace-local PlatformIO binary is not present at `.venv/bin/pio`, the firmware step falls back to a globally installed `pio` executable.
+
+## Phase 5 rehearsal status
+
+The Phase 5 local validation pass completed on 2026-03-07 with this run order:
+
+1. `corepack pnpm lint`
+2. `corepack pnpm build`
+3. `corepack pnpm test`
+4. `cd devices/pi-station && uv run pytest`
+5. `cd devices/pi-station && uv run binbuddy-station`
+6. `cd firmware/esp8266-controller && ../../.venv/bin/pio run`
+7. `just validate`
+
+Observed local results:
+
+* The TypeScript workspace linted and built successfully
+* The Pi test suite passed with 21 tests
+* `uv run binbuddy-station` started successfully and exited with `station=demo-station-001 phase=idle item=None disposal=None`
+* The ESP8266 PlatformIO build completed successfully
+* `just validate` passed end to end
+
+## Thin-slice demo order
+
+Use this order for the real station-to-cloud-to-dashboard demo once Firebase provisioning is in place:
+
+1. Provision the demo environment for all three surfaces.
+2. Seed the comparative Firebase dataset from the repository root.
+3. Confirm the backend functions and Firestore configuration are deployed for the target Firebase project.
+4. Start the Vite dashboard host from `apps/web`.
+5. Sign in with the provisioned Firebase Auth operator account.
+6. Start the Pi runtime from `devices/pi-station`.
+7. Run the live station interaction against the seeded `demo-station-001` path while the dashboard is open.
+
+The backend surface is not a long-running local process in this repository. The Pi runtime and dashboard both assume the callable and Firestore surface already exists in the target Firebase project.
+
+> [!WARNING]
+> The real Firebase rehearsal was not validated in this workspace on 2026-03-07. The demo seed command failed immediately because `FIREBASE_PROJECT_ID` was not set in the shell, no Firebase application credentials were present, and no web dashboard `.env` file was provisioned. Treat live dashboard updates, seeded history, and operator login as blocked until those environment prerequisites are supplied.
+
+## Demo Bootstrap
+
+The Phase 3 demo path assumes one Firebase project shared by the Pi runtime, backend functions, and Vite dashboard.
+
+### Cross-Surface Environment Checklist
+
+Pi runtime uses `devices/pi-station/.env` with these minimum values:
+
+```text
+STATION_ID=demo-station-001
+RULES_PRESET_ID=demo-canada-ottawa
+RULES_PRESET_VERSION=1.0.0
+ESP_ENDPOINT=http://192.168.4.1
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_FUNCTIONS_REGION=us-central1
+FIREBASE_FUNCTIONS_BASE_URL=
+BINBUDDY_DEVICE_ID=pi-demo-001
+BINBUDDY_DEVICE_SHARED_SECRET=replace-with-demo-secret
+BINBUDDY_PUBLICATION_TIMEOUT_SECONDS=5.0
+```
+
+Backend functions use environment variables or deployment secrets for these minimum values:
+
+```text
+FIREBASE_PROJECT_ID=your-firebase-project-id
+BINBUDDY_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
+BINBUDDY_DEVICE_CREDENTIALS_JSON=[{"deviceId":"pi-demo-001","stationId":"demo-station-001","sharedSecret":"replace-with-demo-secret","enabled":true}]
+```
+
+The Vite dashboard uses `apps/web/.env` with these Firebase web SDK values:
+
+```text
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_AUTH_DOMAIN=your-firebase-project-id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-firebase-project-id
+VITE_FIREBASE_FUNCTIONS_REGION=us-central1
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
+```
+
+### Seed Demo Data
+
+Seeded historical data is required for the demo because the live station will not generate enough attempts to populate analytics, comparisons, history, and leaderboard views on its own.
+
+1. Authenticate the Firebase Admin SDK against the demo project. `GOOGLE_APPLICATION_CREDENTIALS` is the most direct path for this repository.
+2. Set `FIREBASE_PROJECT_ID` and `BINBUDDY_STORAGE_BUCKET` for the target project.
+3. Run the seed command from the repository root.
+
+```bash
+corepack pnpm --filter @binbuddy/backend-functions run seed:demo
+```
+
+The seed command provisions the Ottawa preset at version `1.0.0`, three demo stations, live-status stubs, deterministic disposal-event history, and analytics rollups for station, floor, building, signage, layout, and location comparisons.
+
+### Operator Access
+
+The Phase 3 demo path uses Firebase Auth email and password sign-in for the dashboard. Create one operator user in the Firebase console, then use the same credentials in the Vite dashboard login form. No extra custom claims are required for the current demo bootstrap.
 
 ## Current Status
 

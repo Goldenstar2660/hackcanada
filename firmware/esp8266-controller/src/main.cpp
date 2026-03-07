@@ -8,7 +8,9 @@ namespace {
 
 constexpr uint32_t kPresenceSampleIntervalMs = 300;
 constexpr uint32_t kWifiReconnectIntervalMs = 5000;
-constexpr uint8_t kIndicatorPin = LED_BUILTIN;
+constexpr uint8_t kLeftIndicatorPin = D1;
+constexpr uint8_t kMiddleIndicatorPin = D2;
+constexpr uint8_t kRightIndicatorPin = D7;
 constexpr uint8_t kUltrasonicTriggerPin = D5;
 constexpr uint8_t kUltrasonicEchoPin = D6;
 constexpr uint32_t kUltrasonicPulseTimeoutUs = 30000;
@@ -93,8 +95,10 @@ void samplePresenceSensor() {
 void applyIndicator(const binbuddy::IndicatorZone zone) {
   activeZone = zone;
 
-  const bool ledEnabled = zone != binbuddy::IndicatorZone::Off;
-  digitalWrite(kIndicatorPin, ledEnabled ? LOW : HIGH);
+  digitalWrite(kLeftIndicatorPin, zone == binbuddy::IndicatorZone::Left ? HIGH : LOW);
+  digitalWrite(kMiddleIndicatorPin,
+               zone == binbuddy::IndicatorZone::Middle ? HIGH : LOW);
+  digitalWrite(kRightIndicatorPin, zone == binbuddy::IndicatorZone::Right ? HIGH : LOW);
 }
 
 String boolJson(const bool value) {
@@ -308,8 +312,10 @@ void maybeSamplePresence() {
 }  // namespace
 
 void setup() {
-  pinMode(kIndicatorPin, OUTPUT);
-  digitalWrite(kIndicatorPin, HIGH);
+  pinMode(kLeftIndicatorPin, OUTPUT);
+  pinMode(kMiddleIndicatorPin, OUTPUT);
+  pinMode(kRightIndicatorPin, OUTPUT);
+  applyIndicator(binbuddy::IndicatorZone::Off);
   pinMode(kUltrasonicTriggerPin, OUTPUT);
   digitalWrite(kUltrasonicTriggerPin, LOW);
   pinMode(kUltrasonicEchoPin, INPUT);
