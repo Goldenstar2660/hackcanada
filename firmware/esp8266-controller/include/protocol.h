@@ -32,8 +32,17 @@ struct HealthTelemetry {
   IndicatorZone activeZone = IndicatorZone::Off;
 };
 
+struct PresenceTelemetry {
+  bool handPresent = false;
+  IndicatorZone handZone = IndicatorZone::Off;
+  bool stable = false;
+  uint32_t sequence = 0;
+};
+
 const char* indicatorZoneName(IndicatorZone zone);
 String encodeHealthTelemetry(const HealthTelemetry& telemetry);
+String encodePresenceTelemetry(const PresenceTelemetry& telemetry);
+String encodeIndicatorAcknowledgement(IndicatorZone zone);
 bool decodeControllerCommand(const String& frame, ControllerCommand* outCommand);
 
 }  // namespace binbuddy

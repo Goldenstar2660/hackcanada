@@ -34,6 +34,24 @@ String encodeHealthTelemetry(const HealthTelemetry& telemetry) {
   return payload;
 }
 
+String encodePresenceTelemetry(const PresenceTelemetry& telemetry) {
+  String payload = "presence present=";
+  payload += telemetry.handPresent ? "1" : "0";
+  payload += " zone=";
+  payload += indicatorZoneName(telemetry.handZone);
+  payload += " stable=";
+  payload += telemetry.stable ? "1" : "0";
+  payload += " seq=";
+  payload += String(telemetry.sequence);
+  return payload;
+}
+
+String encodeIndicatorAcknowledgement(const IndicatorZone zone) {
+  String payload = "ack indicator:";
+  payload += indicatorZoneName(zone);
+  return payload;
+}
+
 bool decodeControllerCommand(const String& frame, ControllerCommand* outCommand) {
   if (outCommand == nullptr) {
     return false;

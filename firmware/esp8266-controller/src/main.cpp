@@ -5,11 +5,14 @@
 namespace {
 
 constexpr uint32_t kHealthPublishIntervalMs = 5000;
+constexpr uint32_t kPresencePublishIntervalMs = 300;
 constexpr uint8_t kIndicatorPin = LED_BUILTIN;
 
 binbuddy::IndicatorZone activeZone = binbuddy::IndicatorZone::Off;
 String inboundFrame;
 uint32_t lastHealthPublishMs = 0;
+uint32_t lastPresencePublishMs = 0;
+uint32_t presenceSequence = 0;
 
 void applyIndicator(const binbuddy::IndicatorZone zone) {
   activeZone = zone;
@@ -29,13 +32,24 @@ void publishHealthTelemetry() {
   Serial.println(binbuddy::encodeHealthTelemetry(telemetry));
 }
 
+void publishPresenceTelemetry() {
+  const bool handPresent = false;
+  const binbuddy::PresenceTelemetry telemetry{
+      handPresent,
+      handPresent ? activeZone : binbuddy::IndicatorZone::Off,
+      true,
+      presenceSequence++,
+  };
+
+  Serial.println(binbuddy::encodePresenceTelemetry(telemetry));
+}
+
 void handleCommand(const binbuddy::ControllerCommand& command) {
   switch (command.type) {
     case binbuddy::ControllerCommandType::SetIndicator:
       applyIndicator(command.zone);
       if (command.acknowledge) {
-        Serial.print("ack indicator:");
-        Serial.println(binbuddy::indicatorZoneName(command.zone));
+        Serial.println(binbuddy::encodeIndicatorAcknowledgement(command.zone));
       }
       break;
     case binbuddy::ControllerCommandType::RequestHealth:
@@ -81,7 +95,9 @@ void setup() {
   Serial.begin(115200);
   Serial.println("binbuddy firmware boot");
   publishHealthTelemetry();
+  publishPresenceTelemetry();
   lastHealthPublishMs = millis();
+  lastPresencePublishMs = millis();
 }
 
 void loop() {
@@ -91,6 +107,10 @@ void loop() {
   if (now - lastHealthPublishMs >= kHealthPublishIntervalMs) {
     lastHealthPublishMs = now;
     publishHealthTelemetry();
+  }
+  if (now - lastPresencePublishMs >= kPresencePublishIntervalMs) {
+    lastPresencePublishMs = now;
+    publishPresenceTelemetry();
   }
 
   delay(10);
