@@ -1,0 +1,12 @@
+{
+  "outputDir": "training_data",
+  "label": "engaged",
+  "intervalSeconds": 0.5,
+  "width": 640,
+  "height": 480,
+  "imageFormat": "jpg",
+  "jpegQuality": 95,
+  "maxPhotosPerRun": 0,
+  "flip180": true,
+  "swapRedBlue": false
+}
