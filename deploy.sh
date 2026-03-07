@@ -1,135 +1,101 @@
 #!/bin/bash
-# Deploy ML Training Pipeline to Remote Machine (Docker or uDocker)
-# Usage: ./deploy.sh [REMOTE_USER@REMOTE_HOST] [CONTAINER_RUNTIME]
-#   CONTAINER_RUNTIME: docker (default) or udocker
+# Deploy ML Training Pipeline - Local or Remote
+# Usage: 
+#   Local:  ./deploy.sh
+#   Remote: ./deploy.sh user@host
 
 set -e
 
-REMOTE_HOST="${1:-gpu-server}"
-RUNTIME="${2:-docker}"
+TARGET="${1:-local}"
+RUNTIME="${2:-native}"
 REPO_URL="https://github.com/yourusername/hackcanada.git"
 CONTAINER_NAME="waste-classifier-train"
 IMAGE_NAME="waste-classifier:latest"
 
-echo "=== Deploying ML Engine to $REMOTE_HOST (runtime: $RUNTIME) ==="
+# Determine if remote
+is_remote() {
+    [[ "$TARGET" == *@* ]]
+}
 
-# Step 1: Install container runtime
-echo "[1/6] Installing container runtime..."
-ssh "$REMOTE_HOST" << EOF
-if [ "$RUNTIME" = "udocker" ]; then
-    if ! command -v udocker &> /dev/null; then
-        apt-get update
-        apt-get install -y python3 python3-pip
-        pip3 install udocker
-        udocker install
+run_cmd() {
+    if is_remote; then
+        ssh "$TARGET" "$1"
+    else
+        eval "$1"
     fi
-    udocker --version
-elif [ "$RUNTIME" = "docker" ]; then
+}
+
+echo "=== Deploying ML Engine to ${TARGET} (runtime: $RUNTIME) ==="
+
+# Step 1: Install deps
+echo "[1/4] Installing dependencies..."
+run_cmd '
+if [ "$RUNTIME" = "docker" ]; then
     if ! command -v docker &> /dev/null; then
         apt-get update
         apt-get install -y ca-certificates curl gnupg lsb-release
-        mkdir -p /etc/apt/keyrings
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \$(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
         apt-get update
-        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        apt-get install -y docker-ce docker-ce-cli containerd.io
     fi
     docker --version
-fi
-EOF
-
-# Step 2: Install NVIDIA tools (if GPU available)
-echo "[2/6] Checking GPU availability..."
-ssh "$REMOTE_HOST" << 'EOF'
-if command -v nvidia-smi &> /dev/null; then
-    echo "GPU detected:"
-    nvidia-smi --query-gpu=name,memory.total --format=csv
-    
-    if [ "$RUNTIME" = "docker" ]; then
-        distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-        curl -fsSL https://nvidia.github.io/nvidia-docker/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-docker.gpg 2>/dev/null || true
-        curl -fsSL https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
-            sed 's|deb|deb [signed-by=/usr/share/keyrings/nvidia-docker.gpg]|' > /etc/apt/sources.list.d/nvidia-docker.list 2>/dev/null || true
-        apt-get update 2>/dev/null
-        apt-get install -y nvidia-container-toolkit 2>/dev/null || true
-        nvidia-ctk runtime configure --runtime=docker 2>/dev/null || true
-        systemctl restart docker 2>/dev/null || true
-    fi
 else
-    echo "No GPU detected - training will use CPU"
+    # Native/udocker: install Python deps on host
+    if [ "$RUNTIME" = "native" ] || [ "$RUNTIME" = "udocker" ]; then
+        apt-get update
+        apt-get install -y python3 python3-pip git curl tesseract-ocr libgl1-mesa-glx libglib2.0-0
+        pip3 install --no-cache-dir -r requirements.txt
+    fi
 fi
-EOF
+'
 
-# Step 3: Clone repository
-echo "[3/6] Cloning repository..."
-ssh "$REMOTE_HOST" << EOF
+# Step 2: Clone repo
+echo "[2/4] Setting up repository..."
+run_cmd '
 if [ ! -d ~/hackcanada ]; then
     git clone $REPO_URL ~/hackcanada
 else
     cd ~/hackcanada && git pull
 fi
-ls -la ~/hackcanada
-EOF
-
-# Step 4: Setup environment
-echo "[4/6] Setting up training environment..."
-ssh "$REMOTE_HOST" << EOF
 cd ~/hackcanada
+'
 
-if [ "$RUNTIME" = "udocker" ]; then
-    # uDocker: install deps directly on host (simpler)
-    apt-get update
-    apt-get install -y python3 python3-pip git curl tesseract-ocr libgl1-mesa-glx libglib2.0-0
-    pip3 install --no-cache-dir -r requirements.txt
-    echo "Dependencies installed on host for uDocker"
-elif [ "$RUNTIME" = "docker" ]; then
-    docker build -t $IMAGE_NAME .
-    echo "Docker image built: $IMAGE_NAME"
-fi
-EOF
-
-# Step 5: Start training
-echo "[5/6] Starting training..."
-ssh "$REMOTE_HOST" << EOF
+# Step 3: Build/run
+echo "[3/4] Starting training..."
+run_cmd '
 cd ~/hackcanada
 tmux kill-session -t training 2>/dev/null || true
 
-if [ "$RUNTIME" = "udocker" ]; then
-    # Run directly on host (udocker is for systems without Docker)
-    tmux new-session -d -s training "python3 src/train.py --epochs 10 --batch-size 32"
-elif [ "$RUNTIME" = "docker" ]; then
-    tmux new-session -d -s training "docker run --gpus all --runtime nvidia \\
-        -v \$(pwd)/data:/data \\
-        -v \$(pwd)/models:/models \\
-        -v \$(pwd)/training.log:/workspace/training.log \\
-        --name $CONTAINER_NAME \\
-        $IMAGE_NAME \\
+if [ "$RUNTIME" = "docker" ]; then
+    docker build -t $IMAGE_NAME .
+    tmux new-session -d -s training "docker run --gpus all --runtime nvidia \
+        -v \$(pwd)/data:/data \
+        -v \$(pwd)/models:/models \
+        -v \$(pwd)/training.log:/workspace/training.log \
+        --name $CONTAINER_NAME \
+        $IMAGE_NAME \
         python3 src/train.py --epochs 10 --batch-size 32"
+else
+    # Native/udocker: run directly
+    tmux new-session -d -s training "python3 src/train.py --epochs 10 --batch-size 32"
 fi
+'
 
-echo "Training started in tmux session 'training'"
-EOF
-
-# Step 6: Verify
-echo "[6/6] Verifying deployment..."
-ssh "$REMOTE_HOST" << 'EOF'
+# Step 4: Verify
+echo "[4/4] Verifying..."
+run_cmd '
 echo "=== Tmux Session ==="
 tmux list-sessions 2>/dev/null || echo "No tmux sessions"
 
 if command -v nvidia-smi &> /dev/null; then
-    echo "=== GPU Available ==="
+    echo "=== GPU ==="
     nvidia-smi --query-gpu=name,memory.total --format=csv
 fi
 
 echo ""
-echo "=== DEPLOYMENT COMPLETE ==="
-echo "Runtime: $RUNTIME"
-echo ""
-echo "To monitor training:"
-echo "  ssh $REMOTE_HOST 'tmux attach -t training'"
-echo ""
-echo "To check logs:"
-echo "  tail -f ~/hackcanada/training.log"
-EOF
+echo "=== DONE ==="
+echo "Monitor: tmux attach -t training"
+'
 
-echo "Done! ML Engine ready."
+echo "Done!"
