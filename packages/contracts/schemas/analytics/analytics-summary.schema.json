@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.binbuddy.app/analytics/analytics-summary.schema.json",
+  "$id": "https://schemas.binsight.app/analytics/analytics-summary.schema.json",
   "title": "AnalyticsSummary",
   "description": "Canonical analytics read model returned by backend reporting endpoints and reused by the dashboard.",
   "type": "object",

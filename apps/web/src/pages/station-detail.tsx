@@ -1,4 +1,4 @@
-import type { StationRecord } from "@binbuddy/contracts";
+import type { StationRecord } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 

@@ -5,7 +5,7 @@ import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
 import type { AnalyticsMaterializer } from "../analytics/materializers/daily-rollups.js";
-import type { DisposalEvent } from "@binbuddy/contracts";
+import type { DisposalEvent } from "@binsight/contracts";
 import type { CallableHandler, HttpHandler } from "../functions/runtime.js";
 
 import { analyticsMaterializationLedgerDocumentPath, FIRESTORE_COLLECTIONS } from "../firestore/collections.js";

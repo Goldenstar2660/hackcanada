@@ -1,6 +1,6 @@
 ---
 title: Firmware Headers
-description: Ownership notes for header files in the BinBuddy ESP8266 controller project
+description: Ownership notes for header files in the Binsight ESP8266 controller project
 ---
 
 ## Purpose

@@ -14,10 +14,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@binbuddy/analytics':
+      '@binsight/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
-      '@binbuddy/contracts':
+      '@binsight/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       firebase:
@@ -54,10 +54,10 @@ importers:
 
   services/backend-functions:
     dependencies:
-      '@binbuddy/contracts':
+      '@binsight/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@binbuddy/rules':
+      '@binsight/rules':
         specifier: workspace:*
         version: link:../../packages/rules
       firebase-admin:

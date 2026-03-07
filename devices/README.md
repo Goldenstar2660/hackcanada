@@ -1,13 +1,13 @@
 ---
 title: Devices Boundary
-description: Ownership notes for device runtime projects in the BinBuddy repository
+description: Ownership notes for device runtime projects in the Binsight repository
 ---
 
 ## Purpose
 
 This folder contains device runtime projects.
 
-For BinBuddy, the Raspberry Pi station runtime belongs here because it owns camera capture, item classification, local rules application, disposal-session state, and translation between the ESP8266 protocol and cloud-facing contracts.
+For Binsight, the Raspberry Pi station runtime belongs here because it owns camera capture, item classification, local rules application, disposal-session state, and translation between the ESP8266 protocol and cloud-facing contracts.
 
 ## Ownership Boundary
 

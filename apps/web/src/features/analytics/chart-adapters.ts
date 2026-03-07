@@ -1,4 +1,4 @@
-import type { AnalyticsSummary } from "@binbuddy/contracts";
+import type { AnalyticsSummary } from "@binsight/contracts";
 
 export interface AnalyticsCardView {
   readonly label: string;

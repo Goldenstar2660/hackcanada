@@ -1,5 +1,5 @@
 {
-  "name": "@binbuddy/backend-functions",
+  "name": "@binsight/backend-functions",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,8 +10,8 @@
     "seed:demo": "node scripts/seed-demo-data.mjs"
   },
   "dependencies": {
-    "@binbuddy/contracts": "workspace:*",
-    "@binbuddy/rules": "workspace:*",
+    "@binsight/contracts": "workspace:*",
+    "@binsight/rules": "workspace:*",
     "firebase-admin": "^12.7.0",
     "firebase-functions": "^5.1.1"
   }

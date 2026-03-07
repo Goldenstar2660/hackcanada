@@ -1,7 +1,7 @@
 [project]
-name = "binbuddy-station"
+name = "binsight-station"
 version = "0.1.0"
-description = "Raspberry Pi station runtime for BinBuddy"
+description = "Raspberry Pi station runtime for Binsight"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -14,7 +14,7 @@ dev = [
 ]
 
 [project.scripts]
-binbuddy-station = "binbuddy_station.main:main"
+binsight-station = "binsight_station.main:main"
 
 [build-system]
 requires = ["hatchling>=1.27.0,<2.0.0"]

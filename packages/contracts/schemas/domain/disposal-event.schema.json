@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.binbuddy.app/domain/disposal-event.schema.json",
+  "$id": "https://schemas.binsight.app/domain/disposal-event.schema.json",
   "title": "DisposalEvent",
   "description": "Canonical disposal attempt event authored by the Raspberry Pi station runtime after a user finishes a sorting attempt.",
   "type": "object",

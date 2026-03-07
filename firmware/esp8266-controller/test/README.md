@@ -1,6 +1,6 @@
 ---
 title: Firmware Tests
-description: Notes for PlatformIO-native tests in the BinBuddy ESP8266 controller project
+description: Notes for PlatformIO-native tests in the Binsight ESP8266 controller project
 ---
 
 ## Purpose

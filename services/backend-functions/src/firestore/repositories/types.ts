@@ -5,7 +5,7 @@ import type {
   MetricTotals,
   RulesPreset,
   StationMetadata
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 import type { AnalyticsExperimentDimension } from "../collections.js";
 

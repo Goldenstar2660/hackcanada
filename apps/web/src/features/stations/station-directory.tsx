@@ -1,4 +1,4 @@
-import type { StationRecord } from "@binbuddy/contracts";
+import type { StationRecord } from "@binsight/contracts";
 
 export interface StationDirectoryProps {
   readonly stations: readonly StationRecord[];

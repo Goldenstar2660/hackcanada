@@ -1,4 +1,4 @@
-import type { AnalyticsSummary } from "@binbuddy/contracts";
+import type { AnalyticsSummary } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 

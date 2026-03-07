@@ -4,7 +4,7 @@ import type {
   EventHistoryQuery,
   EventHistoryResponse,
   StationDirectoryResponse
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 export const DASHBOARD_CALLABLE_NAMES = {
   getAnalyticsSummary: "getAnalyticsSummary",

@@ -1,4 +1,4 @@
-import type { EventHistoryResponse } from "@binbuddy/contracts";
+import type { EventHistoryResponse } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 

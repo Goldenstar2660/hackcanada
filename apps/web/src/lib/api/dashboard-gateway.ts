@@ -2,7 +2,7 @@ import type {
   AnalyticsSummary,
   EventHistoryResponse,
   StationDirectoryResponse
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 import type { Functions } from "firebase/functions";
 

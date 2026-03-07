@@ -4,7 +4,7 @@ import { FunctionError } from "../functions/runtime.js";
 
 export interface OperatorClaims {
   readonly admin?: boolean;
-  readonly binbuddyOperator?: boolean;
+  readonly binsightOperator?: boolean;
   readonly role?: string;
   readonly roles?: readonly string[];
 }
@@ -24,7 +24,7 @@ function normalizeClaims(context: CallableAuthContext): OperatorClaims {
 
   return {
     admin: token.admin === true,
-    binbuddyOperator: token.binbuddyOperator === true,
+    binsightOperator: token.binsightOperator === true,
     role: typeof token.role === "string" ? token.role : undefined,
     roles: isStringArray(token.roles) ? token.roles : undefined
   };
@@ -39,7 +39,7 @@ export function isOperatorAuthorized(auth: CallableAuthContext | null): auth is 
   return (
     auth.uid.trim().length > 0
     || claims.admin === true
-    || claims.binbuddyOperator === true
+    || claims.binsightOperator === true
     || claims.role === "admin"
     || claims.role === "operator"
     || claims.roles?.includes("admin") === true

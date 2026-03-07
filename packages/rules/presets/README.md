@@ -1,6 +1,6 @@
 ---
 title: Rules Presets
-description: Versioning guidance for shared BinBuddy rules preset data
+description: Versioning guidance for shared Binsight rules preset data
 ---
 
 ## Purpose

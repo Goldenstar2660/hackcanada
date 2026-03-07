@@ -1,4 +1,4 @@
-# BinBuddy Spec
+# Binsight Spec
 
 ## Product
 A smart waste-sorting station for shared spaces that identifies an item before disposal, tells the user where it belongs, detects where it was actually dropped, and reports sorting quality and station insights.

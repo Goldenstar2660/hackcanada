@@ -71,8 +71,8 @@ class RuntimeSettings:
     firebase_project_id: str
     firebase_functions_region: str
     firebase_functions_base_url: str | None
-    binbuddy_device_id: str | None
-    binbuddy_device_shared_secret: str | None
+    binsight_device_id: str | None
+    binsight_device_shared_secret: str | None
     publication_timeout_seconds: float
     presence_debounce_seconds: float
     disposal_timeout_seconds: float
@@ -88,12 +88,12 @@ def load_runtime_settings() -> RuntimeSettings:
         rules_preset_id=os.getenv("RULES_PRESET_ID", "demo-canada-ottawa"),
         rules_preset_version=os.getenv("RULES_PRESET_VERSION", "1.0.0"),
         esp_endpoint=os.getenv("ESP_ENDPOINT", "http://192.168.4.1"),
-        firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "binbuddy-demo"),
+        firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "binsight-demo"),
         firebase_functions_region=os.getenv("FIREBASE_FUNCTIONS_REGION", "us-central1"),
         firebase_functions_base_url=_optional_env("FIREBASE_FUNCTIONS_BASE_URL"),
-        binbuddy_device_id=_optional_env("BINBUDDY_DEVICE_ID"),
-        binbuddy_device_shared_secret=_optional_env("BINBUDDY_DEVICE_SHARED_SECRET"),
-        publication_timeout_seconds=float(os.getenv("BINBUDDY_PUBLICATION_TIMEOUT_SECONDS", "5.0")),
+        binsight_device_id=_optional_env("BINSIGHT_DEVICE_ID"),
+        binsight_device_shared_secret=_optional_env("BINSIGHT_DEVICE_SHARED_SECRET"),
+        publication_timeout_seconds=float(os.getenv("BINSIGHT_PUBLICATION_TIMEOUT_SECONDS", "5.0")),
         presence_debounce_seconds=float(os.getenv("PRESENCE_DEBOUNCE_SECONDS", "0.35")),
         disposal_timeout_seconds=float(os.getenv("DISPOSAL_TIMEOUT_SECONDS", "12.0")),
         reset_cooldown_seconds=float(os.getenv("RESET_COOLDOWN_SECONDS", "1.5")),
@@ -109,14 +109,14 @@ def _optional_env(name: str) -> str | None:
 
 
 def create_publication_adapter(settings: RuntimeSettings) -> PublicationAdapter:
-    if not settings.binbuddy_device_id or not settings.binbuddy_device_shared_secret:
+    if not settings.binsight_device_id or not settings.binsight_device_shared_secret:
         return PublicationAdapter(settings.firebase_project_id)
 
     return PublicationAdapter.for_authenticated_http(
         project_id=settings.firebase_project_id,
-        device_id=settings.binbuddy_device_id,
+        device_id=settings.binsight_device_id,
         station_id=settings.station_id,
-        shared_secret=settings.binbuddy_device_shared_secret,
+        shared_secret=settings.binsight_device_shared_secret,
         functions_region=settings.firebase_functions_region,
         functions_base_url=settings.firebase_functions_base_url,
         timeout_seconds=settings.publication_timeout_seconds,

@@ -12,7 +12,7 @@ This directory is reserved for generated TypeScript declarations derived from th
 Run the shared tooling hook from the workspace root when schema changes need fresh TypeScript declarations.
 
 ```bash
-corepack pnpm --filter @binbuddy/tooling run contracts:types:generate
+corepack pnpm --filter @binsight/tooling run contracts:types:generate
 ```
 
 The generator mirrors the schema folder layout under this directory.

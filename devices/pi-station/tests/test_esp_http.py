@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from binbuddy_station.esp_client import EspClient, HttpEspTransport
+from binsight_station.esp_client import EspClient, HttpEspTransport
 
 
 class FakeHttpResponse:

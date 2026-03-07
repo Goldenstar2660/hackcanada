@@ -6,7 +6,7 @@ import type {
   MetricTotals,
   MetricKey,
   StationMetadata
-} from "@binbuddy/contracts";
+} from "@binsight/contracts";
 
 import type {
   AnalyticsBucketSummary,

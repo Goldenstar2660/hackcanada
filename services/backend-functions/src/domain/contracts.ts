@@ -1,4 +1,4 @@
-import type { RulesPreset, RulesPresetSummary, StationMetadata, StationRecord } from "@binbuddy/contracts";
+import type { RulesPreset, RulesPresetSummary, StationMetadata, StationRecord } from "@binsight/contracts";
 
 export * from "./normalization.js";
 

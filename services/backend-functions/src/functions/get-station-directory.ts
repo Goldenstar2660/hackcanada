@@ -1,4 +1,4 @@
-import type { StationDirectoryResponse } from "@binbuddy/contracts";
+import type { StationDirectoryResponse } from "@binsight/contracts";
 import type { DashboardQueryService } from "../analytics/query-service.js";
 import type { CallableHandler } from "./runtime.js";
 

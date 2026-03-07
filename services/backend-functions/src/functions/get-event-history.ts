@@ -1,4 +1,4 @@
-import type { EventHistoryQuery, EventHistoryResponse } from "@binbuddy/contracts";
+import type { EventHistoryQuery, EventHistoryResponse } from "@binsight/contracts";
 import type { DashboardQueryService } from "../analytics/query-service.js";
 import type { CallableHandler } from "./runtime.js";
 

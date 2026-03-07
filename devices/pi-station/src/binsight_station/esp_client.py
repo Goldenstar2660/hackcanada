@@ -9,10 +9,10 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 
-BACKEND_DEVICE_ID_HEADER = "x-binbuddy-device-id"
-BACKEND_STATION_ID_HEADER = "x-binbuddy-station-id"
-BACKEND_TIMESTAMP_HEADER = "x-binbuddy-timestamp"
-BACKEND_SIGNATURE_HEADER = "x-binbuddy-signature"
+BACKEND_DEVICE_ID_HEADER = "x-binsight-device-id"
+BACKEND_STATION_ID_HEADER = "x-binsight-station-id"
+BACKEND_TIMESTAMP_HEADER = "x-binsight-timestamp"
+BACKEND_SIGNATURE_HEADER = "x-binsight-signature"
 
 
 @dataclass(slots=True)
@@ -171,7 +171,7 @@ class BackendIngressIdentity:
     shared_secret: str
 
     def build_headers(self, timestamp: str) -> dict[str, str]:
-        signature = f"binbuddy-v1:{self.device_id}:{self.station_id}:{timestamp}:{self.shared_secret}"
+        signature = f"binsight-v1:{self.device_id}:{self.station_id}:{timestamp}:{self.shared_secret}"
         return {
             BACKEND_DEVICE_ID_HEADER: self.device_id,
             BACKEND_STATION_ID_HEADER: self.station_id,

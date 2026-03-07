@@ -1,8 +1,8 @@
-export const Fragment = Symbol.for("binbuddy.fragment");
+export const Fragment = Symbol.for("binsight.fragment");
 
 export namespace JSX {
   export interface Element {
-    readonly __brand?: "binbuddy-jsx-element";
+    readonly __brand?: "binsight-jsx-element";
     readonly type?: unknown;
     readonly props?: Record<string, unknown>;
     readonly key?: string | null;
@@ -25,7 +25,7 @@ function createElement(
   key?: string
 ): JSX.Element {
   return {
-    __brand: "binbuddy-jsx-element",
+    __brand: "binsight-jsx-element",
     type,
     props,
     key: key ?? null

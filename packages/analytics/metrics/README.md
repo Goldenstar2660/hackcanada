@@ -1,6 +1,6 @@
 ---
 title: Analytics Metrics
-description: Source-of-truth placeholder for BinBuddy metric formulas and rollup semantics
+description: Source-of-truth placeholder for Binsight metric formulas and rollup semantics
 ---
 
 ## Purpose

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.binbuddy.app/analytics/analytics-query.schema.json",
+  "$id": "https://schemas.binsight.app/analytics/analytics-query.schema.json",
   "title": "AnalyticsQuery",
   "description": "Canonical analytics request contract for dashboard and backend reporting queries.",
   "type": "object",

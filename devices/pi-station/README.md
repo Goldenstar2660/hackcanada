@@ -1,11 +1,11 @@
 ---
 title: Raspberry Pi Station Runtime
-description: Setup and ownership notes for the BinBuddy Raspberry Pi live control loop runtime
+description: Setup and ownership notes for the Binsight Raspberry Pi live control loop runtime
 ---
 
 ## Purpose
 
-This project contains the Raspberry Pi runtime for the BinBuddy demo station.
+This project contains the Raspberry Pi runtime for the Binsight demo station.
 
 The Pi owns the live control loop described in the spec: session start, item classification, local rules evaluation, disposal guidance, disposal detection, event creation, and translation between a narrow ESP-facing protocol and cloud-facing payloads.
 
@@ -34,12 +34,12 @@ This keeps the Pi runtime independent from the TypeScript workspace while still 
 
 Before field testing, the Pi-to-backend publisher must attach the same device authentication headers the backend ingress functions validate:
 
-* `x-binbuddy-device-id`
-* `x-binbuddy-station-id`
-* `x-binbuddy-timestamp`
-* `x-binbuddy-signature`
+* `x-binsight-device-id`
+* `x-binsight-station-id`
+* `x-binsight-timestamp`
+* `x-binsight-signature`
 
-The signature format is `binbuddy-v1:{device_id}:{station_id}:{timestamp}:{shared_secret}`. The placeholder helper for these headers lives in `src/binbuddy_station/esp_client.py` until a dedicated cloud publisher module exists.
+The signature format is `binsight-v1:{device_id}:{station_id}:{timestamp}:{shared_secret}`. The placeholder helper for these headers lives in `src/binsight_station/esp_client.py` until a dedicated cloud publisher module exists.
 
 > [!IMPORTANT]
 > The Pi should keep owning classification, guidance, and disposal detection. Cloud authentication and payload normalization are transport concerns only.
@@ -49,7 +49,7 @@ The signature format is `binbuddy-v1:{device_id}:{station_id}:{timestamp}:{share
 ```text
 devices/pi-station/
 ├── pyproject.toml
-├── src/binbuddy_station/
+├── src/binsight_station/
 │   ├── main.py
 │   ├── session.py
 │   ├── classification.py
@@ -77,7 +77,7 @@ uv run pytest
 Run the placeholder station entry point:
 
 ```bash
-uv run binbuddy-station
+uv run binsight-station
 ```
 
 ## Phase 5 startup sequence
@@ -94,7 +94,7 @@ uv run pytest
 3. Start the runtime.
 
 ```bash
-uv run binbuddy-station
+uv run binsight-station
 ```
 
 On the current Phase 5 entrypoint, the runtime loads the station configuration, polls the ESP health endpoint once, attempts to publish the current live status, prints a one-line station summary, and exits.
@@ -105,7 +105,7 @@ The validated local startup output on 2026-03-07 was:
 station=demo-station-001 phase=idle item=None disposal=None
 ```
 
-Keep `STATION_ID`, `BINBUDDY_DEVICE_ID`, and `BINBUDDY_DEVICE_SHARED_SECRET` aligned with the backend `BINBUDDY_DEVICE_CREDENTIALS_JSON` entry for the same station before attempting a live Firebase rehearsal.
+Keep `STATION_ID`, `BINSIGHT_DEVICE_ID`, and `BINSIGHT_DEVICE_SHARED_SECRET` aligned with the backend `BINSIGHT_DEVICE_CREDENTIALS_JSON` entry for the same station before attempting a live Firebase rehearsal.
 
 ## Minimum environment
 
@@ -118,8 +118,8 @@ The minimum Phase 1 configuration set is:
 * `RULES_PRESET_VERSION`: Active rules preset version, currently `1.0.0`
 * `ESP_ENDPOINT`: ESP8266 base URL on the shared network, for example `http://192.168.4.1`
 * `FIREBASE_PROJECT_ID`: Firebase project id for the demo environment
-* `BINBUDDY_DEVICE_ID`: Device id that will be used for authenticated backend publication
-* `BINBUDDY_DEVICE_SHARED_SECRET`: Shared secret paired with the device id for backend ingress
+* `BINSIGHT_DEVICE_ID`: Device id that will be used for authenticated backend publication
+* `BINSIGHT_DEVICE_SHARED_SECRET`: Shared secret paired with the device id for backend ingress
 * `PRESENCE_DEBOUNCE_SECONDS`: Stable presence window before identification starts
 * `DISPOSAL_TIMEOUT_SECONDS`: Wait window for disposal before the runtime resets
 * `RESET_COOLDOWN_SECONDS`: Cooldown window before the station returns to idle after reset
@@ -146,7 +146,7 @@ Use these commands for the Phase 1 validation gate:
 
 ```bash
 uv run pytest
-uv run binbuddy-station
+uv run binsight-station
 ```
 
 From the workspace root, `just validate` should also pass the Pi validation step once the workspace dependencies are installed.

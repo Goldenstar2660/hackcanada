@@ -1,11 +1,11 @@
 ---
-title: BinBuddy Web Surface
+title: Binsight Web Surface
 description: Ownership and bootstrap notes for the dashboard website workspace package
 ---
 
 ## Purpose
 
-This package owns the dashboard and live monitoring web surface for BinBuddy. It stays inside the TypeScript workspace because it shares contracts and analytics definitions with the backend and shared packages.
+This package owns the dashboard and live monitoring web surface for Binsight. It stays inside the TypeScript workspace because it shares contracts and analytics definitions with the backend and shared packages.
 
 ## Scope
 
@@ -44,7 +44,7 @@ Use this order for the web surface during the Phase 5 demo rehearsal:
 3. Start the Vite host from the repository root.
 
 ```bash
-corepack pnpm --filter @binbuddy/web run dev
+corepack pnpm --filter @binsight/web run dev
 ```
 
 4. Open the local Vite URL in a browser.
@@ -63,5 +63,5 @@ The web package passed the Phase 5 local TypeScript lint and Vite production bui
 Install workspace dependencies from the repository root, then run the package script when you need a TypeScript watch loop:
 
 ```bash
-corepack pnpm --filter @binbuddy/web run dev
+corepack pnpm --filter @binsight/web run dev
 ```

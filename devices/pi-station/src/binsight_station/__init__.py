@@ -1,4 +1,4 @@
-"""BinBuddy Raspberry Pi station runtime."""
+"""Binsight Raspberry Pi station runtime."""
 
 from .main import StationRuntime, load_runtime_settings
 

@@ -1,6 +1,6 @@
 ---
 title: Documentation Boundary
-description: Ownership notes for architecture and operations documentation in the BinBuddy repository
+description: Ownership notes for architecture and operations documentation in the Binsight repository
 ---
 
 ## Purpose
