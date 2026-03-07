@@ -40,6 +40,7 @@ struct PresenceTelemetry {
 };
 
 const char* indicatorZoneName(IndicatorZone zone);
+bool parseIndicatorZone(const String& token, IndicatorZone* outZone);
 String encodeHealthTelemetry(const HealthTelemetry& telemetry);
 String encodePresenceTelemetry(const PresenceTelemetry& telemetry);
 String encodeIndicatorAcknowledgement(IndicatorZone zone);

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol
+import json
+from typing import Any, Protocol
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
+from urllib.request import Request, urlopen
 
 
 @dataclass(slots=True, frozen=True)
@@ -46,6 +50,97 @@ class NullEspTransport:
         return ()
 
 
+class HttpEspTransport:
+    def __init__(
+        self,
+        endpoint: str,
+        timeout_seconds: float = 1.0,
+        opener: Any = None,
+    ) -> None:
+        parsed_endpoint = urlsplit(endpoint)
+        if parsed_endpoint.scheme not in {"http", "https"}:
+            raise ValueError(
+                f"unsupported ESP HTTP endpoint scheme: {parsed_endpoint.scheme or 'missing'}"
+            )
+        if not parsed_endpoint.netloc:
+            raise ValueError("ESP HTTP endpoint must include a hostname")
+
+        path = parsed_endpoint.path.rstrip("/")
+        self._base_url = f"{parsed_endpoint.scheme}://{parsed_endpoint.netloc}{path}"
+        self._timeout_seconds = timeout_seconds
+        self._pending_frames: list[str] = []
+        self._opener = opener or urlopen
+
+    def send_frame(self, frame: str) -> None:
+        normalized_frame = frame.strip()
+        if normalized_frame == "health?":
+            payload = self._request_json("GET", "/health")
+            self._pending_frames.extend(_health_payload_to_frames(payload))
+            return
+
+        if normalized_frame.startswith("indicator:"):
+            zone = normalized_frame.removeprefix("indicator:")
+            payload = self._request_json("POST", "/signal", {"indicatorZone": zone})
+            acknowledgement = _acknowledgement_payload_to_frame(payload)
+            if acknowledgement is not None:
+                self._pending_frames.append(acknowledgement)
+            return
+
+        if normalized_frame == "reset":
+            payload = self._request_json("POST", "/reset", {})
+            acknowledgement = _acknowledgement_payload_to_frame(payload)
+            if acknowledgement is not None:
+                self._pending_frames.append(acknowledgement)
+            return
+
+        raise ValueError(f"unsupported ESP HTTP frame: {normalized_frame}")
+
+    def receive_frames(self) -> Iterable[str]:
+        frames = tuple(self._pending_frames)
+        self._pending_frames.clear()
+        return frames
+
+    def _request_json(
+        self,
+        method: str,
+        path: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        request_body = None
+        headers = {"Accept": "application/json"}
+        if payload is not None:
+            request_body = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+
+        request = Request(
+            url=f"{self._base_url}{path}",
+            data=request_body,
+            headers=headers,
+            method=method,
+        )
+
+        try:
+            with self._opener(request, timeout=self._timeout_seconds) as response:
+                response_body = response.read()
+        except HTTPError as error:
+            raise OSError(f"ESP {method} {path} failed with status {error.code}") from error
+        except URLError as error:
+            raise OSError(f"ESP {method} {path} failed: {error.reason}") from error
+
+        if not response_body:
+            return {}
+
+        try:
+            decoded_payload = json.loads(response_body.decode("utf-8"))
+        except json.JSONDecodeError as error:
+            raise OSError(f"ESP {method} {path} returned invalid JSON") from error
+
+        if not isinstance(decoded_payload, dict):
+            raise OSError(f"ESP {method} {path} returned a non-object payload")
+
+        return decoded_payload
+
+
 class MemoryEspTransport:
     def __init__(self, incoming_frames: Iterable[str] | None = None) -> None:
         self.sent_frames: list[str] = []
@@ -68,7 +163,7 @@ class EspClient:
 
     def __init__(self, endpoint: str, transport: EspTransport | None = None) -> None:
         self.endpoint = endpoint
-        self._transport = transport or NullEspTransport()
+        self._transport = transport or _transport_for_endpoint(endpoint)
         self.last_command: GuidanceCommand | None = None
         self.last_presence = PresenceTelemetry(
             hand_present=False,
@@ -79,22 +174,39 @@ class EspClient:
         self.last_health: HealthTelemetry | None = None
         self.acknowledgements: list[EspAcknowledgement] = []
         self.last_protocol_error: str | None = None
+        self.last_transport_error: str | None = None
         self._presence_frame_count = 0
 
     def send_guidance(self, command: GuidanceCommand) -> None:
         _validate_indicator_zone(command.indicator_zone)
         self.last_command = command
-        self._transport.send_frame(f"indicator:{command.indicator_zone}")
+        self._send_transport_frame(f"indicator:{command.indicator_zone}")
 
     def clear_guidance(self) -> None:
         self.send_guidance(GuidanceCommand(indicator_zone="off"))
 
     def request_health(self) -> None:
-        self._transport.send_frame("health?")
+        self._send_transport_frame("health?")
 
     def poll(self) -> None:
-        for frame in self._transport.receive_frames():
+        try:
+            frames = self._transport.receive_frames()
+        except Exception as error:
+            self.last_transport_error = str(error)
+            return
+
+        self.last_transport_error = None
+        for frame in frames:
             self.receive_frame(frame)
+
+    def _send_transport_frame(self, frame: str) -> None:
+        try:
+            self._transport.send_frame(frame)
+        except Exception as error:
+            self.last_transport_error = str(error)
+            return
+
+        self.last_transport_error = None
 
     def receive_frame(self, frame: str) -> bool:
         normalized_frame = frame.strip()
@@ -132,6 +244,8 @@ class EspClient:
 
     @property
     def device_health_status(self) -> str:
+        if self.last_transport_error is not None:
+            return "degraded" if self.last_health is not None else "offline"
         if self.last_health is None:
             return "degraded"
         if self.last_health.sensor_online and self.last_health.indicator_online:
@@ -221,3 +335,73 @@ def _parse_optional_int(value: str | None, key: str = "value") -> int | None:
 def _validate_indicator_zone(zone: str) -> None:
     if zone not in {"left", "middle", "right", "off"}:
         raise ValueError(f"unsupported indicator zone: {zone}")
+
+
+def _transport_for_endpoint(endpoint: str) -> EspTransport:
+    parsed_endpoint = urlsplit(endpoint)
+    if parsed_endpoint.scheme in {"http", "https"}:
+        return HttpEspTransport(endpoint)
+    raise ValueError(
+        f"unsupported ESP endpoint scheme: {parsed_endpoint.scheme or 'missing'}; use http:// or https://"
+    )
+
+
+def _health_payload_to_frames(payload: dict[str, Any]) -> tuple[str, ...]:
+    active_zone = _coerce_zone(payload.get("activeZone"), default="off")
+    health_frame = (
+        "health "
+        f"uptime_ms={_coerce_int(payload.get('uptimeMs'), default=0)} "
+        f"sensor={_bool_token(payload.get('sensorOnline', True))} "
+        f"indicator={_bool_token(payload.get('indicatorOnline', True))} "
+        f"active_zone={active_zone}"
+    )
+
+    presence_payload = payload.get("presence")
+    if not isinstance(presence_payload, dict):
+        return (health_frame,)
+
+    presence_frame = (
+        "presence "
+        f"present={_bool_token(presence_payload.get('handPresent', False))} "
+        f"zone={_coerce_zone(presence_payload.get('handZone'), default='off')} "
+        f"stable={_bool_token(presence_payload.get('stable', False))} "
+        f"seq={_coerce_int(presence_payload.get('sequence'), default=0)}"
+    )
+    return health_frame, presence_frame
+
+
+def _acknowledgement_payload_to_frame(payload: dict[str, Any]) -> str | None:
+    acknowledgement = payload.get("ack")
+    if not isinstance(acknowledgement, dict):
+        return None
+
+    command = acknowledgement.get("command")
+    if not isinstance(command, str) or not command:
+        return None
+
+    value = acknowledgement.get("value")
+    if value is None:
+        return f"ack {command}"
+
+    zone = _coerce_zone(value, default="off")
+    return f"ack {command}:{zone}"
+
+
+def _bool_token(value: Any) -> str:
+    return "1" if bool(value) else "0"
+
+
+def _coerce_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_zone(value: Any, default: str) -> str:
+    if not isinstance(value, str):
+        return default
+    normalized_zone = value.strip().lower()
+    if normalized_zone in {"left", "middle", "right", "off"}:
+        return normalized_zone
+    return default

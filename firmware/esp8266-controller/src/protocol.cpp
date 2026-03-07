@@ -22,6 +22,38 @@ const char* indicatorZoneName(const IndicatorZone zone) {
   }
 }
 
+bool parseIndicatorZone(const String& token, IndicatorZone* outZone) {
+  if (outZone == nullptr) {
+    return false;
+  }
+
+  String normalizedToken = token;
+  normalizedToken.trim();
+  normalizedToken.toLowerCase();
+
+  if (normalizedToken == "left") {
+    *outZone = IndicatorZone::Left;
+    return true;
+  }
+
+  if (normalizedToken == "middle") {
+    *outZone = IndicatorZone::Middle;
+    return true;
+  }
+
+  if (normalizedToken == "right") {
+    *outZone = IndicatorZone::Right;
+    return true;
+  }
+
+  if (normalizedToken == "off") {
+    *outZone = IndicatorZone::Off;
+    return true;
+  }
+
+  return false;
+}
+
 String encodeHealthTelemetry(const HealthTelemetry& telemetry) {
   String payload = "health uptime_ms=";
   payload += String(telemetry.uptimeMs);
@@ -73,28 +105,7 @@ bool decodeControllerCommand(const String& frame, ControllerCommand* outCommand)
   const String zoneToken = trimmedFrame.substring(sizeof(kIndicatorPrefix) - 1);
   outCommand->type = ControllerCommandType::SetIndicator;
   outCommand->acknowledge = true;
-
-  if (zoneToken == "left") {
-    outCommand->zone = IndicatorZone::Left;
-    return true;
-  }
-
-  if (zoneToken == "middle") {
-    outCommand->zone = IndicatorZone::Middle;
-    return true;
-  }
-
-  if (zoneToken == "right") {
-    outCommand->zone = IndicatorZone::Right;
-    return true;
-  }
-
-  if (zoneToken == "off") {
-    outCommand->zone = IndicatorZone::Off;
-    return true;
-  }
-
-  return false;
+  return parseIndicatorZone(zoneToken, &outCommand->zone);
 }
 
 }  // namespace binbuddy

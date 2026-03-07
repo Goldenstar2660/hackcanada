@@ -38,7 +38,7 @@ def load_runtime_settings() -> RuntimeSettings:
         station_id=os.getenv("STATION_ID", "demo-station-001"),
         rules_preset_id=os.getenv("RULES_PRESET_ID", "demo-canada-ottawa"),
         rules_preset_version=os.getenv("RULES_PRESET_VERSION", "1.0.0"),
-        esp_endpoint=os.getenv("ESP_ENDPOINT", "udp://127.0.0.1:4210"),
+        esp_endpoint=os.getenv("ESP_ENDPOINT", "http://192.168.4.1"),
         firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "binbuddy-demo"),
         presence_debounce_seconds=float(os.getenv("PRESENCE_DEBOUNCE_SECONDS", "0.35")),
         disposal_timeout_seconds=float(os.getenv("DISPOSAL_TIMEOUT_SECONDS", "12.0")),

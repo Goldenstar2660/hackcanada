@@ -56,4 +56,18 @@ uv run binbuddy-station
 
 Copy `.env.example` to `.env` and adjust values for your station environment.
 
-The current scaffold only loads configuration and wires module seams. Hardware integration, Firebase credentials, model execution, and the Pi-to-ESP wire format remain follow-on work.
+The Pi-to-ESP transport is now fixed to local HTTP plus JSON over Wi-Fi. Set `ESP_ENDPOINT` to the ESP8266 base URL on the shared network, for example `http://192.168.4.1`.
+
+The Pi runtime uses this device contract:
+
+* `GET /health` polls authoritative sensor, indicator, uptime, and presence state
+* `POST /signal` sends guidance commands as JSON, typically `{ "indicatorZone": "left" }`
+* `POST /reset` clears active guidance on the controller
+
+Failure policy:
+
+* A failed Pi-to-ESP HTTP call marks ESP health as degraded or offline in live status
+* Transport failures do not abort the current Pi runtime session or reset station counters
+* Health polling is authoritative for recovery. Once `GET /health` succeeds again, the ESP health view recovers automatically
+
+Hardware integration, Firebase credentials, and model execution still remain follow-on work.
