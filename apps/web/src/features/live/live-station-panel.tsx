@@ -5,6 +5,7 @@ import type { LiveStationSnapshot } from "../../lib/firebase/live-monitoring.js"
 export interface LiveStationPanelProps {
   readonly station: StationRecord | null;
   readonly snapshot: LiveStationSnapshot;
+  readonly realtimeEnabled?: boolean;
 }
 
 function renderDeviceHealth(snapshot: LiveStationSnapshot): string {
@@ -55,25 +56,33 @@ export function LiveStationPanel(props: LiveStationPanelProps): JSX.Element {
                 : "No live event yet"}
             </p>
           </div>
+          <div>
+            <strong>Last update</strong>
+            <p className="dashboard-detail-value">
+              {props.snapshot.statusTimestamp ?? "No live timestamp yet"}
+            </p>
+          </div>
         </div>
+
+        {props.realtimeEnabled ? (
+          <p className="dashboard-note">
+            Firestore subscription active{props.snapshot.statusAgeMs !== null ? `, latest update age ${Math.round(props.snapshot.statusAgeMs / 1000)}s.` : "."}
+          </p>
+        ) : null}
       </article>
 
       <article className="dashboard-card dashboard-card--dark">
-        <h3 className="dashboard-card-title">Current camera frame</h3>
+        <h3 className="dashboard-card-title">Current live interpretation</h3>
         <p className="dashboard-dark-muted">
-          {props.snapshot.cameraFeed.message} Stale threshold: {Math.round(props.snapshot.cameraFeed.staleAfterMs / 1000)} seconds.
+          Camera media is intentionally omitted. Operators get session state, item guidance, disposal intent, and latest event text in real time.
         </p>
-        {props.snapshot.cameraFeed.imageUrl ? (
-          <img
-            src={props.snapshot.cameraFeed.imageUrl}
-            alt={`Latest camera frame for ${stationName}`}
-            className="dashboard-media"
-          />
-        ) : (
-          <div className="dashboard-media-placeholder">
-            Camera feed status: {props.snapshot.cameraFeed.status}
-          </div>
-        )}
+        <div className="dashboard-media-placeholder">
+          {props.snapshot.stale
+            ? "Live updates are stale. Confirm the Pi publisher and Firestore connectivity."
+            : props.snapshot.status
+              ? "Live updates are current. Continue monitoring the text feed during the demo."
+              : "Waiting for the first live status document from the station."}
+        </div>
       </article>
 
       <article className="dashboard-card">

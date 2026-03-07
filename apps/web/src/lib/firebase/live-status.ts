@@ -1,4 +1,8 @@
 import type { LiveStationStatus } from "@binbuddy/contracts";
+import type { IdTokenResult, User } from "firebase/auth";
+import type { Firestore } from "firebase/firestore";
+
+import { doc, onSnapshot } from "firebase/firestore";
 
 export const LIVE_STATUS_COLLECTION_PATH = "stationLiveStatus";
 
@@ -33,6 +37,10 @@ export interface LiveStatusClient {
 function hasOperatorClaims(session: OperatorSession | null | undefined): boolean {
   if (!session) {
     return false;
+  }
+
+  if (session.uid.trim().length > 0) {
+    return true;
   }
 
   const claims = session.claims;
@@ -70,6 +78,41 @@ export function createAuthorizedLiveStatusClient(
       return transport.subscribeToDocument<LiveStationStatus>(
         createStationLiveStatusPath(stationId),
         onValue,
+        onError
+      );
+    }
+  };
+}
+
+function normalizeRoleClaims(claims: IdTokenResult["claims"]): OperatorSession["claims"] {
+  const roles = claims.roles;
+
+  return {
+    admin: claims.admin === true,
+    binbuddyOperator: claims.binbuddyOperator === true,
+    role: typeof claims.role === "string" ? claims.role : undefined,
+    roles: Array.isArray(roles) && roles.every((entry) => typeof entry === "string") ? roles : undefined
+  };
+}
+
+export async function createOperatorSessionFromUser(user: User): Promise<OperatorSession> {
+  const token = await user.getIdTokenResult();
+
+  return {
+    uid: user.uid,
+    email: user.email,
+    claims: normalizeRoleClaims(token.claims)
+  };
+}
+
+export function createFirestoreLiveStatusTransport(firestore: Firestore): LiveStatusListenerTransport {
+  return {
+    subscribeToDocument<TDocument>(documentPath: string, onValue: (document: TDocument | null) => void, onError?: (error: unknown) => void) {
+      return onSnapshot(
+        doc(firestore, documentPath),
+        (snapshot) => {
+          onValue(snapshot.exists() ? (snapshot.data() as TDocument) : null);
+        },
         onError
       );
     }

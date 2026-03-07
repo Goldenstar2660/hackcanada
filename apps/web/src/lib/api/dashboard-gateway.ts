@@ -4,7 +4,9 @@ import type {
   StationDirectoryResponse
 } from "@binbuddy/contracts";
 
-import type { DashboardApiClient } from "./dashboard-api.js";
+import type { Functions } from "firebase/functions";
+
+import type { CallableApiInvoker, DashboardApiClient } from "./dashboard-api.js";
 import type {
   AnalyticsRequestOptions,
   ComparisonScenarioDefinition,
@@ -16,6 +18,7 @@ import {
   createComparisonScenarioDefinitions,
   createEventHistoryRequest
 } from "../query/dashboard-query.js";
+import { httpsCallable } from "firebase/functions";
 
 export interface ComparisonAnalysisResult {
   readonly scenario: ComparisonScenarioDefinition;
@@ -27,6 +30,16 @@ export interface OperatorDashboardGateway {
   getEventHistory(filters: DashboardFilterState): Promise<EventHistoryResponse>;
   getAnalytics(filters: DashboardFilterState, options?: AnalyticsRequestOptions): Promise<AnalyticsSummary>;
   getComparisons(filters: DashboardFilterState): Promise<readonly ComparisonAnalysisResult[]>;
+}
+
+export function createFirebaseCallableInvoker(functions: Functions): CallableApiInvoker {
+  return {
+    async call<TRequest, TResponse>(name: string, request: TRequest): Promise<TResponse> {
+      const callable = httpsCallable<TRequest, TResponse>(functions, name);
+      const response = await callable(request);
+      return response.data;
+    }
+  };
 }
 
 export function createOperatorDashboardGateway(client: DashboardApiClient): OperatorDashboardGateway {
