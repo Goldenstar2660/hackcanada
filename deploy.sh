@@ -25,6 +25,12 @@ run_cmd() {
     fi
 }
 
+# Use sudo for local apt commands
+SUDO=""
+if ! is_remote && [ "$(id -u)" -ne 0 ]; then
+    SUDO="sudo"
+fi
+
 echo "=== Deploying ML Engine to ${TARGET} (runtime: $RUNTIME) ==="
 
 # Step 1: Install deps
@@ -32,19 +38,19 @@ echo "[1/4] Installing dependencies..."
 run_cmd '
 if [ "$RUNTIME" = "docker" ]; then
     if ! command -v docker &> /dev/null; then
-        apt-get update
-        apt-get install -y ca-certificates curl gnupg lsb-release
+        $SUDO apt-get update
+        $SUDO apt-get install -y ca-certificates curl gnupg lsb-release
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-        apt-get update
-        apt-get install -y docker-ce docker-ce-cli containerd.io
+        $SUDO apt-get update
+        $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io
     fi
     docker --version
 else
     # Native/udocker: install Python deps on host
     if [ "$RUNTIME" = "native" ] || [ "$RUNTIME" = "udocker" ]; then
-        apt-get update
-        apt-get install -y python3 python3-pip git curl tesseract-ocr libgl1-mesa-glx libglib2.0-0
+        $SUDO apt-get update
+        $SUDO apt-get install -y python3 python3-pip git curl tesseract-ocr libgl1-mesa-glx libglib2.0-0
         pip3 install --no-cache-dir -r requirements.txt
     fi
 fi
