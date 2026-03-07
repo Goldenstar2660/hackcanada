@@ -25,15 +25,15 @@ run_cmd() {
     fi
 }
 
-# Use sudo for local apt commands if available
+# Check for sudo / virtualenv
 SUDO=""
 if ! is_remote && [ "$(id -u)" -ne 0 ]; then
-    # Check if sudo is available
-    if ! sudo -n true 2>/dev/null; then
-        SUDO=""
-        echo "WARNING: No sudo access - will use pip --user only"
-    else
+    if sudo -n true 2>/dev/null; then
         SUDO="sudo"
+    elif [ -n "$VIRTUAL_ENV" ]; then
+        SUDO=""
+    else
+        echo "WARNING: No sudo, not in venv - using pip --user"
     fi
 fi
 
@@ -55,10 +55,15 @@ if [ "$RUNTIME" = "docker" ]; then
 else
     # Native/udocker: install Python deps (no sudo = pip --user)
     if [ "$RUNTIME" = "native" ] || [ "$RUNTIME" = "udocker" ]; then
-        PIP_FLAGS="--user"
-        if [ -n "$SUDO" ]; then
+        PIP_FLAGS=""
+        # Check for virtualenv
+        if [ -n "$VIRTUAL_ENV" ] || [ -n "$venv" ]; then
+            PIP_FLAGS=""
+        elif [ -n "$SUDO" ]; then
             $SUDO apt-get update
             $SUDO apt-get install -y python3 python3-pip git curl libgl1-mesa-glx libglib2.0-0 || true
+        else
+            PIP_FLAGS="--user"
         fi
         pip3 install $PIP_FLAGS --no-cache-dir -r requirements.txt
     fi
