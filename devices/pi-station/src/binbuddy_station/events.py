@@ -7,6 +7,9 @@ from .rules import RulesPreset
 from .session import SessionSnapshot
 
 
+DEVICE_PAYLOAD_VERSION = "device.v1"
+
+
 @dataclass(slots=True)
 class DisposalEvent:
     station_id: str
@@ -17,6 +20,20 @@ class DisposalEvent:
     success: bool
     model_confidence: float
     llm_fallback_used: bool
+    payload_version: str = DEVICE_PAYLOAD_VERSION
+
+    def to_ingress_payload(self) -> dict[str, object]:
+        return {
+            "payload_version": self.payload_version,
+            "station_id": self.station_id,
+            "timestamp": self.timestamp,
+            "predicted_item": self.predicted_item,
+            "correct_disposal_method": self.correct_disposal_method,
+            "actual_disposal_zone": self.actual_disposal_zone,
+            "success": self.success,
+            "model_confidence": self.model_confidence,
+            "llm_fallback_used": self.llm_fallback_used,
+        }
 
 
 def create_disposal_event(
@@ -45,4 +62,5 @@ def create_disposal_event(
         success=snapshot.correct_disposal_method == actual_disposal_method,
         model_confidence=snapshot.model_confidence,
         llm_fallback_used=snapshot.llm_fallback_used,
+        payload_version=DEVICE_PAYLOAD_VERSION,
     )

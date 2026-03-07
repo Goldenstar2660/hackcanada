@@ -5,6 +5,63 @@
   "description": "Canonical station metadata used for dashboard filtering, grouping, and experiment comparisons.",
   "type": "object",
   "additionalProperties": false,
+  "$defs": {
+    "disposalMethod": {
+      "type": "string",
+      "enum": ["recycle", "compost", "garbage"]
+    },
+    "rulesPresetSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["presetId", "version", "jurisdiction", "zoneMapping", "lowConfidenceThreshold"],
+      "properties": {
+        "presetId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "jurisdiction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["city", "provinceOrState"],
+          "properties": {
+            "city": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provinceOrState": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "zoneMapping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["left", "middle", "right"],
+          "properties": {
+            "left": {
+              "$ref": "#/$defs/disposalMethod"
+            },
+            "middle": {
+              "$ref": "#/$defs/disposalMethod"
+            },
+            "right": {
+              "$ref": "#/$defs/disposalMethod"
+            }
+          }
+        },
+        "lowConfidenceThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  },
   "required": [
     "stationId",
     "stationName",
@@ -67,6 +124,17 @@
       "type": "string",
       "minLength": 1,
       "description": "Identifier of the rules preset currently active on the station."
+    },
+    "activeRulesPreset": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/rulesPresetSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Joined rules preset summary surfaced alongside station metadata for operator directory and monitoring views."
     }
   }
 }

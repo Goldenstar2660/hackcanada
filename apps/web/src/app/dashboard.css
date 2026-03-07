@@ -1,0 +1,250 @@
+.dashboard-shell {
+  min-height: 100vh;
+  color: #132238;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.dashboard-header {
+  background: linear-gradient(135deg, #f4efe7 0%, #c8e6d0 55%, #87bba2 100%);
+  border-bottom: 1px solid #87bba2;
+  padding: 2rem;
+}
+
+.dashboard-eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.dashboard-title {
+  font-size: 2.2rem;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.dashboard-description {
+  line-height: 1.5;
+  margin: 0;
+  max-width: 70ch;
+}
+
+.dashboard-body {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  min-height: calc(100vh - 10rem);
+}
+
+.dashboard-sidebar {
+  background: #132238;
+  color: #f9f8f4;
+  padding: 1.5rem 1rem;
+}
+
+.dashboard-nav-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-nav-link {
+  border-radius: 0.8rem;
+  color: inherit;
+  display: block;
+  padding: 0.8rem 1rem;
+  text-decoration: none;
+}
+
+.dashboard-nav-link.is-active {
+  background: #2b5f75;
+}
+
+.dashboard-nav-title {
+  display: block;
+}
+
+.dashboard-nav-description {
+  display: block;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  opacity: 0.75;
+}
+
+.dashboard-main {
+  background: #f9f8f4;
+  padding: 1.5rem 2rem 3rem;
+}
+
+.dashboard-section-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.dashboard-row--baseline {
+  align-items: baseline;
+}
+
+.dashboard-card {
+  background: #ffffff;
+  border: 1px solid #d5dfd2;
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.dashboard-card--dark {
+  background: #132238;
+  border: 0;
+  color: #f9f8f4;
+}
+
+.dashboard-card-title {
+  margin: 0;
+}
+
+.dashboard-subtitle {
+  color: #465566;
+  margin: 0.35rem 0 0;
+}
+
+.dashboard-muted {
+  color: #465566;
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-grid--stats {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.dashboard-grid--cards {
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+.dashboard-grid--wide {
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
+.dashboard-definition-grid {
+  display: grid;
+  gap: 0.8rem 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin: 1rem 0 0;
+}
+
+.dashboard-detail-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+.dashboard-detail-value {
+  color: #465566;
+  margin: 0.2rem 0 0;
+}
+
+.dashboard-link {
+  color: #2b5f75;
+}
+
+.dashboard-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.dashboard-table-shell {
+  background: #ffffff;
+  border: 1px solid #d5dfd2;
+  border-radius: 1rem;
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.dashboard-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.dashboard-table-head {
+  background: #eef4ef;
+}
+
+.dashboard-table-cell {
+  padding: 0.8rem;
+  text-align: left;
+}
+
+.dashboard-table-row {
+  border-top: 1px solid #eef1eb;
+}
+
+.dashboard-small-text {
+  color: #465566;
+  font-size: 0.9rem;
+}
+
+.dashboard-note {
+  color: #465566;
+  margin: 0.8rem 0 0;
+}
+
+.dashboard-card--selected {
+  border-color: #2b5f75;
+}
+
+.dashboard-card--accent {
+  border-color: #87bba2;
+}
+
+.dashboard-card-link-row {
+  align-items: start;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+}
+
+.dashboard-kpi-value {
+  display: block;
+  font-size: 1.8rem;
+  margin-top: 0.3rem;
+}
+
+.dashboard-media {
+  border: 1px solid rgba(249, 248, 244, 0.25);
+  border-radius: 0.9rem;
+  display: block;
+  max-width: 32rem;
+  width: 100%;
+}
+
+.dashboard-media-placeholder {
+  background: rgba(249, 248, 244, 0.08);
+  border-radius: 0.9rem;
+  padding: 2rem;
+}
+
+.dashboard-dark-muted {
+  margin: 0 0 0.75rem;
+  opacity: 0.85;
+}
+
+@media (max-width: 900px) {
+  .dashboard-body {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    padding-bottom: 0.5rem;
+  }
+}
