@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from .events import DisposalEvent
+from .session import SessionPhase
 from .session import SessionSnapshot
 
 
@@ -62,6 +64,38 @@ class CameraFeed:
 
 
 @dataclass(slots=True)
+class DeviceHealth:
+    pi: str = "online"
+    esp8266: str = "degraded"
+    cloud_sync: str = "degraded"
+
+    def to_payload(self) -> dict[str, str]:
+        return {
+            "pi": self.pi,
+            "esp8266": self.esp8266,
+            "cloudSync": self.cloud_sync,
+        }
+
+
+@dataclass(slots=True)
+class LatestEventSummary:
+    timestamp: str
+    predicted_item: str
+    correct_disposal_method: str
+    actual_disposal_zone: str
+    attempt_result: str
+
+    def to_payload(self) -> dict[str, str]:
+        return {
+            "timestamp": self.timestamp,
+            "predictedItem": self.predicted_item,
+            "correctDisposalMethod": self.correct_disposal_method,
+            "actualDisposalZone": self.actual_disposal_zone,
+            "attemptResult": self.attempt_result,
+        }
+
+
+@dataclass(slots=True)
 class LiveStatus:
     payload_version: str
     station_id: str
@@ -117,3 +151,26 @@ class LiveStatusPublisher:
             latest_event=latest_event,
             camera_feed=camera_feed,
         )
+
+
+def _session_state_for_phase(phase: SessionPhase) -> str:
+    phase_mapping = {
+        SessionPhase.IDLE: "idle",
+        SessionPhase.PRESENCE_ARMING: "detecting-person",
+        SessionPhase.IDENTIFYING: "identifying-item",
+        SessionPhase.GUIDING: "guiding-user",
+        SessionPhase.WAITING_FOR_DISPOSAL: "waiting-for-disposal",
+        SessionPhase.EMIT_RESULT: "syncing",
+        SessionPhase.RESETTING: "syncing",
+    }
+    return phase_mapping.get(phase, "error")
+
+
+def _is_camera_feed_active(phase: SessionPhase) -> bool:
+    return phase in {
+        SessionPhase.IDENTIFYING,
+        SessionPhase.GUIDING,
+        SessionPhase.WAITING_FOR_DISPOSAL,
+        SessionPhase.EMIT_RESULT,
+        SessionPhase.RESETTING,
+    }
