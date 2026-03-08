@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BiNSIGHT Analytics | Waste Metrics Overview</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#247ad4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#121920",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Space Grotesk', sans-serif; }
+        .grid-line { border: 0.5px solid #000; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #247ad6; }
+    </style>
+</head>
+<body class="bg-white text-slate-900 font-display uppercase tracking-wider">
+<div class="min-h-screen flex flex-col border-x border-black max-w-[1440px] mx-auto">
+<!-- Header -->
+<header class="flex items-center justify-between px-6 py-4 border-b border-black sticky top-0 bg-white z-50">
+<div class="flex items-center gap-4">
+<div class="size-8 bg-primary flex items-center justify-center text-white border border-black">
+<span class="material-symbols-outlined text-xl">delete_sweep</span>
+</div>
+<h2 class="text-xl font-bold tracking-tighter uppercase">B<span class="lowercase">i</span>NSIGHT</h2>
+</div>
+<nav class="hidden md:flex items-center gap-8 text-[10px] uppercase font-mono font-bold tracking-widest">
+<a class="hover:text-primary" href="#">Dashboard</a>
+<a class="hover:text-primary underline decoration-2 underline-offset-4" href="#">Analytics</a>
+<a class="hover:text-primary" href="#">Devices</a>
+<a class="hover:text-primary" href="#">Settings</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="border border-black p-2 hover:bg-primary/10">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<div class="size-10 bg-slate-200 border border-black overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAozHdRFnLaM-wEM1-uDbs5LtUnP3VStyRe1aDfOOFjtdsJ_nWNF7vnw5OPyNV1fRRtwR0ZHWr_4O-Ef058RuKE4e_ZoUHjJ9DXa4BWCECVyFytxETSeIG4tHe3U9uzprD_fIjGdDuPd1crCzW9W5J9TrR0MsOg7kLz48AxJaCmol1zmNmzFC-8CId5O4PPBtt17ENQPSX2d0L4ZHE7MqUTFdGRg95HavzLM0UtpvNcS5OwWz-sB8fzftIP-xlxkN9_NuLHlyUsYpB-"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow">
+<!-- Hero Title -->
+<div class="border-black px-8 py-2 flex justify-end bg-white"><button class="bg-black text-white px-6 py-2 text-[10px] font-black hover:bg-primary transition-all tracking-widest">EXPORT REPORT</button></div><section class="border-b border-black p-8 md:p-12">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<span class="text-primary font-bold text-sm mb-2 block">// SYSTEM_METRICS_v4.0</span>
+<h2 class="text-6xl md:text-8xl font-black leading-none tracking-tighter">ANALYTICS OVERVIEW</h2>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold opacity-60">LAST UPDATED: 2026-MAR-08 8:00</p>
+<p class="text-sm font-bold">STATUS: <span class="text-green-600">LIVE FEED ACTIVE</span></p>
+</div>
+</div>
+</section>
+<!-- Metric Cards -->
+<section class="grid grid-cols-1 md:grid-cols-3 border-b border-black">
+<div class="p-8 border-r border-black flex flex-col gap-4 group hover:bg-slate-50 transition-colors">
+<p class="text-xs font-bold text-slate-500">CORRECT BIN PLACEMENT</p>
+<div class="flex items-baseline gap-2">
+<h3 class="text-6xl font-black">94.2%</h3>
+<span class="text-primary text-sm font-bold">▲ 2.1%</span>
+</div>
+<div class="w-full bg-slate-200 h-1 mt-4">
+<div class="bg-primary h-full" style="width: 94.2%"></div>
+</div>
+</div>
+<div class="p-8 border-r border-black flex flex-col gap-4 group hover:bg-slate-50 transition-colors">
+<p class="text-xs font-bold text-slate-500">CONTAMINATION RATE</p>
+<div class="flex items-baseline gap-2">
+<h3 class="text-6xl font-black">12.8%</h3>
+<span class="text-red-600 text-sm font-bold">▼ 4.5%</span>
+</div>
+<div class="w-full bg-slate-200 h-1 mt-4">
+<div class="bg-red-600 h-full" style="width: 12.8%"></div>
+</div>
+</div>
+<div class="p-8 flex flex-col gap-4 group hover:bg-slate-50 transition-colors">
+<p class="text-xs font-bold text-slate-500">TOTAL ITEM COUNT</p>
+<div class="flex items-baseline gap-2"><h3 class="text-6xl font-black leading-none">42.8k</h3><div class="flex flex-col ml-3 self-center"><span class="text-primary text-[10px] font-bold leading-none mb-1">▲ 12%</span><span class="text-primary text-[8px] font-bold leading-none whitespace-nowrap">+2.16K FROM LAST WEEK</span></div></div>
+</div>
+</section>
+<!-- AI Analysis Section -->
+<!-- Comparison Tool -->
+<section class="border-b border-black">
+<div class="grid grid-cols-1 md:grid-cols-4">
+<div class="md:col-span-1 border-r border-black p-8 bg-slate-50">
+<h4 class="font-black text-lg mb-8 underline decoration-primary underline-offset-8">COMPARISON TOOL</h4>
+<div class="space-y-6">
+<div>
+<label class="text-[10px] font-bold block mb-2 opacity-50">PRIMARY LOCATION</label>
+<select class="w-full bg-white border border-black p-3 text-sm font-bold focus:ring-0 focus:border-primary uppercase">
+<option>WATERLOO HUB</option>
+<option>KITCHENER HQ</option>
+</select>
+</div>
+<div class="flex justify-center py-2">
+<span class="material-symbols-outlined text-slate-400">swap_vert</span>
+</div>
+<div>
+<label class="text-[10px] font-bold block mb-2 opacity-50">COMPARE WITH</label>
+<select class="w-full bg-white border border-black p-3 text-sm font-bold focus:ring-0 focus:border-primary uppercase">
+<option>MISSISSAUGA BRANCH</option>
+<option>TORONTO DEPOT</option>
+</select>
+</div>
+<button class="w-full border-2 border-black p-3 text-sm font-black hover:bg-black hover:text-white transition-all">REFRESH COMPARISON</button>
+</div>
+</div>
+<div class="md:col-span-3 p-8">
+<div class="flex justify-between items-center mb-8">
+<h5 class="font-black text-xl tracking-tighter">CROSS-LOCATION VARIANCE</h5>
+<div class="flex gap-4 text-[10px] font-bold"><span class="flex items-center gap-1"><span class="w-3 h-3 bg-primary"></span> WATERLOO</span><span class="flex items-center gap-1"><span class="w-3 h-3 bg-black"></span> MISSISSAUGA</span></div>
+</div>
+<div class="space-y-8">
+<!-- Comparison Bar Chart 1 -->
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-bold uppercase">
+<span>Recycling Efficiency</span>
+<span>92% vs 78%</span>
+</div>
+<div class="h-8 border border-black relative bg-slate-50">
+<div class="absolute top-0 left-0 h-1/2 bg-primary flex items-center px-2" style="width: 92%"><span class="text-[8px] text-white font-bold">92%</span></div>
+<div class="absolute bottom-0 left-0 h-1/2 bg-black flex items-center px-2" style="width: 78%"><span class="text-[8px] text-white font-bold">78%</span></div>
+</div>
+</div>
+<!-- Comparison Bar Chart 2 -->
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-bold uppercase">
+<span>Compost diversion</span>
+<span>45% vs 58%</span>
+</div>
+<div class="h-8 border border-black relative bg-slate-50">
+<div class="absolute top-0 left-0 h-1/2 bg-primary flex items-center px-2" style="width: 45%"><span class="text-[8px] text-white font-bold">45%</span></div>
+<div class="absolute bottom-0 left-0 h-1/2 bg-black flex items-center px-2" style="width: 58%"><span class="text-[8px] text-white font-bold">58%</span></div>
+</div>
+</div>
+<!-- Comparison Bar Chart 3 -->
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-bold uppercase">
+<span>Capture Rate</span>
+<span>88% vs 84%</span>
+</div>
+<div class="h-8 border border-black relative bg-slate-50">
+<div class="absolute top-0 left-0 h-1/2 bg-primary flex items-center px-2" style="width: 88%"><span class="text-[8px] text-white font-bold">88%</span></div>
+<div class="absolute bottom-0 left-0 h-1/2 bg-black flex items-center px-2" style="width: 84%"><span class="text-[8px] text-white font-bold">84%</span></div>
+</div>
+</div>
+</div>
+</div><div class="md:col-span-4 border-t border-black p-8 bg-white">
+<div class="flex items-center gap-2 mb-8">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
+<h4 class="font-black text-lg tracking-tight">AI-POWERED INSIGHTS</h4>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="bg-primary text-white p-8 border border-black relative overflow-hidden">
+<p class="text-sm font-medium leading-relaxed uppercase">
+                CONTAMINATION IN <span class="font-black">WATERLOO HUB</span> IS 15% LOWER THAN <span class="font-black">MISSISSAUGA BRANCH</span>, SUGGESTING ADDITIONAL STAFF TRAINING FOR THE MISSISSAUGA TEAM TO IMPROVE SORTING ACCURACY.
+            </p>
+<span class="material-symbols-outlined absolute -bottom-4 -right-4 text-white/20 text-8xl">trending_up</span>
+</div>
+<div class="bg-white border border-black p-8">
+<p class="text-sm text-slate-800 leading-relaxed uppercase">
+                OVERALL COMPARATIVE EFFICIENCY IS STABLE, THOUGH <span class="font-black underline decoration-primary decoration-2">RECYCLING RATES</span> IN WATERLOO ARE TRENDING UPWARDS BY 4% WEEK-OVER-WEEK. SYSTEM RECOMMENDS EXPANDING BIN CAPACITY FOR ORGANICS.
+            </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Detailed Trends Section -->
+<section class="p-8 md:p-12">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-4xl font-black tracking-tighter">CLASSIFICATION TRENDS [24H]</h3>
+<div class="flex border border-black text-xs font-bold">
+<button class="px-4 py-2 bg-black text-white">DAY</button>
+<button class="px-4 py-2 border-l border-black hover:bg-slate-100">WEEK</button>
+<button class="px-4 py-2 border-l border-black hover:bg-slate-100">MONTH</button>
+</div>
+</div>
+<div class="flex flex-wrap gap-8 mb-8 text-[10px] font-bold">
+<div class="flex items-center gap-2"><span class="w-4 h-4 bg-primary"></span> RECYCLABLES</div>
+<div class="flex items-center gap-2"><span class="w-4 h-4 bg-slate-200"></span> ORGANICS</div>
+<div class="flex items-center gap-2"><span class="w-4 h-4 bg-black"></span> LANDFILL</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><!-- Waterloo Chart -->
+<div class="border border-black p-6 relative">
+<div class="absolute -left-4 top-1/2 -rotate-90 origin-center text-[8px] font-black opacity-40 whitespace-nowrap">ITEMS DISPOSED</div>
+<div class="flex justify-between items-center mb-6">
+<h4 class="font-black text-xl tracking-tighter">WATERLOO</h4>
+<span class="text-[10px] font-mono font-bold opacity-40 uppercase">Station ID: WL-042</span>
+</div>
+<div class="h-[300px] flex items-end gap-2"><!-- 00 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[15%]"></div><div class="bg-slate-200 h-[3%]"></div><div class="bg-black h-[2%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">00</span>
+</div>
+<!-- 04 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[8%]"></div><div class="bg-slate-200 h-[1%]"></div><div class="bg-black h-[1%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">04</span>
+</div>
+<!-- 08 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[45%]"></div><div class="bg-slate-200 h-[7%]"></div><div class="bg-black h-[3%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">08</span>
+</div>
+<!-- 12 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[70%]"></div><div class="bg-slate-200 h-[15%]"></div><div class="bg-black h-[5%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">12</span>
+</div>
+<!-- 16 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[55%]"></div><div class="bg-slate-200 h-[10%]"></div><div class="bg-black h-[5%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">16</span>
+</div>
+<!-- 20 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[25%]"></div><div class="bg-slate-200 h-[5%]"></div><div class="bg-black h-[5%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">20</span>
+</div></div>
+</div>
+<!-- Mississauga Chart -->
+<div class="border border-black p-6 relative">
+<div class="absolute -left-4 top-1/2 -rotate-90 origin-center text-[8px] font-black opacity-40 whitespace-nowrap">ITEMS DISPOSED</div>
+<div class="flex justify-between items-center mb-6">
+<h4 class="font-black text-xl tracking-tighter">MISSISSAUGA</h4>
+<span class="text-[10px] font-mono font-bold opacity-40 uppercase">Station ID: MS-019</span>
+</div>
+<div class="h-[300px] flex items-end gap-2"><!-- 00 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[6%]"></div><div class="bg-slate-200 h-[4%]"></div><div class="bg-black h-[10%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">00</span>
+</div>
+<!-- 04 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[2%]"></div><div class="bg-slate-200 h-[2%]"></div><div class="bg-black h-[4%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">04</span>
+</div>
+<!-- 08 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[18%]"></div><div class="bg-slate-200 h-[12%]"></div><div class="bg-black h-[25%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">08</span>
+</div>
+<!-- 12 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[35%]"></div><div class="bg-slate-200 h-[22%]"></div><div class="bg-black h-[40%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">12</span>
+</div>
+<!-- 16 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[25%]"></div><div class="bg-slate-200 h-[18%]"></div><div class="bg-black h-[30%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">16</span>
+</div>
+<!-- 20 -->
+<div class="flex-1 flex flex-col justify-end h-full">
+<div class="bg-primary h-[12%]"></div><div class="bg-slate-200 h-[8%]"></div><div class="bg-black h-[15%]"></div>
+<span class="text-[8px] font-black mt-2 text-center opacity-40">20</span>
+</div></div>
+</div></div></section>
+</main>
+<!-- Footer -->
+<footer class="border-t border-black p-6 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500">© 2026 BINSIGHT DATA SYSTEMS. ALL RIGHTS RESERVED.</div>
+<button class="border border-black px-4 py-2 text-[10px] font-mono font-bold uppercase hover:bg-black hover:text-white transition-colors">Contact Us</button>
+</footer>
+</div>
+</body></html>
