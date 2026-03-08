@@ -22,6 +22,8 @@ This package now runs as a Vite-hosted React dashboard backed by Firebase Auth, 
 
 Use `../../docs/firebase-rehearsal-runbook.md` for the exact setup, deploy, seed, and startup sequence. This README keeps only the package-specific dashboard notes.
 
+If you want to host the frontend on Vercel instead of running it locally through Vite, use `../../docs/vercel-frontend-deployment.md`.
+
 ## Supported rehearsal path
 
 The supported rehearsal path keeps the dashboard local on Vite. It does not deploy this package through Firebase Hosting in the current scope.
