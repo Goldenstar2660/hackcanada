@@ -7,6 +7,7 @@ export {
   ingestCameraFrame,
   ingestEvent,
   ingestLiveStatus,
+  getAnalyticsInsights,
   getAnalyticsSummary,
   getEventHistory,
   getStationDirectory,
@@ -16,12 +17,14 @@ export {
 export * from "./auth/device-auth.js";
 export * from "./auth/operator-auth.js";
 export * from "./functions/runtime.js";
+export * from "./functions/get-analytics-insights.js";
 export * from "./functions/ingest-event.js";
 export * from "./functions/ingest-live-status.js";
 export * from "./functions/ingest-camera-frame.js";
 export * from "./functions/get-analytics-summary.js";
 export * from "./functions/get-event-history.js";
 export * from "./functions/get-station-directory.js";
+export * from "./ai/analytics-insights.js";
 export * from "./firestore/repositories/index.js";
 export * from "./storage/index.js";
 export * from "./analytics/mappers/index.js";

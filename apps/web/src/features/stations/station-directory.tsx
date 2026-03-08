@@ -14,7 +14,7 @@ export function StationDirectory(props: StationDirectoryProps): JSX.Element {
     <section className="dashboard-section-stack">
       <div className="dashboard-row dashboard-row--baseline">
         <h2 className="dashboard-card-title">Fleet roster</h2>
-        <p className="dashboard-muted">Each card preserves the current directory seam, the primary device detail route, and the secondary live route.</p>
+        <p className="dashboard-muted">Each card preserves the current directory seam and the primary device detail route.</p>
       </div>
 
       <div className="dashboard-directory-grid">
@@ -27,7 +27,6 @@ export function StationDirectory(props: StationDirectoryProps): JSX.Element {
               <p className="dashboard-directory-label">Device profile</p>
               <p className="dashboard-directory-mark">{station.stationId}</p>
               <div className="dashboard-device-card-media-meta">
-                <span className="dashboard-directory-live-tag">Live route ready</span>
                 <span className="dashboard-device-card-status">Rules active</span>
               </div>
             </div>
@@ -69,14 +68,10 @@ export function StationDirectory(props: StationDirectoryProps): JSX.Element {
               </div>
             </dl>
 
-            <div className="dashboard-directory-actions dashboard-directory-actions--triad">
+            <div className="dashboard-directory-actions">
               <a href={`/devices/${station.stationId}`} className="dashboard-button dashboard-button--ghost">
                 Details
               </a>
-              <a href={`/devices/${station.stationId}/live`} className="dashboard-button dashboard-button--primary">
-                Live route
-              </a>
-              <button type="button" className="dashboard-button dashboard-button--ghost" disabled={true}>Settings deferred</button>
             </div>
           </article>
         )) : (

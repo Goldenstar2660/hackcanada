@@ -225,6 +225,25 @@ export interface AnalyticsSummary {
   }>;
 }
 
+export type AnalyticsInsightCardId = "summary" | "recommendation";
+export type AnalyticsInsightCardEmphasis = "primary" | "default";
+export type AnalyticsInsightsStatus = "ready" | "placeholder";
+
+export interface AnalyticsInsightCard {
+  readonly id: AnalyticsInsightCardId;
+  readonly title: string;
+  readonly body: string;
+  readonly emphasis: AnalyticsInsightCardEmphasis;
+}
+
+export interface AnalyticsInsightsResponse {
+  readonly generatedAt: string;
+  readonly model: string;
+  readonly status: AnalyticsInsightsStatus;
+  readonly cards: readonly [AnalyticsInsightCard, AnalyticsInsightCard];
+  readonly fallbackReason?: string | null;
+}
+
 export interface EventHistoryQuery {
   readonly timeRange: {
     readonly start: string;

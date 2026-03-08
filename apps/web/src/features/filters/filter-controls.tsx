@@ -48,7 +48,6 @@ export function FilterControls(props: FilterControlsProps): JSX.Element {
         <div className="dashboard-chip-row dashboard-filter-summary" aria-label="Filter summary">
           <span className="dashboard-chip dashboard-chip--active">{scopedStationCount} devices in scope</span>
           <span className="dashboard-chip">Time label {props.filters.timeRange.label}</span>
-          <span className="dashboard-chip">Route-backed GET query</span>
         </div>
       </div>
 

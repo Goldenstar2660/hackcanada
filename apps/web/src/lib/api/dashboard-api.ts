@@ -1,5 +1,6 @@
 import type {
   AnalyticsQuery,
+  AnalyticsInsightsResponse,
   AnalyticsSummary,
   EventHistoryQuery,
   EventHistoryResponse,
@@ -8,6 +9,7 @@ import type {
 
 export const DASHBOARD_CALLABLE_NAMES = {
   getAnalyticsSummary: "getAnalyticsSummary",
+  getAnalyticsInsights: "getAnalyticsInsights",
   getEventHistory: "getEventHistory",
   getStationDirectory: "getStationDirectory"
 } as const;
@@ -18,6 +20,7 @@ export interface CallableApiInvoker {
 
 export interface DashboardApiClient {
   getAnalyticsSummary(query: AnalyticsQuery): Promise<AnalyticsSummary>;
+  getAnalyticsInsights(query: AnalyticsQuery): Promise<AnalyticsInsightsResponse>;
   getEventHistory(query: EventHistoryQuery): Promise<EventHistoryResponse>;
   getStationDirectory(): Promise<StationDirectoryResponse>;
 }
@@ -26,6 +29,10 @@ export function createDashboardApiClient(invoker: CallableApiInvoker): Dashboard
   return {
     getAnalyticsSummary(query) {
       return invoker.call<AnalyticsQuery, AnalyticsSummary>(DASHBOARD_CALLABLE_NAMES.getAnalyticsSummary, query);
+    },
+
+    getAnalyticsInsights(query) {
+      return invoker.call<AnalyticsQuery, AnalyticsInsightsResponse>(DASHBOARD_CALLABLE_NAMES.getAnalyticsInsights, query);
     },
 
     getEventHistory(query) {

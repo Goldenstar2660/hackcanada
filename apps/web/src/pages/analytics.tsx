@@ -1,45 +1,42 @@
-import type { AnalyticsSummary } from "@binsight/contracts";
+import type { AnalyticsInsightsResponse, AnalyticsSummary } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 
+import { AnalyticsInsightsPanel } from "../features/analytics/analytics-insights-panel.js";
 import { createAnalyticsDisplayModel } from "../features/analytics/chart-adapters.js";
 import { FilterControls } from "../features/filters/filter-controls.js";
-import { ComparisonsCompatibilitySection } from "./comparisons.js";
 import { matchesStationFilters } from "../lib/query/dashboard-query.js";
 
 export interface AnalyticsPageModel {
   readonly summary: AnalyticsSummary;
-  readonly comparisonAnalyses: Awaited<ReturnType<typeof loadAnalyticsPage>>["comparisonAnalyses"];
+  readonly insights: AnalyticsInsightsResponse;
   readonly availableFilters: Awaited<ReturnType<typeof loadAnalyticsPage>>["availableFilters"];
   readonly availableStations: Awaited<ReturnType<typeof loadAnalyticsPage>>["availableStations"];
 }
 
 export async function loadAnalyticsPage(context: DashboardPageLoadContext): Promise<{
   summary: AnalyticsSummary;
-  comparisonAnalyses: Awaited<ReturnType<typeof context.providers.api.getComparisons>>;
+  insights: AnalyticsInsightsResponse;
   availableFilters: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["filters"];
   availableStations: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["stations"];
 }> {
-  const [directory, summary, comparisonAnalyses] = await Promise.all([
+  const analyticsRequestOptions = {
+    groupBy: ["buildingId"] as const,
+    timeBucket: "day" as const
+  };
+
+  const [directory, summary, insights] = await Promise.all([
     context.providers.api.getStationDirectory(),
-    context.providers.api.getAnalytics(context.filters, {
-      groupBy: ["buildingId"],
-      timeBucket: "day"
-    }),
-    context.providers.api.getComparisons(context.filters)
+    context.providers.api.getAnalytics(context.filters, analyticsRequestOptions),
+    context.providers.api.getAnalyticsInsights(context.filters, analyticsRequestOptions)
   ]);
 
   return {
     summary,
-    comparisonAnalyses,
+    insights,
     availableFilters: directory.filters,
     availableStations: directory.stations
   };
-}
-
-function formatTimestamp(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
 function formatPercent(value: number): string {
@@ -62,14 +59,11 @@ export function AnalyticsPage(props: {
   readonly context: DashboardPageLoadContext;
 }): JSX.Element {
   const display = createAnalyticsDisplayModel(props.model.summary);
-  const arrivedFromComparisons = props.context.match.requestedPath === "/comparisons";
   const visibleStationCount = props.model.availableStations.filter((station) => matchesStationFilters(station, props.context.filters)).length;
   const incorrectAttempts = Math.max(props.model.summary.totals.totalAttempts - props.model.summary.totals.totalCorrectSorts, 0);
   const contaminationRate = props.model.summary.totals.totalAttempts > 0
     ? incorrectAttempts / props.model.summary.totals.totalAttempts
     : 0;
-  const groupedResults = display.groupedResults ?? [];
-  const maxGroupedScore = Math.max(...groupedResults.map((group) => group.metrics.participationComplianceScore * 100), 1);
   const chartSeries = display.chartSeries ?? [];
   const supportLists = [
     {
@@ -108,51 +102,6 @@ export function AnalyticsPage(props: {
 
   return (
     <section className="dashboard-section-stack">
-      <article className="dashboard-card dashboard-page-hero">
-        <p className="dashboard-page-kicker">System metrics v4.0</p>
-        <div className="dashboard-row dashboard-row--baseline">
-          <div>
-            <h2 className="dashboard-page-title">Analytics overview</h2>
-            <p className="dashboard-page-copy">
-              Stitch-style KPI, comparison, and trend sections rendered on top of the existing analytics summary contract, comparison scenarios, and current route-backed query state.
-            </p>
-          </div>
-          <div className="dashboard-page-actions">
-            <button type="button" className="dashboard-button dashboard-button--ghost" disabled={true}>
-              Export report unavailable
-            </button>
-            <button type="button" className="dashboard-button" disabled={true}>
-              AI insights deferred
-            </button>
-          </div>
-        </div>
-        <div className="dashboard-chip-row" aria-label="Analytics summary">
-          <span className="dashboard-chip dashboard-chip--active">{visibleStationCount} stations in scope</span>
-          <span className="dashboard-chip">Generated {formatTimestamp(props.model.summary.generatedAt)}</span>
-          <span className="dashboard-chip">Time window {props.context.filters.timeRange.label}</span>
-          <span className="dashboard-chip">{props.model.comparisonAnalyses.length} comparison scenarios loaded</span>
-          <span className="dashboard-chip dashboard-chip--warning">Export and AI actions are intentionally non-functional</span>
-        </div>
-      </article>
-
-      {arrivedFromComparisons ? (
-        <article className="dashboard-card dashboard-secondary-route-card">
-          <div className="dashboard-row dashboard-row--baseline">
-            <div>
-              <p className="dashboard-page-kicker">Compatibility path</p>
-              <h3 className="dashboard-card-title">The legacy comparisons route now resolves into Analytics</h3>
-              <p className="dashboard-subtitle">
-                Existing demo links can continue to use /comparisons during rollout, but the visible information architecture keeps summary, grouped comparisons, and trends together under Analytics.
-              </p>
-            </div>
-            <div className="dashboard-page-actions dashboard-secondary-route-actions">
-              <a href="/analytics" className="dashboard-button dashboard-button--ghost">Canonical analytics route</a>
-              <button type="button" className="dashboard-button" disabled={true}>Standalone comparisons removed</button>
-            </div>
-          </div>
-        </article>
-      ) : null}
-
       <FilterControls
         actionPath={props.context.match.path}
         filters={props.context.filters}
@@ -171,7 +120,7 @@ export function AnalyticsPage(props: {
         <article className="dashboard-analytics-kpi">
           <p className="dashboard-field-label">Contamination rate</p>
           <strong className="dashboard-analytics-kpi-value">{formatPercent(contaminationRate)}</strong>
-          <p className="dashboard-detail-value">Derived from incorrect attempts in the selected route-backed scope.</p>
+          <p className="dashboard-detail-value">Derived from incorrect attempts in the selected analytics scope.</p>
           <progress className="dashboard-analytics-progress dashboard-analytics-progress--warning" max={100} value={contaminationRate * 100} />
         </article>
         <article className="dashboard-analytics-kpi">
@@ -186,73 +135,7 @@ export function AnalyticsPage(props: {
         </article>
       </section>
 
-      <section className="dashboard-comparison-layout">
-        <article className="dashboard-card dashboard-comparison-controls">
-          <p className="dashboard-page-kicker">Comparison tool</p>
-          <h3 className="dashboard-card-title">Current grouped variance</h3>
-          <p className="dashboard-subtitle">
-            This view preserves the existing analytics request and grouped results while translating the Stitch comparison shell into the shared dashboard CSS surface.
-          </p>
-          <div className="dashboard-chip-row">
-            <span className="dashboard-chip dashboard-chip--active">Grouped by building</span>
-            <span className="dashboard-chip">Backend query preserved</span>
-            <span className="dashboard-chip">No manual refresh contract</span>
-          </div>
-        </article>
-
-        <article className="dashboard-card">
-          <div className="dashboard-row dashboard-row--baseline">
-            <div>
-              <h3 className="dashboard-card-title">Cross-location variance</h3>
-              <p className="dashboard-subtitle">Participation score by current grouping from the analytics summary response.</p>
-            </div>
-          </div>
-
-          {groupedResults.length > 0 ? (
-            <div className="dashboard-section-stack">
-              {groupedResults.map((group) => (
-                <article key={group.groupKey} className="dashboard-comparison-row">
-                  <div className="dashboard-comparison-row-top">
-                    <span>{group.groupLabel}</span>
-                    <span>
-                      {formatPercent(group.metrics.participationComplianceScore)} · {formatCount(group.metrics.totalAttempts)} attempts
-                    </span>
-                  </div>
-                  <progress
-                    className="dashboard-comparison-track"
-                    max={maxGroupedScore}
-                    value={group.metrics.participationComplianceScore * 100}
-                  />
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="dashboard-status dashboard-status--empty">The current analytics summary did not return grouped comparison rows.</p>
-          )}
-        </article>
-      </section>
-
-      <ComparisonsCompatibilitySection
-        analyses={props.model.comparisonAnalyses}
-        requestedPath={props.context.match.requestedPath}
-      />
-
-      <section className="dashboard-insight-grid" aria-label="Deferred analytics actions">
-        <article className="dashboard-insight-card dashboard-insight-card--disabled">
-          <p className="dashboard-page-kicker">AI-powered insights</p>
-          <h3 className="dashboard-card-title">Narrative insight cards are deferred</h3>
-          <p className="dashboard-subtitle">
-            The current product scope supports operator analysis from historical and grouped data, but it does not expose a backed narrative-generation contract for AI text cards.
-          </p>
-        </article>
-        <article className="dashboard-insight-card dashboard-insight-card--disabled">
-          <p className="dashboard-page-kicker">Export reports</p>
-          <h3 className="dashboard-card-title">Report export remains unimplemented by design</h3>
-          <p className="dashboard-subtitle">
-            Export controls stay visible as explicit follow-on work instead of implying that a backend report-generation flow exists today.
-          </p>
-        </article>
-      </section>
+      <AnalyticsInsightsPanel insights={props.model.insights} />
 
       <article className="dashboard-card">
         <div className="dashboard-row dashboard-row--baseline">

@@ -1,8 +1,19 @@
-import type { AnalyticsSummary, StationDirectoryResponse } from "@binsight/contracts";
+import type { AnalyticsInsightsResponse, AnalyticsSummary, StationDirectoryResponse } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 
+import { AnalyticsInsightsPanel } from "../features/analytics/analytics-insights-panel.js";
 import { matchesStationFilters } from "../lib/query/dashboard-query.js";
+
+const DASHBOARD_LOGO_SRC = new URL("../../assets/logo.png", import.meta.url).href;
+const DASHBOARD_MAP_SRC = new URL("../../assets/map-close.png", import.meta.url).href;
+
+const fakeLocations = [
+  "Toronto Innovation Hub",
+  "Vancouver Waterfront Campus",
+  "Montreal Materials Lab",
+  "Calgary Operations Centre"
+] as const;
 
 const dashboardNavigation = [
   {
@@ -26,6 +37,7 @@ const dashboardNavigation = [
 
 export interface DashboardPageModel {
   readonly summary: AnalyticsSummary;
+  readonly insights: AnalyticsInsightsResponse;
   readonly availableFilters: StationDirectoryResponse["filters"];
   readonly visibleStations: readonly StationDirectoryResponse["stations"][number][];
   readonly facilityCount: number;
@@ -45,16 +57,9 @@ function formatTimestamp(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
-function getLocationSelectionLabel(filters: DashboardPageLoadContext["filters"]): string {
-  if (filters.locationLabels.length === 0) {
-    return "All locations";
-  }
-
-  if (filters.locationLabels.length === 1) {
-    return filters.locationLabels[0];
-  }
-
-  return `${filters.locationLabels.length} locations selected`;
+function getSelectedFakeLocation(filters: DashboardPageLoadContext["filters"]): string {
+  const requestedLocation = filters.locationLabels[0];
+  return requestedLocation && fakeLocations.some((location) => location === requestedLocation) ? requestedLocation : fakeLocations[0];
 }
 
 function createScopeHighlights(context: DashboardPageLoadContext, model: DashboardPageModel): readonly string[] {
@@ -78,12 +83,15 @@ function createScopeHighlights(context: DashboardPageLoadContext, model: Dashboa
 }
 
 export async function loadDashboardPage(context: DashboardPageLoadContext): Promise<DashboardPageModel> {
-  const [directory, summary] = await Promise.all([
+  const analyticsRequestOptions = {
+    groupBy: ["buildingId"] as const,
+    timeBucket: "day" as const
+  };
+
+  const [directory, summary, insights] = await Promise.all([
     context.providers.api.getStationDirectory(),
-    context.providers.api.getAnalytics(context.filters, {
-      groupBy: ["buildingId"],
-      timeBucket: "day"
-    })
+    context.providers.api.getAnalytics(context.filters, analyticsRequestOptions),
+    context.providers.api.getAnalyticsInsights(context.filters, analyticsRequestOptions)
   ]);
 
   const visibleStations = directory.stations.filter((station) => matchesStationFilters(station, context.filters));
@@ -92,6 +100,7 @@ export async function loadDashboardPage(context: DashboardPageLoadContext): Prom
 
   return {
     summary,
+    insights,
     availableFilters: directory.filters,
     visibleStations,
     facilityCount,
@@ -107,7 +116,7 @@ export function DashboardPage(props: {
   const contaminationRate = props.model.summary.totals.totalAttempts > 0
     ? incorrectAttempts / props.model.summary.totals.totalAttempts
     : 0;
-  const locationSelectionLabel = getLocationSelectionLabel(props.context.filters);
+  const selectedFakeLocation = getSelectedFakeLocation(props.context.filters);
   const scopeHighlights = createScopeHighlights(props.context, props.model);
   const dashboardMetrics: ReadonlyArray<{
     value: string;
@@ -146,11 +155,7 @@ export function DashboardPage(props: {
       <div className="dashboard-home-frame">
         <header className="dashboard-home-header">
           <div className="dashboard-home-brand-lockup">
-            <span className="dashboard-home-brand-mark" aria-hidden="true">DS</span>
-            <div>
-              <p className="dashboard-home-brand-name">B<span>i</span>NSIGHT</p>
-              <p className="dashboard-home-brand-subtitle">Protected operator surface</p>
-            </div>
+            <img className="dashboard-home-brand-image" src={DASHBOARD_LOGO_SRC} alt="Binsight" />
           </div>
 
           <nav className="dashboard-home-nav" aria-label="Primary dashboard navigation">
@@ -177,11 +182,6 @@ export function DashboardPage(props: {
             );
           })}
           </nav>
-
-          <div className="dashboard-home-profile" aria-label="Current dashboard mode">
-            <span className="dashboard-home-profile-status">Live</span>
-            <span className="dashboard-home-profile-avatar" aria-hidden="true">VG</span>
-          </div>
         </header>
 
         <section className="dashboard-home-hero">
@@ -192,7 +192,7 @@ export function DashboardPage(props: {
 
           <div className="dashboard-home-hero-copy">
             <p className="dashboard-home-description">
-              Computer vision for waste classification. This dashboard keeps the Stitch layout language, but only binds to data already present in the analytics summary and station-directory contracts.
+              Computer vision for waste classification across facilities, floors, and device clusters.
               <span className="dashboard-home-inline-note"> Generated {formatTimestamp(props.model.summary.generatedAt)}.</span>
             </p>
 
@@ -200,13 +200,10 @@ export function DashboardPage(props: {
               <div className="dashboard-home-field">
                 <label className="dashboard-home-field-label" htmlFor="dashboard-location-select">Select location</label>
                 <div className="dashboard-home-select-shell">
-                  <select id="dashboard-location-select" className="dashboard-home-select" defaultValue={locationSelectionLabel} disabled={true}>
-                    <option value={locationSelectionLabel}>{locationSelectionLabel}</option>
-                    {props.model.availableFilters.locations
-                      .filter((location) => location !== locationSelectionLabel)
-                      .map((location) => (
-                        <option key={location} value={location}>{location}</option>
-                      ))}
+                  <select id="dashboard-location-select" className="dashboard-home-select" defaultValue={selectedFakeLocation}>
+                    {fakeLocations.map((location) => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -239,6 +236,8 @@ export function DashboardPage(props: {
           ))}
         </section>
 
+        <AnalyticsInsightsPanel insights={props.model.insights} kicker="AI dashboard insights" />
+
         <section className="dashboard-home-lower-grid">
           <article className="dashboard-home-panel dashboard-home-panel--map">
             <div className="dashboard-home-panel-header">
@@ -248,20 +247,8 @@ export function DashboardPage(props: {
               </div>
               <span className="dashboard-home-panel-badge">{formatCount(props.model.visibleStations.length)} nodes</span>
             </div>
-
-            <p className="dashboard-home-panel-copy">
-              The design expects a facility map. Until that asset exists in the app, this panel uses live location and facility counts from the filtered station directory.
-            </p>
-
-            <div className="dashboard-home-map-placeholder" aria-label="Facility coverage placeholder">
-              {scopeHighlights.slice(0, 6).map((highlight, index) => (
-                <span
-                  key={highlight}
-                  className={`dashboard-home-map-node dashboard-home-map-node--${index}`}
-                >
-                  {highlight}
-                </span>
-              ))}
+            <div className="dashboard-home-map-frame">
+              <img className="dashboard-home-map-image" src={DASHBOARD_MAP_SRC} alt="Spatial network map" />
             </div>
 
             <div className="dashboard-home-map-meta">
@@ -273,40 +260,6 @@ export function DashboardPage(props: {
                 <span className="dashboard-home-meta-label">Floors</span>
                 <strong>{formatCount(props.model.floorCount)}</strong>
               </div>
-            </div>
-          </article>
-
-          <article className="dashboard-home-panel">
-            <div className="dashboard-home-panel-header">
-              <div>
-                <p className="dashboard-home-panel-kicker">Network snapshot</p>
-                <h2 className="dashboard-home-panel-title">Current system core</h2>
-              </div>
-            </div>
-
-            <div className="dashboard-home-facts-grid">
-              <article>
-                <span className="dashboard-home-meta-label">Total attempts</span>
-                <strong>{formatCount(props.model.summary.totals.totalAttempts)}</strong>
-              </article>
-              <article>
-                <span className="dashboard-home-meta-label">Correct sorts</span>
-                <strong>{formatCount(props.model.summary.totals.totalCorrectSorts)}</strong>
-              </article>
-              <article>
-                <span className="dashboard-home-meta-label">Participation score</span>
-                <strong>{formatPercent(props.model.summary.totals.participationComplianceScore)}</strong>
-              </article>
-              <article>
-                <span className="dashboard-home-meta-label">Filter window</span>
-                <strong>{props.context.filters.timeRange.label}</strong>
-              </article>
-            </div>
-
-            <div className="dashboard-home-chip-row" aria-label="Scope highlights">
-              {scopeHighlights.map((highlight) => (
-                <span key={highlight} className="dashboard-home-chip">{highlight}</span>
-              ))}
             </div>
           </article>
 
@@ -335,35 +288,11 @@ export function DashboardPage(props: {
             )}
           </article>
 
-          <article className="dashboard-home-panel">
-            <div className="dashboard-home-panel-header">
-              <div>
-                <p className="dashboard-home-panel-kicker">Active devices</p>
-                <h2 className="dashboard-home-panel-title">Filtered station directory</h2>
-              </div>
-            </div>
-
-            {visibleStations.length > 0 ? (
-              <div className="dashboard-home-list">
-                {visibleStations.map((station) => (
-                  <article key={station.stationId} className="dashboard-home-list-row">
-                    <div>
-                      <h3>{station.stationName}</h3>
-                      <p>{station.buildingLabel} · {station.floorLabel} · {station.locationLabel}</p>
-                    </div>
-                    <a href={`/devices/${station.stationId}`} className="dashboard-home-inline-link">Open</a>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="dashboard-home-empty-state">No active devices match the current filter state.</p>
-            )}
-          </article>
         </section>
 
         <footer className="dashboard-home-footer">
-          <span>Generated from live analytics and directory contracts.</span>
-          <span>Map overlays and scan workflows remain placeholders until dedicated app assets exist.</span>
+          <span>Updated {formatTimestamp(props.model.summary.generatedAt)}</span>
+          <span>{scopeHighlights.slice(0, 2).join(" · ")}</span>
         </footer>
       </div>
     </section>
