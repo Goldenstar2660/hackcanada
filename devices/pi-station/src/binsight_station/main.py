@@ -21,7 +21,7 @@ from .rules import RulesPreset, load_rules_preset
 from .session import SessionPhase, SessionSnapshot, SessionStateMachine, SessionTimingConfig
 
 
-DEFAULT_DEMO_CLASSIFICATION_SOURCE = "demo://plastic-bottle"
+DEFAULT_DEMO_CLASSIFICATION_SOURCE = "demo://aluminum-can"
 DEFAULT_LOOP_INTERVAL_SECONDS = 0.1
 DEFAULT_STATUS_INTERVAL_SECONDS = 0.5
 

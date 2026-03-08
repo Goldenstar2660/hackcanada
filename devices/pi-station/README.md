@@ -141,7 +141,7 @@ This local harness simulates a live detection flow and verifies that:
 Useful options:
 
 ```bash
-uv run binsight-realtime-sim --item plastic-bottle --disposal-zone left --output-json simulation-result.json
+uv run binsight-realtime-sim --item aluminum-can --disposal-zone left --output-json simulation-result.json
 ```
 
 Use `--no-reset` if you want the run to stop right after the disposal event is published instead of waiting for the runtime to return to `idle`.
@@ -153,7 +153,7 @@ This harness is meant for **local component/integration rehearsal**. It does not
 If your goal is to **fake only the ML/CV detection** while still using the **real ESP**, the **real backend**, and the **real dashboard**, use:
 
 ```bash
-uv run binsight-live-demo --item plastic-bottle
+uv run binsight-live-demo --item aluminum-can
 ```
 
 This command:
@@ -172,10 +172,16 @@ This command:
 Useful examples:
 
 ```bash
-uv run binsight-live-demo --item plastic-bottle --zone left
-uv run binsight-live-demo --item banana-peel --zone middle --guidance-hold-seconds 3 --hand-seconds 1.5
-uv run binsight-live-demo --item plastic-bottle --no-reset
+uv run binsight-live-demo --item aluminum-can --zone left
+uv run binsight-live-demo --item pickled-radish --zone middle --guidance-hold-seconds 3 --hand-seconds 1.5
+uv run binsight-live-demo --item aluminum-can --no-reset
 ```
+
+The current detectable item set is intentionally limited to:
+
+* `aluminum-can`
+* `granola-bar`
+* `pickled-radish`
 
 `--guidance-hold-seconds` controls how long the LED stays on before the simulated hand enters the drop zone.
 
@@ -186,7 +192,7 @@ uv run binsight-live-demo --item plastic-bottle --no-reset
 To run a believable multi-step sequence such as **recycle correct -> garbage wrong -> compost correct**, use:
 
 ```bash
-uv run binsight-live-sequence --steps "plastic-bottle:left,coffee-cup:left,banana-peel:middle"
+uv run binsight-live-sequence --steps "aluminum-can:left,granola-bar:left,pickled-radish:middle"
 ```
 
 This executes each step in order using the same station runtime, so counters accumulate naturally across the sequence.
@@ -199,8 +205,8 @@ Step format:
 Examples:
 
 ```bash
-uv run binsight-live-sequence --steps "plastic-bottle,coffee-cup:left,banana-peel"
-uv run binsight-live-sequence --steps "plastic-bottle:left,coffee-cup:left,banana-peel:middle" --guidance-hold-seconds 2 --hand-seconds 1 --inter-step-seconds 1
+uv run binsight-live-sequence --steps "aluminum-can,granola-bar:left,pickled-radish"
+uv run binsight-live-sequence --steps "aluminum-can:left,granola-bar:left,pickled-radish:middle" --guidance-hold-seconds 2 --hand-seconds 1 --inter-step-seconds 1
 ```
 
 Recommended prerequisites before running it:
@@ -244,7 +250,7 @@ Asset responsibilities:
 
 * `model.tflite | model_unquant.tflite | model_quant.tflite`: TensorFlow Lite image classifier
 * `labels.txt`: ordered output labels matching the model outputs
-* `aliases.json`: optional mapping from model labels to rules-preset item ids such as `plastic-bottle`
+* `aliases.json`: optional mapping from model labels to rules-preset item ids such as `aluminum-can`
 * `manifest.json`: optional preprocessing and runtime metadata such as layout, normalization, resize method, and thread count
 
 If `manifest.json` is omitted, the runtime uses defaults: RGB input, bilinear resize, automatic input-layout detection, automatic output-activation handling, and `numThreads=4`.
@@ -322,7 +328,7 @@ On the current Phase 5 entrypoint, the runtime stays alive as the real station p
 The terminal status log is intentionally short so it fits on one line in a small terminal, for example:
 
 ```text
-[station] wait   item=plastic-bottle@0.97  tgt=recycle   over=left@0.88 hands=1
+[station] wait   item=aluminum-can@0.97  tgt=recycle   over=left@0.88 hands=1
 ```
 
 Keep `STATION_ID`, `BINSIGHT_DEVICE_ID`, and `BINSIGHT_DEVICE_SHARED_SECRET` aligned with the backend `BINSIGHT_DEVICE_CREDENTIALS_JSON` entry for the same station before attempting a live Firebase rehearsal.

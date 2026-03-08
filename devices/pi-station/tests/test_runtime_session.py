@@ -72,7 +72,7 @@ def _sequence_clock(*values: float) -> Iterator[float]:
 def _build_runtime(
     *clock_values: float,
     transport: MemoryEspTransport | None = None,
-    image_source: str = "demo://plastic-bottle",
+    image_source: str = "demo://aluminum-can",
 ) -> StationRuntime:
     clock = _sequence_clock(*clock_values)
     resolved_transport = transport or MemoryEspTransport()
@@ -89,7 +89,7 @@ def test_session_timeout_flow_resets_without_incrementing_counters() -> None:
     session = SessionStateMachine()
 
     session.begin_identification(10.0)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 10.1)
+    session.set_guidance("aluminum-can", "recycle", 0.97, False, 10.1)
     waiting_snapshot = session.begin_waiting_for_disposal(10.2)
 
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
@@ -116,7 +116,7 @@ def test_runtime_successful_disposal_preserves_station_counters_after_reset() ->
     runtime = _build_runtime(0.0, 0.1, 0.2, 1.0, 1.1, 2.8, 4.4, transport=transport)
     runtime.classifier = StubClassifier(
         ClassificationResult(
-            predicted_item="plastic-bottle",
+            predicted_item="aluminum-can",
             confidence=0.97,
             llm_fallback_used=False,
         )
@@ -135,7 +135,7 @@ def test_runtime_successful_disposal_preserves_station_counters_after_reset() ->
     assert result_snapshot.total_attempts == 1
     assert result_snapshot.total_correct_sorts == 1
     assert runtime.lcd_client.screen_history[-4].mode == "guidance"
-    assert runtime.lcd_client.screen_history[-4].line_one.strip() == "plastic bottle"
+    assert runtime.lcd_client.screen_history[-4].line_one.strip() == "aluminum can"
     assert runtime.lcd_client.screen_history[-4].line_two.strip() == "Use recycle"
     assert runtime.lcd_client.screen_history[-3].mode == "result"
     assert runtime.lcd_client.screen_history[-3].line_two.strip() == "C:1 A:1"
@@ -155,7 +155,7 @@ def test_runtime_incorrect_disposal_keeps_failed_attempt_in_station_counter() ->
     runtime = _build_runtime(5.0, 5.1, 5.2, 6.0, 6.1, 7.8, 9.4, transport=transport)
     runtime.classifier = StubClassifier(
         ClassificationResult(
-            predicted_item="banana-peel",
+            predicted_item="pickled-radish",
             confidence=0.94,
             llm_fallback_used=False,
         )
@@ -183,7 +183,7 @@ def test_runtime_fallback_classification_flow_marks_event_and_live_status() -> N
     runtime = _build_runtime(9.0, 9.1, 9.2, 10.0, 10.1, transport=transport)
     runtime.classifier = StubClassifier(
         ClassificationResult(
-            predicted_item="banana-peel",
+            predicted_item="pickled-radish",
             confidence=0.61,
             llm_fallback_used=True,
         )
@@ -192,9 +192,9 @@ def test_runtime_fallback_classification_flow_marks_event_and_live_status() -> N
     waiting_snapshot, waiting_status = runtime.start_session(image_source="camera://fallback")
     result_snapshot, event = runtime.observe_disposal(zone="middle")
 
-    assert waiting_snapshot.predicted_item == "banana-peel"
+    assert waiting_snapshot.predicted_item == "pickled-radish"
     assert waiting_snapshot.correct_disposal_method == "compost"
-    assert waiting_status.to_payload()["currentDetectedItem"] == "banana-peel"
+    assert waiting_status.to_payload()["currentDetectedItem"] == "pickled-radish"
     assert event is not None
     assert event.success is True
     assert event.llm_fallback_used is True
@@ -204,7 +204,7 @@ def test_runtime_fallback_classification_flow_marks_event_and_live_status() -> N
     assert runtime.last_live_status is not None
     assert runtime.last_live_status.to_payload()["latestEvent"] == {
         "timestamp": event.timestamp,
-        "predictedItem": "banana-peel",
+        "predictedItem": "pickled-radish",
         "correctDisposalMethod": "compost",
         "actualDisposalZone": "middle",
         "attemptResult": "success",
@@ -216,7 +216,7 @@ def test_runtime_does_not_wait_for_stable_esp_presence_before_identification() -
     runtime = _build_runtime(20.0, 20.1, 20.2, transport=transport)
     runtime.classifier = StubClassifier(
         ClassificationResult(
-            predicted_item="plastic-bottle",
+            predicted_item="aluminum-can",
             confidence=0.97,
             llm_fallback_used=False,
         )
@@ -227,7 +227,7 @@ def test_runtime_does_not_wait_for_stable_esp_presence_before_identification() -
     assert runtime.classifier.calls == 1
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
     assert waiting_status.to_payload()["sessionState"] == "waiting-for-disposal"
-    assert waiting_snapshot.predicted_item == "plastic-bottle"
+    assert waiting_snapshot.predicted_item == "aluminum-can"
 
 
 def test_runtime_uses_deterministic_hand_tracking_without_camera_feed() -> None:
@@ -241,13 +241,13 @@ def test_runtime_uses_deterministic_hand_tracking_without_camera_feed() -> None:
     )
     runtime.classifier = StubClassifier(
         ClassificationResult(
-            predicted_item="plastic-bottle",
+            predicted_item="aluminum-can",
             confidence=0.97,
             llm_fallback_used=False,
         )
     )
 
-    waiting_snapshot, waiting_status = runtime.start_session(image_source="demo://plastic-bottle")
+    waiting_snapshot, waiting_status = runtime.start_session(image_source="demo://aluminum-can")
 
     assert waiting_snapshot.hand_present is False
     assert waiting_snapshot.latest_hand_zone is None
@@ -290,13 +290,13 @@ def test_runtime_uses_mediapipe_hand_tracking_without_esp_presence_frames() -> N
     )
     runtime.classifier = StubClassifier(
         ClassificationResult(
-            predicted_item="banana-peel",
+            predicted_item="pickled-radish",
             confidence=0.97,
             llm_fallback_used=False,
         )
     )
 
-    waiting_snapshot, _ = runtime.start_session(image_source="demo://banana-peel")
+    waiting_snapshot, _ = runtime.start_session(image_source="demo://pickled-radish")
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
     assert provider.calls == 0
 
@@ -334,7 +334,7 @@ def test_format_status_line_keeps_runtime_heartbeat_compact() -> None:
 def test_format_status_line_includes_model_outputs_and_confidence() -> None:
     session = SessionStateMachine()
     session.begin_identification(0.0)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.1)
+    session.set_guidance("aluminum-can", "recycle", 0.97, False, 0.1)
     session.begin_waiting_for_disposal(0.2)
     snapshot = session.track_hand(
         zone="left",
@@ -346,7 +346,7 @@ def test_format_status_line_includes_model_outputs_and_confidence() -> None:
 
     line = _format_status_line(snapshot)
 
-    assert "item=plastic-bottle@0.97" in line
+    assert "item=aluminum-can@0.97" in line
     assert "tgt=recycle" in line
     assert "over=left@0.88" in line
     assert "hands=1" in line
@@ -358,7 +358,7 @@ def test_runtime_loop_iteration_starts_session_from_idle() -> None:
     snapshot = _run_runtime_loop_iteration(runtime)
 
     assert snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
-    assert snapshot.predicted_item == "plastic-bottle"
+    assert snapshot.predicted_item == "aluminum-can"
 
 
 def test_runtime_loop_iteration_resets_after_disposal_timeout() -> None:
@@ -368,7 +368,7 @@ def test_runtime_loop_iteration_resets_after_disposal_timeout() -> None:
         monotonic_clock=clock,
         esp_client=EspClient("serial://test", transport=MemoryEspTransport()),
         publication_client=PublicationAdapter("test-project"),
-        image_source_provider=StaticImageSourceProvider("demo://plastic-bottle"),
+        image_source_provider=StaticImageSourceProvider("demo://aluminum-can"),
         hand_tracking_input=NoopHandTrackingInput(),
     )
 

@@ -92,7 +92,7 @@ class ClassificationPipeline:
         source = local_prediction.source
         llm_fallback_used = confidence < request.confidence_threshold
         if llm_fallback_used:
-            predicted_item = self._infer_with_fallback(request.image_source)
+            predicted_item = self._infer_with_fallback(request.image_source, predicted_item)
             confidence = 0.75
             source = ClassificationSource.LLM_FALLBACK
 
@@ -115,9 +115,9 @@ class ClassificationPipeline:
         runtime = self._get_runtime()
         return runtime.predict(image_source)
 
-    def _infer_with_fallback(self, image_source: str) -> str:
+    def _infer_with_fallback(self, image_source: str, predicted_item: str) -> str:
         del image_source
-        return "fallback-item"
+        return predicted_item
 
     def _get_runtime(self) -> _TFLiteRuntime:
         if self._runtime is None:
@@ -449,7 +449,7 @@ def _softmax(scores: np.ndarray) -> np.ndarray:
 def _normalize_label(label: str) -> str:
     normalized = re.sub(r"[^a-z0-9]+", "-", label.strip().lower())
     normalized = re.sub(r"-+", "-", normalized)
-    return normalized.strip("-") or "unknown-item"
+    return normalized.strip("-") or "pickled-radish"
 
 
 def _default_interpreter_factory(model_path: Path, num_threads: int) -> Any:

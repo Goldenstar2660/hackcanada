@@ -71,7 +71,7 @@ class RecordedIngressRequest:
 
 @dataclass(slots=True)
 class RealtimeSimulationScenario:
-    predicted_item: str = "plastic-bottle"
+    predicted_item: str = "aluminum-can"
     disposal_zone: str = "left"
     station_id: str = "demo-station-001"
     device_id: str = "pi-sim-001"
@@ -434,7 +434,7 @@ class SimulatedBackendIngressServer:
     def _create_event_id(self, body: dict[str, Any]) -> str:
         station_id = str(body.get("station_id", self.station_id))
         timestamp = str(body.get("timestamp", ""))
-        predicted_item = str(body.get("predicted_item", "unknown-item"))
+        predicted_item = str(body.get("predicted_item", "pickled-radish"))
         return f"{station_id}_{timestamp}_{_normalize_item_token(predicted_item)}"
 
 
@@ -684,7 +684,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
             "and fake backend ingress server."
         )
     )
-    parser.add_argument("--item", default="plastic-bottle", help="Predicted item to simulate.")
+    parser.add_argument("--item", default="aluminum-can", help="Predicted item to simulate.")
     parser.add_argument(
         "--disposal-zone",
         choices=("left", "middle", "right"),
