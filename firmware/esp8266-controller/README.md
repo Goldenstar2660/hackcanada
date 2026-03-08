@@ -7,7 +7,7 @@ description: PlatformIO firmware scaffold for the Binsight ESP8266 controller
 
 This project contains the embedded firmware for the Binsight ESP8266 controller.
 
-The controller owns ultrasonic sensing, LED output, acknowledgements, and health telemetry. It does not own dashboard contracts, Firebase payloads, or disposal event creation.
+The controller owns LED output, acknowledgements, and health telemetry. It does not own dashboard contracts, Firebase payloads, or disposal event creation.
 
 ## Boundary
 
@@ -21,7 +21,7 @@ The controller now runs in standard Wi-Fi station mode and exposes a local HTTP 
 
 Supported endpoints:
 
-* `GET /health` returns JSON health and presence telemetry
+* `GET /health` returns JSON health and static no-sensor presence telemetry
 * `POST /signal` accepts JSON guidance commands
 * `POST /reset` clears active guidance
 
@@ -38,7 +38,7 @@ Failure policy:
 * `platformio.ini` defines the PlatformIO environment
 * `include/protocol.h` declares the local command and telemetry seam
 * `src/protocol.cpp` contains placeholder encode and decode helpers
-* `src/main.cpp` runs the local HTTP controller loop, samples the ultrasonic sensor, exposes JSON health and guidance endpoints, and keeps the Pi-to-ESP boundary local-facing
+* `src/main.cpp` runs the local HTTP controller loop, drives the RGB indicator pins, exposes JSON health and guidance endpoints, and keeps the Pi-to-ESP boundary local-facing
 * `test/` is reserved for firmware-native tests when behavior expands
 
 ## Flashing And Validation
@@ -59,5 +59,27 @@ Use the workspace-local command when the repository virtual environment provides
 
 If your board is connected, you can upload later with the standard PlatformIO upload workflow for the selected environment.
 
+To flash the board and then view the ESP serial output in the same terminal, run the upload first and then start the serial monitor explicitly:
+
+```bash
+pio run -t upload && pio device monitor --port <your-port> --baud 115200 --filter direct
+```
+
+Run that command from this directory:
+
+```text
+C:\Users\hello\Documents\Projects\hackcanada_2\firmware\esp8266-controller
+```
+
+On this machine the board was auto-detected on `COM5`, so the exact command is currently:
+
+```bash
+pio run -t upload && pio device monitor --port COM5 --baud 115200 --filter direct
+```
+
+The ESP8266 may print a short burst of bootloader noise immediately after reset. After that, the firmware will print lines such as `binsight wifi connected ip=...`, which includes the local IP address.
+
 To override the default Wi-Fi credentials at build time, add `-D BINSIGHT_WIFI_SSID=\"your-ssid\"` and `-D BINSIGHT_WIFI_PASS=\"your-password\"` to `build_flags` in `platformio.ini`.
+
+
 

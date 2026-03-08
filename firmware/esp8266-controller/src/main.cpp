@@ -6,99 +6,40 @@
 
 namespace {
 
-constexpr uint32_t kPresenceSampleIntervalMs = 300;
 constexpr uint32_t kWifiReconnectIntervalMs = 5000;
-constexpr uint8_t kLeftIndicatorPin = D1;
-constexpr uint8_t kMiddleIndicatorPin = D2;
-constexpr uint8_t kRightIndicatorPin = D7;
-constexpr uint8_t kUltrasonicTriggerPin = D5;
-constexpr uint8_t kUltrasonicEchoPin = D6;
-constexpr uint32_t kUltrasonicPulseTimeoutUs = 30000;
-constexpr uint16_t kPresenceDistanceThresholdCm = 75;
-constexpr uint8_t kPresenceStableSampleCount = 2;
+constexpr uint8_t kRedIndicatorPin = D5;
+constexpr uint8_t kGreenIndicatorPin = D6;
+constexpr uint8_t kBlueIndicatorPin = D7;
+constexpr char kWifiHostname[] = "handwashled";
+constexpr bool kPresenceSensorOnline = false;
+constexpr bool kHandPresent = false;
+constexpr bool kStablePresenceDetected = false;
+constexpr uint32_t kPresenceSequence = 0;
 
 #ifdef BINSIGHT_WIFI_SSID
 constexpr char kWifiSsid[] = BINSIGHT_WIFI_SSID;
 #else
-constexpr char kWifiSsid[] = "Golden's iPhone";
+constexpr char kWifiSsid[] = "Golden’s iPhone";
 #endif
 
 #ifdef BINSIGHT_WIFI_PASS
 constexpr char kWifiPass[] = BINSIGHT_WIFI_PASS;
 #else
-constexpr char kWifiPass[] = "";
+constexpr char kWifiPass[] = "winners!";
 #endif
 
 binsight::IndicatorZone activeZone = binsight::IndicatorZone::Off;
 ESP8266WebServer server(80);
-uint32_t lastPresenceSampleMs = 0;
 uint32_t lastWifiReconnectAttemptMs = 0;
-uint32_t presenceSequence = 0;
-bool sensorOnline = true;
-bool rawPresenceDetected = false;
-bool stablePresenceDetected = false;
-uint8_t consecutivePresenceSamples = 0;
-uint8_t consecutiveAbsenceSamples = 0;
-
-long readUltrasonicDistanceCm() {
-  digitalWrite(kUltrasonicTriggerPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(kUltrasonicTriggerPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(kUltrasonicTriggerPin, LOW);
-
-  const unsigned long echoDurationUs =
-      pulseIn(kUltrasonicEchoPin, HIGH, kUltrasonicPulseTimeoutUs);
-  if (echoDurationUs == 0) {
-    sensorOnline = false;
-    return -1;
-  }
-
-  sensorOnline = true;
-  return static_cast<long>(echoDurationUs / 58UL);
-}
-
-void samplePresenceSensor() {
-  const long distanceCm = readUltrasonicDistanceCm();
-  if (distanceCm < 0) {
-    rawPresenceDetected = false;
-    stablePresenceDetected = false;
-    consecutivePresenceSamples = 0;
-    consecutiveAbsenceSamples = 0;
-    ++presenceSequence;
-    return;
-  }
-
-  rawPresenceDetected = distanceCm > 0 && distanceCm <= kPresenceDistanceThresholdCm;
-  if (rawPresenceDetected) {
-    consecutivePresenceSamples = min<uint8_t>(
-        static_cast<uint8_t>(consecutivePresenceSamples + 1),
-        kPresenceStableSampleCount);
-    consecutiveAbsenceSamples = 0;
-    if (consecutivePresenceSamples >= kPresenceStableSampleCount) {
-      stablePresenceDetected = true;
-    }
-    ++presenceSequence;
-    return;
-  }
-
-  consecutiveAbsenceSamples = min<uint8_t>(
-      static_cast<uint8_t>(consecutiveAbsenceSamples + 1),
-      kPresenceStableSampleCount);
-  consecutivePresenceSamples = 0;
-  if (consecutiveAbsenceSamples >= kPresenceStableSampleCount) {
-    stablePresenceDetected = false;
-  }
-  ++presenceSequence;
-}
+bool wifiConnectionLogged = false;
 
 void applyIndicator(const binsight::IndicatorZone zone) {
   activeZone = zone;
 
-  digitalWrite(kLeftIndicatorPin, zone == binsight::IndicatorZone::Left ? HIGH : LOW);
-  digitalWrite(kMiddleIndicatorPin,
+  digitalWrite(kRedIndicatorPin, zone == binsight::IndicatorZone::Left ? HIGH : LOW);
+  digitalWrite(kGreenIndicatorPin,
                zone == binsight::IndicatorZone::Middle ? HIGH : LOW);
-  digitalWrite(kRightIndicatorPin, zone == binsight::IndicatorZone::Right ? HIGH : LOW);
+  digitalWrite(kBlueIndicatorPin, zone == binsight::IndicatorZone::Right ? HIGH : LOW);
 }
 
 String boolJson(const bool value) {
@@ -106,21 +47,19 @@ String boolJson(const bool value) {
 }
 
 String healthPayloadJson() {
-  const bool handPresent = rawPresenceDetected;
-  const binsight::IndicatorZone handZone =
-      handPresent ? activeZone : binsight::IndicatorZone::Off;
+  const binsight::IndicatorZone handZone = binsight::IndicatorZone::Off;
 
   String payload = "{";
   payload += "\"transport\":\"http\",";
-  payload += "\"sensorOnline\":" + boolJson(sensorOnline) + ",";
+  payload += "\"sensorOnline\":" + boolJson(kPresenceSensorOnline) + ",";
   payload += "\"indicatorOnline\":true,";
   payload += "\"uptimeMs\":" + String(millis()) + ",";
   payload += "\"activeZone\":\"" + String(binsight::indicatorZoneName(activeZone)) + "\",";
   payload += "\"presence\":{";
-  payload += "\"handPresent\":" + boolJson(handPresent) + ",";
+  payload += "\"handPresent\":" + boolJson(kHandPresent) + ",";
   payload += "\"handZone\":\"" + String(binsight::indicatorZoneName(handZone)) + "\",";
-  payload += "\"stable\":" + boolJson(handPresent && stablePresenceDetected) + ",";
-  payload += "\"sequence\":" + String(presenceSequence);
+  payload += "\"stable\":" + boolJson(kStablePresenceDetected) + ",";
+  payload += "\"sequence\":" + String(kPresenceSequence);
   payload += "},";
   payload += "\"failurePolicy\":{";
   payload += "\"guidanceCommand\":\"best-effort\",";
@@ -242,7 +181,6 @@ void resetControllerState() {
 }
 
 void handleHealth() {
-  samplePresenceSensor();
   server.send(200, "application/json", healthPayloadJson());
 }
 
@@ -287,8 +225,24 @@ void ensureWifiConnected() {
 
   lastWifiReconnectAttemptMs = now;
   WiFi.disconnect();
+  WiFi.hostname(kWifiHostname);
   WiFi.begin(kWifiSsid, kWifiPass);
   Serial.println("binsight wifi reconnect attempt");
+}
+
+void logWifiConnectionIfNeeded() {
+  if (WiFi.status() != WL_CONNECTED) {
+    wifiConnectionLogged = false;
+    return;
+  }
+
+  if (wifiConnectionLogged) {
+    return;
+  }
+
+  wifiConnectionLogged = true;
+  Serial.print("binsight wifi connected ip=");
+  Serial.println(WiFi.localIP());
 }
 
 void configureHttpServer() {
@@ -299,40 +253,26 @@ void configureHttpServer() {
   server.begin();
 }
 
-void maybeSamplePresence() {
-  const uint32_t now = millis();
-  if (now - lastPresenceSampleMs < kPresenceSampleIntervalMs) {
-    return;
-  }
-
-  lastPresenceSampleMs = now;
-  samplePresenceSensor();
-}
-
 }  // namespace
 
 void setup() {
-  pinMode(kLeftIndicatorPin, OUTPUT);
-  pinMode(kMiddleIndicatorPin, OUTPUT);
-  pinMode(kRightIndicatorPin, OUTPUT);
+  pinMode(kRedIndicatorPin, OUTPUT);
+  pinMode(kGreenIndicatorPin, OUTPUT);
+  pinMode(kBlueIndicatorPin, OUTPUT);
   applyIndicator(binsight::IndicatorZone::Off);
-  pinMode(kUltrasonicTriggerPin, OUTPUT);
-  digitalWrite(kUltrasonicTriggerPin, LOW);
-  pinMode(kUltrasonicEchoPin, INPUT);
 
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
+  WiFi.hostname(kWifiHostname);
   WiFi.begin(kWifiSsid, kWifiPass);
   configureHttpServer();
-  samplePresenceSensor();
-  lastPresenceSampleMs = millis();
   lastWifiReconnectAttemptMs = millis();
   Serial.println("binsight firmware boot http-server-ready");
 }
 
 void loop() {
   ensureWifiConnected();
-  maybeSamplePresence();
+  logWifiConnectionIfNeeded();
   server.handleClient();
   delay(10);
 }

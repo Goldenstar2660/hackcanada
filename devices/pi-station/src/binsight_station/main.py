@@ -124,6 +124,13 @@ def _optional_env(name: str) -> str | None:
     return stripped or None
 
 
+def _normalize_demo_predicted_item(predicted_item: str) -> str:
+    normalized = predicted_item.strip().replace("_", "-").replace(" ", "-").lower()
+    if not normalized:
+        raise ValueError("predicted_item is required")
+    return normalized
+
+
 def create_publication_adapter(settings: RuntimeSettings) -> PublicationAdapter:
     if not settings.binsight_device_id or not settings.binsight_device_shared_secret:
         return PublicationAdapter(settings.firebase_project_id)
@@ -327,6 +334,42 @@ class StationRuntime:
             return snapshot, self.last_live_status
         return snapshot, self._publish_runtime_status(snapshot, latest_event=self.last_event)
 
+    def start_demo_session(
+        self,
+        predicted_item: str,
+        *,
+        model_confidence: float = 0.97,
+        llm_fallback_used: bool = False,
+    ) -> tuple[SessionSnapshot, LiveStatus]:
+        snapshot = self.session.snapshot
+        if snapshot.phase is not SessionPhase.IDLE:
+            raise ValueError("demo session requires the station to be idle")
+
+        normalized_item = _normalize_demo_predicted_item(predicted_item)
+        disposal_method = self.rules.disposal_method_for_item(normalized_item)
+
+        self.esp_client.request_health()
+        self._poll_esp()
+
+        self.session.begin_presence_arming(self._now())
+        self.session.begin_identification(self._now())
+        guidance_snapshot = self.session.set_guidance(
+            normalized_item,
+            disposal_method,
+            model_confidence,
+            llm_fallback_used,
+            self._now(),
+        )
+        self._send_guidance(guidance_snapshot)
+        self.lcd_client.render_guidance(
+            predicted_item=normalized_item,
+            disposal_method=disposal_method,
+            total_attempts=guidance_snapshot.total_attempts,
+            total_correct_sorts=guidance_snapshot.total_correct_sorts,
+        )
+        waiting_snapshot = self.session.begin_waiting_for_disposal(self._now())
+        return waiting_snapshot, self._publish_runtime_status(waiting_snapshot, latest_event=self.last_event)
+
     def _send_guidance(self, snapshot: SessionSnapshot) -> None:
         if snapshot.phase is not SessionPhase.GUIDING:
             raise ValueError("guidance output requires the guidance state")
@@ -403,15 +446,21 @@ class StationRuntime:
 
         return self.session.snapshot, event
 
+    def close(self) -> None:
+        self.lcd_client.close()
+
 
 def main() -> int:
     runtime = StationRuntime(load_runtime_settings())
-    snapshot, status = runtime.start_session()
-    print(
-        f"station={status.station_id} phase={status.phase} item={snapshot.predicted_item} "
-        f"disposal={snapshot.correct_disposal_method}"
-    )
-    return 0
+    try:
+        snapshot, status = runtime.start_session()
+        print(
+            f"station={status.station_id} phase={status.phase} item={snapshot.predicted_item} "
+            f"disposal={snapshot.correct_disposal_method}"
+        )
+        return 0
+    finally:
+        runtime.close()
 
 
 if __name__ == "__main__":

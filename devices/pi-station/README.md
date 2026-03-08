@@ -72,6 +72,18 @@ Install dependencies with `uv`:
 uv sync
 ```
 
+## LCD wiring
+
+The Pi runtime now includes a real 16x2 HD44780-compatible LCD driver over Raspberry Pi BCM GPIO in 4-bit mode.
+
+Default wiring:
+
+* `rs=25`
+* `e=24`
+* `data=23,17,18,22`
+
+When GPIO access is unavailable, such as local desktop tests, the LCD client falls back to in-memory rendering so the runtime and test suite still work off-device.
+
 For the training photo capture tool on a Raspberry Pi, this is the one command to run:
 
 ```bash
@@ -98,6 +110,65 @@ Run the placeholder station entry point:
 uv run binsight-station
 ```
 
+## Real-time component simulation
+
+To exercise the Pi runtime against a **fake ESP HTTP controller** and a **fake backend ingress server** in actual wall-clock time, run:
+
+```bash
+uv run binsight-realtime-sim
+```
+
+This local harness simulates a live detection flow and verifies that:
+
+* the Pi runtime polls the ESP `/health` endpoint in real time
+* the Pi runtime sends guidance to the ESP `/signal` endpoint
+* the simulated ESP records the active indicator zone it received
+* the Pi runtime publishes live-status and disposal-event payloads to backend ingress endpoints
+* the simulated backend stores those payloads in memory and returns write acknowledgements
+
+Useful options:
+
+```bash
+uv run binsight-realtime-sim --item plastic-bottle --disposal-zone left --output-json simulation-result.json
+```
+
+Use `--no-reset` if you want the run to stop right after the disposal event is published instead of waiting for the runtime to return to `idle`.
+
+This harness is meant for **local component/integration rehearsal**. It does not require Firebase deployment or real ESP hardware, but it does use real wall-clock timing and real localhost HTTP requests so the device seams are exercised end-to-end.
+
+## Live demo command with fake model detection
+
+If your goal is to **fake only the ML/CV detection** while still using the **real ESP**, the **real backend**, and the **real dashboard**, use:
+
+```bash
+uv run binsight-live-demo --item plastic-bottle
+```
+
+This command:
+
+* loads the real Pi `.env` configuration
+* sends the real guidance command to the configured `ESP_ENDPOINT`
+* publishes real live-status and disposal-event payloads through the configured backend ingress path
+* lets the web dashboard update from the real project data source
+* only fakes the step that says “the model detected this item”
+
+Useful examples:
+
+```bash
+uv run binsight-live-demo --item plastic-bottle --zone left
+uv run binsight-live-demo --item banana-peel --zone middle --guidance-hold-seconds 8
+uv run binsight-live-demo --item plastic-bottle --no-reset
+```
+
+Recommended prerequisites before running it:
+
+* `devices/pi-station/.env` points to the real ESP and the real backend project
+* the ESP is flashed, powered, and reachable at `ESP_ENDPOINT`
+* backend Functions are deployed for the configured Firebase project
+* the web app is running against the same Firebase project so you can watch the update live
+* `BINSIGHT_DEVICE_ID` and `BINSIGHT_DEVICE_SHARED_SECRET` are set so the backend accepts the device publication
+
+This is the command to use when you want to say: **“pretend the model just detected an item, and now drive the real system.”**
 ## Model asset layout
 
 The Pi runtime now expects the item-classifier assets in `devices/pi-station/models/item_classifier/` by default. You can override that location with `ITEM_CLASSIFIER_MODEL_DIR` in `devices/pi-station/.env`.
