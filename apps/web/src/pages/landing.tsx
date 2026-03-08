@@ -1,3 +1,5 @@
+const LANDING_LOGO_SRC = new URL("../../assets/logo.png", import.meta.url).href;
+
 const landingNavigation = [
   {
     label: "Dashboard",
@@ -80,8 +82,7 @@ export function LandingPage(): JSX.Element {
 
           <aside className="dashboard-public-brand-panel">
             <div>
-              <p className="dashboard-public-brand-name">B<span>i</span>NSIGHT</p>
-              <p className="dashboard-public-brand-subtitle">By Vastum Generis</p>
+              <img className="dashboard-public-brand-image" src={LANDING_LOGO_SRC} alt="Binsight" />
             </div>
 
             <div className="dashboard-section-stack">

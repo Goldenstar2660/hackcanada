@@ -1,5 +1,7 @@
 import type { DashboardRouteDefinition, DashboardRouteMatch } from "./types.js";
 
+const APP_LOGO_SRC = new URL("../../assets/logo.png", import.meta.url).href;
+
 export interface DashboardLayoutProps {
   readonly currentRoute: DashboardRouteMatch;
   readonly navigationRoutes: readonly DashboardRouteDefinition[];
@@ -13,15 +15,13 @@ function isRouteSelected(currentPath: string, routePath: string): boolean {
 }
 
 export function DashboardLayout(props: DashboardLayoutProps): JSX.Element {
-  const isSecondaryRoute = !props.currentRoute.route.showInNavigation;
-  const isCompatibilityPath = props.currentRoute.requestedPath !== props.currentRoute.path;
+  const showFooter = props.currentRoute.route.id !== "devices" && props.currentRoute.route.id !== "device-detail";
 
   return (
     <div data-surface="binsight-dashboard" className="dashboard-shell dashboard-shell--app">
       <header className="dashboard-auth-header dashboard-app-header">
         <a href="/dashboard" className="dashboard-brand dashboard-brand-link" aria-label="Binsight dashboard home">
-          <span className="dashboard-brand-mark" aria-hidden="true">DS</span>
-          <span className="dashboard-brand-wordmark">BiNSIGHT</span>
+          <img className="dashboard-brand-image" src={APP_LOGO_SRC} alt="Binsight" />
         </a>
 
         <nav className="dashboard-top-nav" aria-label="Primary">
@@ -36,39 +36,23 @@ export function DashboardLayout(props: DashboardLayoutProps): JSX.Element {
             </a>
           ))}
         </nav>
-
-        <div className="dashboard-auth-actions">
-          <span className="dashboard-auth-icon-button">LIVE</span>
-          <span className="dashboard-auth-avatar">OP</span>
-        </div>
       </header>
 
       <main className="dashboard-main dashboard-main--app">
         <section className="dashboard-header dashboard-header--app">
           <p className="dashboard-eyebrow">Binsight operator system</p>
-          <div className="dashboard-row dashboard-row--baseline">
-            <div>
-              <h1 className="dashboard-title">{props.title}</h1>
-              <p className="dashboard-description">{props.description}</p>
-            </div>
-            <div className="dashboard-chip-row" aria-label="Route context">
-              <span className="dashboard-chip dashboard-chip--active">
-                {isSecondaryRoute ? "Secondary route" : "Primary route"}
-              </span>
-              <span className="dashboard-chip">Visible IA: Dashboard, Analytics, and Devices</span>
-              {isSecondaryRoute ? <span className="dashboard-chip dashboard-chip--warning">Deep link retained for migration safety</span> : null}
-              {isCompatibilityPath ? <span className="dashboard-chip">Compatibility path {props.currentRoute.requestedPath}</span> : null}
-            </div>
-          </div>
+          <h1 className="dashboard-title">{props.title}</h1>
+          <p className="dashboard-description">{props.description}</p>
         </section>
 
         {props.children}
       </main>
-
-      <footer className="dashboard-auth-footer dashboard-app-footer">
-        <span className="dashboard-auth-footer-copy">Visible IA: landing, login, dashboard, analytics, devices, and device details.</span>
-        <span className="dashboard-auth-footer-action">System routes stay deferred until supported designs exist.</span>
-      </footer>
+      {showFooter ? (
+        <footer className="dashboard-auth-footer dashboard-app-footer">
+          <span className="dashboard-auth-footer-copy">Visible IA: landing, login, dashboard, analytics, devices, and device details.</span>
+          <span className="dashboard-auth-footer-action">System routes stay deferred until supported designs exist.</span>
+        </footer>
+      ) : null}
     </div>
   );
 }

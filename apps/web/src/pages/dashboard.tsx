@@ -57,7 +57,7 @@ function formatTimestamp(value: string): string {
 
 function getSelectedFakeLocation(filters: DashboardPageLoadContext["filters"]): string {
   const requestedLocation = filters.locationLabels[0];
-  return requestedLocation && fakeLocations.includes(requestedLocation) ? requestedLocation : fakeLocations[0];
+  return requestedLocation && fakeLocations.some((location) => location === requestedLocation) ? requestedLocation : fakeLocations[0];
 }
 
 function createScopeHighlights(context: DashboardPageLoadContext, model: DashboardPageModel): readonly string[] {
@@ -258,40 +258,6 @@ export function DashboardPage(props: {
           <article className="dashboard-home-panel">
             <div className="dashboard-home-panel-header">
               <div>
-                <p className="dashboard-home-panel-kicker">System performance</p>
-                <h2 className="dashboard-home-panel-title">Operations overview</h2>
-              </div>
-            </div>
-
-            <div className="dashboard-home-facts-grid">
-              <article>
-                <span className="dashboard-home-meta-label">Total attempts</span>
-                <strong>{formatCount(props.model.summary.totals.totalAttempts)}</strong>
-              </article>
-              <article>
-                <span className="dashboard-home-meta-label">Correct sorts</span>
-                <strong>{formatCount(props.model.summary.totals.totalCorrectSorts)}</strong>
-              </article>
-              <article>
-                <span className="dashboard-home-meta-label">Participation score</span>
-                <strong>{formatPercent(props.model.summary.totals.participationComplianceScore)}</strong>
-              </article>
-              <article>
-                <span className="dashboard-home-meta-label">Filter window</span>
-                <strong>{props.context.filters.timeRange.label}</strong>
-              </article>
-            </div>
-
-            <div className="dashboard-home-chip-row" aria-label="Scope highlights">
-              {scopeHighlights.map((highlight) => (
-                <span key={highlight} className="dashboard-home-chip">{highlight}</span>
-              ))}
-            </div>
-          </article>
-
-          <article className="dashboard-home-panel">
-            <div className="dashboard-home-panel-header">
-              <div>
                 <p className="dashboard-home-panel-kicker">Contamination watch</p>
                 <h2 className="dashboard-home-panel-title">Highest incorrect items</h2>
               </div>
@@ -314,30 +280,6 @@ export function DashboardPage(props: {
             )}
           </article>
 
-          <article className="dashboard-home-panel">
-            <div className="dashboard-home-panel-header">
-              <div>
-                <p className="dashboard-home-panel-kicker">Devices</p>
-                <h2 className="dashboard-home-panel-title">Station directory</h2>
-              </div>
-            </div>
-
-            {visibleStations.length > 0 ? (
-              <div className="dashboard-home-list">
-                {visibleStations.map((station) => (
-                  <article key={station.stationId} className="dashboard-home-list-row">
-                    <div>
-                      <h3>{station.stationName}</h3>
-                      <p>{station.buildingLabel} · {station.floorLabel} · {station.locationLabel}</p>
-                    </div>
-                    <a href={`/devices/${station.stationId}`} className="dashboard-home-inline-link">Open</a>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="dashboard-home-empty-state">No active devices match the current filter state.</p>
-            )}
-          </article>
         </section>
 
         <footer className="dashboard-home-footer">

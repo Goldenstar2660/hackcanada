@@ -2,7 +2,6 @@ import type { StationDirectoryResponse } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 
-import { FilterControls } from "../features/filters/filter-controls.js";
 import { StationDirectory } from "../features/stations/station-directory.js";
 import { matchesStationFilters } from "../lib/query/dashboard-query.js";
 
@@ -100,15 +99,6 @@ export function StationsPage(props: { readonly model: StationsPageModel; readonl
           ))}
         </div>
       </article>
-
-      <FilterControls
-        actionPath={props.context.match.path}
-        filters={props.context.filters}
-        availableFilters={props.model.directory.filters}
-        availableStations={props.model.directory.stations}
-        stationCount={props.model.visibleStations.length}
-      />
-
       <StationDirectory stations={props.model.visibleStations} />
     </section>
   );

@@ -18,6 +18,8 @@ import {
 } from "../lib/firebase/live-status.js";
 import { normalizeDashboardFilters, parseDashboardFilters } from "../lib/query/dashboard-query.js";
 
+const STANDALONE_LOGO_SRC = new URL("../../assets/logo.png", import.meta.url).href;
+
 export interface DashboardAppRenderRequest {
   readonly path?: string;
   readonly filters?: Partial<DashboardFilterState>;
@@ -183,8 +185,7 @@ function DashboardStandaloneShell(props: {
     <section className="dashboard-shell dashboard-shell--standalone dashboard-auth-shell">
       <header className="dashboard-auth-header">
         <div className="dashboard-brand">
-          <span className="dashboard-brand-mark" aria-hidden="true">DS</span>
-          <span className="dashboard-brand-wordmark">BiNSIGHT</span>
+          <img className="dashboard-brand-image" src={STANDALONE_LOGO_SRC} alt="Binsight" />
         </div>
         <nav className="dashboard-auth-nav" aria-label="Route preview">
           {publicShellNavigation.map((item) => "href" in item ? (
@@ -197,10 +198,6 @@ function DashboardStandaloneShell(props: {
             </span>
           ))}
         </nav>
-        <div className="dashboard-auth-actions">
-          <span className="dashboard-auth-icon-button">Alerts</span>
-          <span className="dashboard-auth-avatar">OP</span>
-        </div>
       </header>
 
       <main className={`dashboard-auth-main${props.mainClassName ? ` ${props.mainClassName}` : ""}`}>{props.children}</main>
@@ -319,21 +316,6 @@ function DashboardLoginState(props: {
             {props.busy ? "Signing in..." : "Login to dashboard"}
           </button>
         </form>
-
-        <div className="dashboard-auth-divider" aria-hidden="true">
-          <span>Or continue with</span>
-        </div>
-
-        <div className="dashboard-auth-social-grid" aria-label="Unavailable social sign-in providers">
-          <button type="button" className="dashboard-auth-social-button" disabled={true} aria-disabled="true">
-            <span className="dashboard-auth-social-badge">G</span>
-            <span>Google</span>
-          </button>
-          <button type="button" className="dashboard-auth-social-button" disabled={true} aria-disabled="true">
-            <span className="dashboard-auth-social-badge">GH</span>
-            <span>GitHub</span>
-          </button>
-        </div>
 
         <div className="dashboard-auth-request-access">
           <p className="dashboard-auth-footnote">Do not have an account?</p>
