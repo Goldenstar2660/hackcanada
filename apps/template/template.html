@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#247ad6",
+                        "background-light": "#ffffff",
+                        "background-dark": "#121920",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .brutalist-border { border: 1px solid #000000; }
+        .grid-bg {
+            background-image: radial-gradient(#000000 0.5px, transparent 0.5px);
+            background-size: 20px 20px;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen grid-bg">
+<div class="max-w-[1440px] mx-auto min-h-screen flex flex-col brutalist-border bg-white">
+<!-- Header -->
+<header class="flex items-center justify-between px-6 py-4 border-b border-black">
+<div class="flex items-center gap-4">
+<div class="size-8 bg-primary flex items-center justify-center text-white brutalist-border">
+<span class="material-symbols-outlined text-xl">delete_sweep</span>
+</div>
+<h2 class="text-xl font-bold tracking-tighter uppercase">B<span class="lowercase">i</span>NSIGHT</h2>
+</div>
+<nav class="hidden md:flex items-center gap-8 text-[10px] uppercase font-mono font-bold tracking-widest">
+<a class="hover:text-primary underline decoration-2 underline-offset-4" href="#">Dashboard</a>
+<a class="hover:text-primary" href="#">Analytics</a>
+<a class="hover:text-primary" href="#">Devices</a>
+<a class="hover:text-primary" href="#">Settings</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="brutalist-border p-2 hover:bg-primary/10">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<div class="size-10 bg-slate-200 brutalist-border overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAozHdRFnLaM-wEM1-uDbs5LtUnP3VStyRe1aDfOOFjtdsJ_nWNF7vnw5OPyNV1fRRtwR0ZHWr_4O-Ef058RuKE4e_ZoUHjJ9DXa4BWCECVyFytxETSeIG4tHe3U9uzprD_fIjGdDuPd1crCzW9W5J9TrR0MsOg7kLz48AxJaCmol1zmNmzFC-8CId5O4PPBtt17ENQPSX2d0L4ZHE7MqUTFdGRg95HavzLM0UtpvNcS5OwWz-sB8fzftIP-xlxkN9_NuLHlyUsYpB-"/>
+</div>
+</div>
+</header>
+<!-- Hero Section -->
+<section class="border-b border-black p-6 md:p-12 flex flex-col justify-center bg-white">
+<h1 class="text-7xl md:text-[140px] font-black leading-none tracking-tighter uppercase mb-6 flex items-baseline">B<span class="normal-case">i</span>NSIGHT</h1>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<p class="text-lg md:text-xl font-medium max-w-md uppercase leading-tight">
+                    COMPUTER VISION FOR WASTE CLASSIFICATION. <span class="text-primary underline">V2.0.4 SYSTEM CORE.</span>
+</p>
+<div class="flex flex-col gap-2 mb-2 w-full md:w-64">
+<label class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500">Select Location</label>
+<select class="brutalist-border bg-white p-2 text-xs font-mono font-bold uppercase focus:ring-0 focus:border-black appearance-none">
+<option>Main Office</option>
+<option>Warehouse A</option>
+<option>South Campus</option>
+</select>
+</div><button class="bg-primary text-white font-bold uppercase py-4 px-8 text-xl brutalist-border hover:bg-black transition-colors">
+                    New Scan
+                </button>
+</div>
+</section>
+<!-- Stats Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 border-b border-black">
+<div class="p-8 border-b md:border-b-0 md:border-r border-black flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-xs font-mono font-bold uppercase tracking-widest text-slate-500">Compost</span>
+<span class="text-green-600 font-bold text-sm">+12%</span>
+</div>
+<div class="text-6xl font-black">1,284</div>
+<div class="w-full h-1 bg-slate-100 mt-4">
+<div class="h-full bg-primary" style="width: 45%;"></div>
+</div>
+</div>
+<div class="p-8 border-b md:border-b-0 md:border-r border-black flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-xs font-mono font-bold uppercase tracking-widest text-slate-500">Recycle</span>
+<span class="text-green-600 font-bold text-sm">+5%</span>
+</div>
+<div class="text-6xl font-black">4,592</div>
+<div class="w-full h-1 bg-slate-100 mt-4">
+<div class="h-full bg-primary" style="width: 78%;"></div>
+</div>
+</div>
+<div class="p-8 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-xs font-mono font-bold uppercase tracking-widest text-slate-500">Garbage</span>
+<span class="text-red-600 font-bold text-sm">-2%</span>
+</div>
+<div class="text-6xl font-black">12,402</div>
+<div class="w-full h-1 bg-slate-100 mt-4">
+<div class="h-full bg-primary" style="width: 22%;"></div>
+</div>
+</div>
+</section><section class="border-b border-black bg-white">
+<div class="flex flex-col md:flex-row">
+<div class="p-8 border-b md:border-b-0 md:border-r border-black w-full md:w-1/4 flex flex-col gap-4">
+<h3 class="text-xl font-black uppercase tracking-tight">Device Map</h3>
+<p class="text-xs font-mono text-slate-500 uppercase leading-relaxed">Real-time spatial distribution of active computer vision nodes across the facility network.</p>
+<div class="flex flex-col gap-2 mt-auto">
+<div class="flex justify-between items-center text-[10px] font-mono font-bold">
+<span>ACTIVE NODES</span>
+<span class="text-primary">24/24</span>
+</div>
+<div class="w-full h-1 bg-slate-100">
+<div class="h-full bg-primary" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+<div class="grow h-[300px] grid-bg relative overflow-hidden flex items-center justify-center">
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<svg height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 150 Q 350 50 700 150 T 1400 150" fill="none" stroke="black" stroke-width="2"></path>
+<circle cx="200" cy="120" fill="#247ad6" r="8"></circle>
+<circle cx="450" cy="180" fill="#247ad6" r="8"></circle>
+<circle cx="800" cy="140" fill="#247ad6" r="8"></circle>
+</svg>
+</div>
+<span class="text-[10px] font-mono font-bold uppercase bg-white brutalist-border px-3 py-1 z-10">Live Network Visualization</span>
+</div>
+</div>
+</section>
+<!-- Main Content -->
+<main class="grid grid-cols-1 lg:grid-cols-12 grow">
+<!-- Sidebar Navigation (Desktop) -->
+<aside class="hidden lg:flex lg:col-span-1 border-r border-black flex-col items-center py-8 gap-8">
+<div class="material-symbols-outlined text-primary text-3xl font-bold">home</div>
+<div class="material-symbols-outlined text-slate-400 text-3xl">history</div>
+<div class="material-symbols-outlined text-slate-400 text-3xl">map</div>
+<div class="material-symbols-outlined text-slate-400 text-3xl">bar_chart</div>
+</aside>
+<!-- Table Section -->
+<div class="lg:col-span-11 p-6 md:p-8 bg-background-light">
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-3xl font-black uppercase tracking-tight">Recent Scans</h3>
+<div class="flex gap-2">
+<div class="brutalist-border px-4 py-2 bg-white flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+<span class="text-xs font-bold uppercase">Filter</span>
+</div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full brutalist-border bg-white text-left">
+<thead>
+<tr class="border-b border-black bg-slate-50">
+<th class="p-4 text-xs font-mono font-bold uppercase">ID</th>
+<th class="p-4 text-xs font-mono font-bold uppercase">Item Name</th>
+<th class="p-4 text-xs font-mono font-bold uppercase">Classification</th>
+<th class="p-4 text-xs font-mono font-bold uppercase">Confidence</th>
+<th class="p-4 text-xs font-mono font-bold uppercase">Status</th>
+<th class="p-4 text-xs font-mono font-bold uppercase">Date &amp; Time</th><th class="p-4 text-xs font-mono font-bold uppercase text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-black/10">
+<tr>
+<td class="p-4 font-mono text-xs">#99281</td>
+<td class="p-4 font-bold uppercase">Plastic Bottle (PET)</td>
+<td class="p-4"><span class="brutalist-border px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase">Recycle</span></td>
+<td class="p-4 font-mono font-bold">98.2%</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-xs font-bold uppercase">Success</span>
+</div>
+</td>
+<td class="p-4 font-mono text-[10px] uppercase">March 7, 2026, 4:58 PM</td><td class="p-4 text-right">
+<button class="bg-black text-white px-4 py-1 text-[10px] font-bold uppercase brutalist-border hover:bg-primary">View</button>
+</td>
+</tr>
+<tr>
+<td class="p-4 font-mono text-xs">#99280</td>
+<td class="p-4 font-bold uppercase">Cardboard Box</td>
+<td class="p-4"><span class="brutalist-border px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase">Recycle</span></td>
+<td class="p-4 font-mono font-bold">94.5%</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-xs font-bold uppercase">Success</span>
+</div>
+</td>
+<td class="p-4 font-mono text-[10px] uppercase">March 7, 2026, 4:45 PM</td><td class="p-4 text-right">
+<button class="bg-black text-white px-4 py-1 text-[10px] font-bold uppercase brutalist-border hover:bg-primary">View</button>
+</td>
+</tr>
+<tr>
+<td class="p-4 font-mono text-xs">#99279</td>
+<td class="p-4 font-bold uppercase">Banana Peel</td>
+<td class="p-4"><span class="brutalist-border px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase">Compost</span></td>
+<td class="p-4 font-mono font-bold">99.1%</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-xs font-bold uppercase">Success</span>
+</div>
+</td>
+<td class="p-4 font-mono text-[10px] uppercase">March 7, 2026, 4:32 PM</td><td class="p-4 text-right">
+<button class="bg-black text-white px-4 py-1 text-[10px] font-bold uppercase brutalist-border hover:bg-primary">View</button>
+</td>
+</tr>
+<tr>
+<td class="p-4 font-mono text-xs">#99278</td>
+<td class="p-4 font-bold uppercase">Polystyrene Foam</td>
+<td class="p-4"><span class="brutalist-border px-2 py-1 bg-red-100 text-red-700 text-[10px] font-bold uppercase">Garbage</span></td>
+<td class="p-4 font-mono font-bold">87.3%</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-xs font-bold uppercase">Success</span>
+</div>
+</td>
+<td class="p-4 font-mono text-[10px] uppercase">March 7, 2026, 4:15 PM</td><td class="p-4 text-right">
+<button class="bg-black text-white px-4 py-1 text-[10px] font-bold uppercase brutalist-border hover:bg-primary">View</button>
+</td>
+</tr>
+<tr>
+<td class="p-4 font-mono text-xs">#99277</td>
+<td class="p-4 font-bold uppercase">Coffee Cup</td>
+<td class="p-4"><span class="brutalist-border px-2 py-1 bg-slate-100 text-slate-700 text-[10px] font-bold uppercase">Mixed</span></td>
+<td class="p-4 font-mono font-bold">62.8%</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-yellow-500"></div>
+<span class="text-xs font-bold uppercase">Manual Review</span>
+</div>
+</td>
+<td class="p-4 font-mono text-[10px] uppercase">March 7, 2026, 3:55 PM</td><td class="p-4 text-right">
+<button class="bg-black text-white px-4 py-1 text-[10px] font-bold uppercase brutalist-border hover:bg-primary">View</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="border-t border-black p-6 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500">© 2026 BINSIGHT DATA SYSTEMS. ALL RIGHTS RESERVED.</div>
+<button class="brutalist-border px-4 py-2 text-[10px] font-mono font-bold uppercase hover:bg-black hover:text-white transition-colors">Contact Us</button></footer>
+</div>
+</body></html>

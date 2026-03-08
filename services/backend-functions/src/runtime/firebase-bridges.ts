@@ -8,8 +8,13 @@ import type { AnalyticsMaterializer } from "../analytics/materializers/daily-rol
 import type { DisposalEvent } from "@binsight/contracts";
 import type { CallableHandler, HttpHandler } from "../functions/runtime.js";
 
+import { ValidationError } from "../domain/validation.js";
 import { analyticsMaterializationLedgerDocumentPath, FIRESTORE_COLLECTIONS } from "../firestore/collections.js";
 import { toErrorResponse, FunctionError } from "../functions/runtime.js";
+
+const PUBLIC_INVOKER_OPTIONS = {
+  invoker: "public"
+} as const;
 
 function normalizeHeaders(headers: Request["headers"]): Readonly<Record<string, string | undefined>> {
   const normalized: Record<string, string | undefined> = {};
@@ -46,6 +51,12 @@ function toHttpsError(error: unknown): HttpsError {
     return error;
   }
 
+  if (error instanceof ValidationError) {
+    return new HttpsError("invalid-argument", error.message, {
+      issues: error.issues
+    });
+  }
+
   if (error instanceof FunctionError) {
     return new HttpsError(mapFunctionErrorCode(error), error.message, error.details);
   }
@@ -58,7 +69,7 @@ function toHttpsError(error: unknown): HttpsError {
 }
 
 export function createFirebaseHttpFunction(handler: HttpHandler): HttpsFunction {
-  return onRequest(async (request: Request, response: Response) => {
+  return onRequest(PUBLIC_INVOKER_OPTIONS, async (request: Request, response: Response) => {
     const result = await handler({
       method: request.method,
       headers: normalizeHeaders(request.headers),
@@ -77,7 +88,7 @@ export function createFirebaseHttpFunction(handler: HttpHandler): HttpsFunction 
 export function createFirebaseCallableFunction<TRequest, TResponse>(
   handler: CallableHandler<TRequest, TResponse>
 ) {
-  return onCall<TRequest, TResponse>(async (request: CallableRequest<TRequest>) => {
+  return onCall<TRequest, TResponse>(PUBLIC_INVOKER_OPTIONS, async (request: CallableRequest<TRequest>) => {
     try {
       return await handler(request.data, {
         auth: request.auth

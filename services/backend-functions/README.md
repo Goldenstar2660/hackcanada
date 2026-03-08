@@ -63,6 +63,13 @@ Deploy Functions from the repository root with:
 corepack pnpm run firebase:deploy:functions
 ```
 
+The deployed HTTP and callable functions in this package are expected to remain publicly invokable at the Cloud Run transport layer. They do not rely on Cloud Run authentication for authorization. Instead:
+
+* dashboard callables enforce Firebase Auth inside the handler with `assertOperatorIdentity(...)`
+* device ingestion endpoints enforce signed device identity inside the handler with `deviceAuthenticator.authenticate(...)`
+
+If the dashboard shows a CORS failure and Cloud Run logs report `The request was not authenticated` on an `OPTIONS` request, the underlying service is blocking browser preflight before the function code runs. Rebuild and redeploy this package so the transport settings match the repository contract.
+
 ### Local seed environment
 
 The local seed workflow stays on shell exports plus application default credentials. Export these values in your shell before seeding demo data:

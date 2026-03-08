@@ -10,6 +10,7 @@ from typing import Callable, Protocol
 
 from dotenv import load_dotenv
 
+from .camera_capture import CameraCaptureSettings, CapturedImageSource, ImageSourceProvider, PiCameraImageSourceProvider
 from .classification import ClassificationPipeline, ClassificationRequest
 from .esp_client import EspClient, GuidanceCommand
 from .events import DisposalEvent, create_disposal_event
@@ -67,6 +68,7 @@ class RuntimeSettings:
     station_id: str
     rules_preset_id: str
     rules_preset_version: str
+    item_classifier_model_dir: Path
     esp_endpoint: str
     firebase_project_id: str
     firebase_functions_region: str
@@ -77,17 +79,26 @@ class RuntimeSettings:
     presence_debounce_seconds: float
     disposal_timeout_seconds: float
     reset_cooldown_seconds: float
+    camera_capture_width: int
+    camera_capture_height: int
+    camera_capture_format: str
+    camera_capture_rotation_degrees: int
 
 
 def load_runtime_settings() -> RuntimeSettings:
     project_root = Path(__file__).resolve().parents[2]
     load_dotenv(project_root / ".env")
     firebase_project_id = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("BINSIGHT_FIREBASE_PROJECT_ID") or "binsight-demo"
+    model_dir = os.getenv("ITEM_CLASSIFIER_MODEL_DIR")
+    resolved_model_dir = Path(model_dir) if model_dir else project_root / "models" / "item_classifier"
+    if not resolved_model_dir.is_absolute():
+        resolved_model_dir = project_root / resolved_model_dir
 
     return RuntimeSettings(
         station_id=os.getenv("STATION_ID", "demo-station-001"),
         rules_preset_id=os.getenv("RULES_PRESET_ID", "demo-canada-ottawa"),
         rules_preset_version=os.getenv("RULES_PRESET_VERSION", "1.0.0"),
+        item_classifier_model_dir=resolved_model_dir.resolve(),
         esp_endpoint=os.getenv("ESP_ENDPOINT", "http://192.168.4.1"),
         firebase_project_id=firebase_project_id,
         firebase_functions_region=os.getenv("FIREBASE_FUNCTIONS_REGION", "us-central1"),
@@ -98,6 +109,10 @@ def load_runtime_settings() -> RuntimeSettings:
         presence_debounce_seconds=float(os.getenv("PRESENCE_DEBOUNCE_SECONDS", "0.35")),
         disposal_timeout_seconds=float(os.getenv("DISPOSAL_TIMEOUT_SECONDS", "12.0")),
         reset_cooldown_seconds=float(os.getenv("RESET_COOLDOWN_SECONDS", "1.5")),
+        camera_capture_width=int(os.getenv("CAMERA_CAPTURE_WIDTH", "640")),
+        camera_capture_height=int(os.getenv("CAMERA_CAPTURE_HEIGHT", "480")),
+        camera_capture_format=os.getenv("CAMERA_CAPTURE_FORMAT", "jpg").strip().lower() or "jpg",
+        camera_capture_rotation_degrees=int(os.getenv("CAMERA_CAPTURE_ROTATION_DEGREES", "180")),
     )
 
 
@@ -140,6 +155,8 @@ class StationRuntime:
         lcd_client: LcdClient | None = None,
         publication_client: PublicationAdapter | None = None,
         hand_tracking_input: HandTrackingInput | None = None,
+        image_source_provider: ImageSourceProvider | None = None,
+        classifier: ClassificationPipeline | None = None,
     ) -> None:
         self.settings = settings
         self.rules: RulesPreset = load_rules_preset(
@@ -153,12 +170,20 @@ class StationRuntime:
                 reset_cooldown_seconds=settings.reset_cooldown_seconds,
             )
         )
-        self.classifier = ClassificationPipeline()
+        self.classifier = classifier or ClassificationPipeline(model_dir=settings.item_classifier_model_dir)
         self.esp_client = esp_client or EspClient(settings.esp_endpoint)
         self.lcd_client = lcd_client or LcdClient()
         self.live_status_publisher = LiveStatusPublisher()
         self.publication_client = publication_client or create_publication_adapter(settings)
         self.hand_tracking_input = hand_tracking_input or DeterministicHandTracker()
+        self.image_source_provider = image_source_provider or PiCameraImageSourceProvider(
+            CameraCaptureSettings(
+                width=settings.camera_capture_width,
+                height=settings.camera_capture_height,
+                image_format=settings.camera_capture_format,
+                rotation_degrees=settings.camera_capture_rotation_degrees,
+            )
+        )
         self._monotonic_clock = monotonic if monotonic_clock is None else monotonic_clock
         self.last_event: DisposalEvent | None = None
         self.last_live_status: LiveStatus | None = None
@@ -188,7 +213,6 @@ class StationRuntime:
         observed_presence_frame: bool,
     ) -> SessionSnapshot:
         snapshot = self.session.snapshot
-        classification_source = image_source or DEFAULT_DEMO_CLASSIFICATION_SOURCE
 
         if snapshot.phase is SessionPhase.IDLE:
             if not observed_presence_frame or not self.esp_client.has_stable_presence:
@@ -204,13 +228,24 @@ class StationRuntime:
         if not observed_presence_frame or not self.session.is_presence_confirmed(now):
             return snapshot
 
+        captured_image: CapturedImageSource | None = None
+        classification_source = image_source
+        if classification_source is None:
+            captured_image = self.image_source_provider.capture_image_source()
+            classification_source = captured_image.image_source
+
         self.session.begin_identification(now)
-        classification = self.classifier.classify(
-            ClassificationRequest(
-                image_source=classification_source,
-                confidence_threshold=self.rules.low_confidence_threshold,
+        try:
+            classification = self.classifier.classify(
+                ClassificationRequest(
+                    image_source=classification_source,
+                    confidence_threshold=self.rules.low_confidence_threshold,
+                )
             )
-        )
+        finally:
+            if captured_image is not None:
+                captured_image.cleanup()
+
         disposal_method = self.rules.disposal_method_for_item(classification.predicted_item)
         guidance_snapshot = self.session.set_guidance(
             classification.predicted_item,

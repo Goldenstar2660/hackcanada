@@ -155,7 +155,7 @@ function asEnumValue<TValue extends string>(
 }
 
 function asOptionalArrayOfStrings(value: unknown, path: string): readonly string[] | undefined {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
 
@@ -164,6 +164,23 @@ function asOptionalArrayOfStrings(value: unknown, path: string): readonly string
   }
 
   return value.map((entry, index) => asString(entry, `${path}[${index}]`));
+}
+
+function normalizeScalarArrayField(record: UnknownRecord, key: string): void {
+  const value = record[key];
+  if (typeof value === "string") {
+    record[key] = [value];
+  }
+}
+
+function normalizeDashboardFilterArrays(record: UnknownRecord): void {
+  normalizeScalarArrayField(record, "stationIds");
+  normalizeScalarArrayField(record, "buildingIds");
+  normalizeScalarArrayField(record, "floorIds");
+  normalizeScalarArrayField(record, "locationLabels");
+  normalizeScalarArrayField(record, "signageVariants");
+  normalizeScalarArrayField(record, "layoutVariants");
+  normalizeScalarArrayField(record, "attemptResults");
 }
 
 function assertMetricTotals(value: unknown, path: string): asserts value is MetricTotals {
@@ -423,6 +440,7 @@ export function assertStationRecord(value: unknown): asserts value is StationRec
 
 export function assertAnalyticsQuery(value: unknown): asserts value is AnalyticsQuery {
   const record = asRecord(value, "analyticsQuery");
+  normalizeDashboardFilterArrays(record);
   const timeRange = asRecord(record.timeRange, "analyticsQuery.timeRange");
   asIsoDateTime(timeRange.start, "analyticsQuery.timeRange.start");
   asIsoDateTime(timeRange.end, "analyticsQuery.timeRange.end");
@@ -441,7 +459,7 @@ export function assertAnalyticsQuery(value: unknown): asserts value is Analytics
     asEnumValue(metric, METRIC_KEYS, `analyticsQuery.metrics[${index}]`);
   });
 
-  if (record.groupBy !== undefined) {
+  if (record.groupBy !== undefined && record.groupBy !== null) {
     if (!Array.isArray(record.groupBy)) {
       fail("analyticsQuery.groupBy", "array");
     }
@@ -454,13 +472,14 @@ export function assertAnalyticsQuery(value: unknown): asserts value is Analytics
     asEnumValue(record.compareBy, ANALYTICS_GROUPING_DIMENSIONS, "analyticsQuery.compareBy");
   }
 
-  if (record.timeBucket !== undefined) {
+  if (record.timeBucket !== undefined && record.timeBucket !== null) {
     asEnumValue(record.timeBucket, ["hour", "day"], "analyticsQuery.timeBucket");
   }
 }
 
 export function assertEventHistoryQuery(value: unknown): asserts value is EventHistoryQuery {
   const record = asRecord(value, "eventHistoryQuery");
+  normalizeDashboardFilterArrays(record);
   const timeRange = asRecord(record.timeRange, "eventHistoryQuery.timeRange");
   asIsoDateTime(timeRange.start, "eventHistoryQuery.timeRange.start");
   asIsoDateTime(timeRange.end, "eventHistoryQuery.timeRange.end");
@@ -472,7 +491,7 @@ export function assertEventHistoryQuery(value: unknown): asserts value is EventH
   asOptionalArrayOfStrings(record.signageVariants, "eventHistoryQuery.signageVariants");
   asOptionalArrayOfStrings(record.layoutVariants, "eventHistoryQuery.layoutVariants");
 
-  if (record.attemptResults !== undefined) {
+  if (record.attemptResults !== undefined && record.attemptResults !== null) {
     if (!Array.isArray(record.attemptResults)) {
       fail("eventHistoryQuery.attemptResults", "array");
     }
@@ -482,7 +501,7 @@ export function assertEventHistoryQuery(value: unknown): asserts value is EventH
     });
   }
 
-  if (record.pageSize !== undefined) {
+  if (record.pageSize !== undefined && record.pageSize !== null) {
     asInteger(record.pageSize, "eventHistoryQuery.pageSize", 1, 500);
   }
 
