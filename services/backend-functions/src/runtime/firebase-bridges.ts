@@ -8,6 +8,7 @@ import type { AnalyticsMaterializer } from "../analytics/materializers/daily-rol
 import type { DisposalEvent } from "@binsight/contracts";
 import type { CallableHandler, HttpHandler } from "../functions/runtime.js";
 
+import { ValidationError } from "../domain/validation.js";
 import { analyticsMaterializationLedgerDocumentPath, FIRESTORE_COLLECTIONS } from "../firestore/collections.js";
 import { toErrorResponse, FunctionError } from "../functions/runtime.js";
 
@@ -48,6 +49,12 @@ function mapFunctionErrorCode(error: FunctionError): string {
 function toHttpsError(error: unknown): HttpsError {
   if (error instanceof HttpsError) {
     return error;
+  }
+
+  if (error instanceof ValidationError) {
+    return new HttpsError("invalid-argument", error.message, {
+      issues: error.issues
+    });
   }
 
   if (error instanceof FunctionError) {

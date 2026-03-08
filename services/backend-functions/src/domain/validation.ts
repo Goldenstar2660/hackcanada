@@ -166,6 +166,23 @@ function asOptionalArrayOfStrings(value: unknown, path: string): readonly string
   return value.map((entry, index) => asString(entry, `${path}[${index}]`));
 }
 
+function normalizeScalarArrayField(record: UnknownRecord, key: string): void {
+  const value = record[key];
+  if (typeof value === "string") {
+    record[key] = [value];
+  }
+}
+
+function normalizeDashboardFilterArrays(record: UnknownRecord): void {
+  normalizeScalarArrayField(record, "stationIds");
+  normalizeScalarArrayField(record, "buildingIds");
+  normalizeScalarArrayField(record, "floorIds");
+  normalizeScalarArrayField(record, "locationLabels");
+  normalizeScalarArrayField(record, "signageVariants");
+  normalizeScalarArrayField(record, "layoutVariants");
+  normalizeScalarArrayField(record, "attemptResults");
+}
+
 function assertMetricTotals(value: unknown, path: string): asserts value is MetricTotals {
   const record = asRecord(value, path);
   asNumber(record.totalAttempts, `${path}.totalAttempts`, 0);
@@ -423,6 +440,7 @@ export function assertStationRecord(value: unknown): asserts value is StationRec
 
 export function assertAnalyticsQuery(value: unknown): asserts value is AnalyticsQuery {
   const record = asRecord(value, "analyticsQuery");
+  normalizeDashboardFilterArrays(record);
   const timeRange = asRecord(record.timeRange, "analyticsQuery.timeRange");
   asIsoDateTime(timeRange.start, "analyticsQuery.timeRange.start");
   asIsoDateTime(timeRange.end, "analyticsQuery.timeRange.end");
@@ -461,6 +479,7 @@ export function assertAnalyticsQuery(value: unknown): asserts value is Analytics
 
 export function assertEventHistoryQuery(value: unknown): asserts value is EventHistoryQuery {
   const record = asRecord(value, "eventHistoryQuery");
+  normalizeDashboardFilterArrays(record);
   const timeRange = asRecord(record.timeRange, "eventHistoryQuery.timeRange");
   asIsoDateTime(timeRange.start, "eventHistoryQuery.timeRange.start");
   asIsoDateTime(timeRange.end, "eventHistoryQuery.timeRange.end");

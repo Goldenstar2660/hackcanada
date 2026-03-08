@@ -286,7 +286,7 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
     }
 
     let cancelled = false;
-    setPageState({ status: "loading" });
+    setPageState((current) => ({ status: "loading", result: current.result }));
 
     void renderDashboardApplication(dependencies, { path: deferredPath })
       .then((result) => {
@@ -344,6 +344,9 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
       />
     );
   }
+
+  const hasVisiblePage = Boolean(pageState.result);
+  const showTransitionIndicator = pageState.status === "loading" && hasVisiblePage;
 
   return (
     <div
@@ -415,9 +418,14 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
           Sign out
         </button>
       </div>
-      {pageState.status === "loading" ? <DashboardLoadingState /> : null}
+      {showTransitionIndicator ? (
+        <p className="dashboard-status" aria-live="polite">
+          Loading next dashboard view...
+        </p>
+      ) : null}
+      {pageState.status === "loading" && !hasVisiblePage ? <DashboardLoadingState /> : null}
       {pageState.status === "error" ? <DashboardErrorState error={pageState.error} /> : null}
-      {pageState.status === "ready"
+      {(pageState.status === "ready" || pageState.status === "loading")
         ? pageState.result?.element ?? <DashboardErrorState error={new Error("Missing dashboard render result.")} />
         : null}
     </div>
