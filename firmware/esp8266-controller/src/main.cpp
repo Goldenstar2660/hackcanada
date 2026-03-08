@@ -31,6 +31,7 @@ constexpr char kWifiPass[] = "winners!";
 binsight::IndicatorZone activeZone = binsight::IndicatorZone::Off;
 ESP8266WebServer server(80);
 uint32_t lastWifiReconnectAttemptMs = 0;
+bool wifiConnectionLogged = false;
 
 void applyIndicator(const binsight::IndicatorZone zone) {
   activeZone = zone;
@@ -229,6 +230,21 @@ void ensureWifiConnected() {
   Serial.println("binsight wifi reconnect attempt");
 }
 
+void logWifiConnectionIfNeeded() {
+  if (WiFi.status() != WL_CONNECTED) {
+    wifiConnectionLogged = false;
+    return;
+  }
+
+  if (wifiConnectionLogged) {
+    return;
+  }
+
+  wifiConnectionLogged = true;
+  Serial.print("binsight wifi connected ip=");
+  Serial.println(WiFi.localIP());
+}
+
 void configureHttpServer() {
   server.on("/health", HTTP_GET, handleHealth);
   server.on("/signal", HTTP_POST, handleSignal);
@@ -256,6 +272,7 @@ void setup() {
 
 void loop() {
   ensureWifiConnected();
+  logWifiConnectionIfNeeded();
   server.handleClient();
   delay(10);
 }

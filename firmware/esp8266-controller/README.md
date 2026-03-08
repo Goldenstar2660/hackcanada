@@ -59,6 +59,27 @@ Use the workspace-local command when the repository virtual environment provides
 
 If your board is connected, you can upload later with the standard PlatformIO upload workflow for the selected environment.
 
+To flash the board and then view the ESP serial output in the same terminal, run the upload first and then start the serial monitor explicitly:
+
+```bash
+pio run -t upload && pio device monitor --port <your-port> --baud 115200 --filter direct
+```
+
+Run that command from this directory:
+
+```text
+C:\Users\hello\Documents\Projects\hackcanada_2\firmware\esp8266-controller
+```
+
+On this machine the board was auto-detected on `COM5`, so the exact command is currently:
+
+```bash
+pio run -t upload && pio device monitor --port COM5 --baud 115200 --filter direct
+```
+
+The ESP8266 may print a short burst of bootloader noise immediately after reset. After that, the firmware will print lines such as `binsight wifi connected ip=...`, which includes the local IP address.
+
 To override the default Wi-Fi credentials at build time, add `-D BINSIGHT_WIFI_SSID=\"your-ssid\"` and `-D BINSIGHT_WIFI_PASS=\"your-password\"` to `build_flags` in `platformio.ini`.
+
 
 
