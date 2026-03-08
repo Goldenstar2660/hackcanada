@@ -33,25 +33,29 @@ export function FilterControls(props: FilterControlsProps): JSX.Element {
   const locationValues = [...props.filters.locationLabels];
   const signageValues = [...props.filters.signageVariants];
   const layoutValues = [...props.filters.layoutVariants];
+  const scopedStationCount = props.stationCount ?? stationOptions.length;
 
   return (
-    <section aria-label="Dashboard filters" className="dashboard-card">
-      <div className="dashboard-row">
+    <section aria-label="Dashboard filters" className="dashboard-card dashboard-filter-shell">
+      <div className="dashboard-row dashboard-row--baseline">
         <div>
-          <h2 className="dashboard-card-title">Filter surface</h2>
+          <p className="dashboard-page-kicker">Fleet and route filters</p>
+          <h2 className="dashboard-card-title">Filter controls</h2>
           <p className="dashboard-subtitle">
-            Adjust station, location, experiment, and time filters with route-backed controls that preserve the current architecture.
+            Adjust device, location, experiment, and time filters with the existing GET query contract while using the shared Stitch translation layer.
           </p>
         </div>
-        <div className="dashboard-muted">
-          <strong>{props.stationCount ?? 0}</strong> stations in current directory scope
+        <div className="dashboard-chip-row dashboard-filter-summary" aria-label="Filter summary">
+          <span className="dashboard-chip dashboard-chip--active">{scopedStationCount} devices in scope</span>
+          <span className="dashboard-chip">Time label {props.filters.timeRange.label}</span>
+          <span className="dashboard-chip">Route-backed GET query</span>
         </div>
       </div>
 
       <form method="get" action={props.actionPath} className="dashboard-filter-form">
         <div className="dashboard-grid dashboard-grid--wide dashboard-filter-grid">
           <label className="dashboard-field">
-            <span className="dashboard-field-label">Stations</span>
+            <span className="dashboard-field-label">Devices</span>
             <select
               name="stationId"
               multiple={true}
@@ -180,7 +184,7 @@ export function FilterControls(props: FilterControlsProps): JSX.Element {
 
         <div className="dashboard-row dashboard-row--actions">
           <p className="dashboard-small-text dashboard-filter-hint">
-            Hold Ctrl or Cmd to pick multiple values. Submitting updates the route query used by analytics, history, comparisons, and station-directory filtering.
+            Hold Ctrl or Cmd to pick multiple values. Submitting updates the route query used by analytics, history, live deep links, and device directory filtering.
           </p>
           <div className="dashboard-action-group">
             <a href={props.actionPath} className="dashboard-button dashboard-button--ghost">

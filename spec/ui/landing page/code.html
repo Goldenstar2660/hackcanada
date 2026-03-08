@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiNSIGHT | Vastum Generis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --accent: #247ad4; 
+            --ink: #000000;
+            --paper: #f9f9f7; /* Swiss Paper / Nigerian Plaster */
+        }
+        
+        * { margin:0; padding:0; box-sizing:border-box; cursor: crosshair; }
+        
+        body { 
+            background-color: var(--paper); 
+            color: var(--ink); 
+            font-family: 'Inter', sans-serif; 
+            height: 100vh; width: 100vw;
+            overflow: hidden; 
+            -webkit-font-smoothing: antialiased;
+            /* YOU WILL SET YOUR BACKGROUND IMAGE HERE */
+            background-image: linear-gradient(rgba(249,249,247,0.7), rgba(249,249,247,0.7)), url('YOUR_IMAGE_PATH');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* 1:1 Dashboard Calibration Grid Overlay */
+        .grid-layer { 
+            position: fixed; inset: 0; z-index: 1; pointer-events: none; 
+            background-image: linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), 
+                              linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px); 
+            background-size: 80px 80px; 
+        }
+
+        /* Diagonal Louver Shadows (Nigerian Architectural Sun) */
+        .sun-slats {
+            position: fixed; inset: 0; z-index: 2; pointer-events: none;
+            background: repeating-linear-gradient(
+                -45deg,
+                transparent,
+                transparent 140px,
+                rgba(0, 0, 0, 0.03) 141px,
+                rgba(0, 0, 0, 0.03) 280px
+            );
+        }
+
+        /* The UI Wrapper */
+        .wrapper {
+            position: relative; z-index: 10;
+            height: 100vh; width: 100vw;
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+            padding: 60px 80px;
+        }
+
+        /* Technical Nav Links */
+        nav {
+            display: flex; justify-content: flex-start;
+            font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+        }
+        .nav-links { display: flex; gap: 40px; }
+        .nav-links a { transition: 0.2s; }
+        .nav-links a:hover { color: var(--accent); }
+
+        /* The Hero - Acrostic W-E-R-D */
+        .hero { margin-top: 20px; }
+        .hero h1 {
+            font-size: clamp(3rem, 10vw, 10.5rem);
+            font-weight: 900;
+            line-height: 0.85;
+            letter-spacing: -0.06em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+
+        .description {
+            max-width: 500px;
+            font-size: 1.15rem;
+            line-height: 1.6;
+            opacity: 0.7;
+            border-left: 2px solid var(--accent);
+            padding-left: 30px;
+        }
+
+        /* Brand Monolith (Top-Right Anchor) */
+        .brand-monolith {
+            position: absolute;
+            right: 80px; top: 150px;
+            text-align: right;
+            z-index: 20;
+        }
+        .brand-name { 
+            font-size: 5.5vw; 
+            font-weight: 900; 
+            line-height: 0.9; 
+            letter-spacing: -0.04em; 
+            color: var(--accent); 
+            text-transform: uppercase; 
+        }
+        .brand-name span { text-transform: none; } /* Specific for lowercase 'i' */
+        
+        .brand-sub { 
+            font-size: 1.2vw; 
+            font-weight: 700; 
+            letter-spacing: 0.5em; 
+            opacity: 0.4; 
+            text-transform: uppercase; 
+            margin-top: 10px; 
+            margin-bottom: 40px;
+        }
+
+        /* System Login Button */
+        .login-btn {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 20px 50px;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .login-btn:hover { background: var(--ink); transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+
+        /* Technical Data Footer */
+        footer {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding-top: 40px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+        .stat-item { flex: 1; }
+        .stat-val { font-size: 4rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+        .stat-lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; color: var(--accent); margin-top: 10px; }
+
+        @media (max-height: 850px) {
+            .hero h1 { font-size: 8.5vw; margin-bottom: 1rem; }
+            .brand-name { font-size: 4vw; }
+            .description { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="grid-layer"></div>
+    <div class="sun-slats"></div>
+
+    <div class="wrapper">
+        <!-- Navigation -->
+        <nav>
+            <div class="nav-links">
+                <a href="#">Dashboard</a>
+                <a href="#">Analytics</a>
+                <a href="#">Devices</a>
+                <a href="#">System</a>
+            </div>
+        </nav>
+
+        <!-- Acrostic Content -->
+        <div class="hero">
+            <h1>
+                We are<br>
+                Experts<br>
+                Refining<br>
+                Disposal.
+            </h1>
+            
+            <p class="description">
+                Computer vision for waste classification. Binsight hardware identifies materials in real-time, signaling the correct disposal path to reclaim value for the synthetic era.
+            </p>
+        </div>
+
+        <!-- Brand & Login Anchor -->
+        <div class="brand-monolith">
+            <div class="brand-name">B<span>i</span>NSIGHT</div>
+            <div class="brand-sub">By Vastum Generis</div>
+            <a href="#" class="login-btn">System Login</a>
+        </div>
+
+        <!-- Technical Analytics Footer -->
+        <footer>
+            <div class="stat-item">
+                <div class="stat-val">94.2%</div>
+                <div class="stat-lbl">Network Precision</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">12.8%</div>
+                <div class="stat-lbl">Contamination</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">24</div>
+                <div class="stat-lbl">Active Nodes</div>
+            </div>
+        </footer>
+    </div>
+
+</body>
+</html>
