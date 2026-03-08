@@ -150,14 +150,45 @@ This command:
 * sends the real guidance command to the configured `ESP_ENDPOINT`
 * publishes real live-status and disposal-event payloads through the configured backend ingress path
 * lets the web dashboard update from the real project data source
-* only fakes the step that says “the model detected this item”
+* fakes the item detection, then runs a more believable disposal flow:
+  * LED guidance turns on
+  * a simulated hand enters the chosen zone
+  * the hand remains there briefly
+  * the hand disappears
+  * the runtime records the last hand zone as the actual disposal zone
 
 Useful examples:
 
 ```bash
 uv run binsight-live-demo --item plastic-bottle --zone left
-uv run binsight-live-demo --item banana-peel --zone middle --guidance-hold-seconds 8
+uv run binsight-live-demo --item banana-peel --zone middle --guidance-hold-seconds 3 --hand-seconds 1.5
 uv run binsight-live-demo --item plastic-bottle --no-reset
+```
+
+`--guidance-hold-seconds` controls how long the LED stays on before the simulated hand enters the drop zone.
+
+`--hand-seconds` controls how long the simulated hand remains in that zone before disappearing. The disappearance is what triggers the drop event in the demo flow.
+
+## Chained live demo sequence
+
+To run a believable multi-step sequence such as **recycle correct -> garbage wrong -> compost correct**, use:
+
+```bash
+uv run binsight-live-sequence --steps "plastic-bottle:left,coffee-cup:left,banana-peel:middle"
+```
+
+This executes each step in order using the same station runtime, so counters accumulate naturally across the sequence.
+
+Step format:
+
+* `item:zone` = force a specific actual disposal zone
+* `item` = use the correct zone automatically for that item
+
+Examples:
+
+```bash
+uv run binsight-live-sequence --steps "plastic-bottle,coffee-cup:left,banana-peel"
+uv run binsight-live-sequence --steps "plastic-bottle:left,coffee-cup:left,banana-peel:middle" --guidance-hold-seconds 2 --hand-seconds 1 --inter-step-seconds 1
 ```
 
 Recommended prerequisites before running it:

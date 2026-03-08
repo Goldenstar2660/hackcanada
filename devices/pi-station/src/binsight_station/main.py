@@ -375,6 +375,19 @@ class StationRuntime:
             return self.last_live_status
         return self._publish_runtime_status(snapshot, latest_event=self.last_event)
 
+    def track_hand_and_publish(self, zone: str | None, hand_present: bool) -> tuple[SessionSnapshot, LiveStatus]:
+        snapshot = self.observe_hand(zone=zone, hand_present=hand_present)
+        if snapshot.phase is SessionPhase.EMIT_RESULT:
+            event = self.emit_result()
+            if self.last_live_status is not None:
+                return self.session.snapshot, self.last_live_status
+            return self.session.snapshot, self._publish_runtime_status(
+                self.session.snapshot,
+                latest_event=event,
+            )
+
+        return snapshot, self._publish_runtime_status(snapshot, latest_event=self.last_event)
+
     def observe_hand(self, zone: str | None, hand_present: bool) -> SessionSnapshot:
         return self.session.track_hand(zone=zone, hand_present=hand_present, now_monotonic=self._now())
 

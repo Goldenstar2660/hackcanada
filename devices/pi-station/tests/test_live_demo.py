@@ -1,13 +1,14 @@
+from itertools import count
 from pathlib import Path
 
 from binsight_station.esp_client import EspClient, MemoryEspTransport
-from binsight_station.live_demo import run_live_demo
+from binsight_station.live_demo import LiveDemoStep, run_live_demo, run_live_sequence
 from binsight_station.main import RuntimeSettings, StationRuntime
 from binsight_station.publishers import PublicationAdapter
 from binsight_station.session import SessionPhase
 
 
-def test_live_demo_injects_fake_detection_and_drives_real_runtime_seams() -> None:
+def _build_demo_runtime() -> tuple[StationRuntime, MemoryEspTransport, PublicationAdapter]:
     transport = MemoryEspTransport(
         incoming_frames=(
             "health uptime_ms=42 sensor=1 indicator=1 active_zone=off",
@@ -31,15 +32,22 @@ def test_live_demo_injects_fake_detection_and_drives_real_runtime_seams() -> Non
             disposal_timeout_seconds=12.0,
             reset_cooldown_seconds=0.0,
         ),
-        monotonic_clock=iter([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]).__next__,
+        monotonic_clock=count(0.0, 0.1).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=publication_client,
     )
+
+    return runtime, transport, publication_client
+
+
+def test_live_demo_injects_fake_detection_and_uses_hand_present_then_disappearance() -> None:
+    runtime, transport, publication_client = _build_demo_runtime()
 
     result = run_live_demo(
         runtime,
         predicted_item="plastic bottle",
         guidance_hold_seconds=0.0,
+        hand_present_seconds=0.0,
         result_hold_seconds=0.0,
         reset_after_result=True,
     )
@@ -53,9 +61,43 @@ def test_live_demo_injects_fake_detection_and_drives_real_runtime_seams() -> Non
     assert result.event is not None
     assert result.event.success is True
     assert result.final_phase == SessionPhase.IDLE.value
-    assert result.published_live_status_count >= 3
+    assert result.live_status_count_delta >= 5
     assert result.published_event_count == 1
+    assert any(status["current_hand_zone"] == "left" for status in publication_client.published_live_statuses)
     assert publication_client.published_events[-1]["predicted_item"] == "plastic-bottle"
     assert publication_client.published_events[-1]["actual_disposal_zone"] == "left"
     assert publication_client.published_live_statuses[-1]["phase"] == "idle"
+    assert result.station_total_attempts == 1
+    assert result.station_total_correct_sorts == 1
     assert result.success is True
+
+
+def test_live_sequence_runs_mixed_correct_and_incorrect_steps() -> None:
+    runtime, transport, publication_client = _build_demo_runtime()
+
+    sequence_result = run_live_sequence(
+        runtime,
+        (
+            LiveDemoStep("plastic-bottle", "left", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
+            LiveDemoStep("coffee-cup", "left", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
+            LiveDemoStep("banana-peel", "middle", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
+        ),
+        inter_step_seconds=0.0,
+    )
+
+    assert [step.event.success for step in sequence_result.steps if step.event is not None] == [True, False, True]
+    assert [event["predicted_item"] for event in publication_client.published_events] == [
+        "plastic-bottle",
+        "coffee-cup",
+        "banana-peel",
+    ]
+    assert [event["actual_disposal_zone"] for event in publication_client.published_events] == [
+        "left",
+        "left",
+        "middle",
+    ]
+    assert sequence_result.total_attempts == 3
+    assert sequence_result.total_correct_sorts == 2
+    assert sequence_result.final_phase == SessionPhase.IDLE.value
+    assert transport.sent_frames.count("indicator:off") == 3
+    assert sequence_result.success is True
