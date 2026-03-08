@@ -89,7 +89,7 @@ export function LiveMonitoringPage(props: {
   }, [props.model.realtime]);
 
   return (
-    <section>
+    <section className="dashboard-section-stack">
       <FilterControls
         actionPath={props.context.match.path}
         filters={props.context.filters}
@@ -97,22 +97,16 @@ export function LiveMonitoringPage(props: {
         availableStations={props.model.availableStations}
         stationCount={1}
       />
-      <article className="dashboard-card">
-        <h2 className="dashboard-card-title">Live presentation state</h2>
-        <p className="dashboard-subtitle">
-          This view stays text-first for the demo. Camera capture, storage, and rendering remain outside this phase.
+      {subscriptionError ? <p className="dashboard-status dashboard-status--warning">Live subscription issue: {subscriptionError}</p> : null}
+      {!props.model.station ? <p className="dashboard-status dashboard-status--empty">No station directory entry matched this route.</p> : null}
+      {props.model.station && !snapshot.status ? (
+        <p className="dashboard-status dashboard-status--empty">No live status document has arrived for this station yet.</p>
+      ) : null}
+      {snapshot.stale ? (
+        <p className="dashboard-status dashboard-status--warning">
+          Live status is stale. The latest station update is older than one minute.
         </p>
-        {subscriptionError ? <p className="dashboard-status dashboard-status--warning">Live subscription issue: {subscriptionError}</p> : null}
-        {!props.model.station ? <p className="dashboard-status dashboard-status--empty">No station directory entry matched this route.</p> : null}
-        {props.model.station && !snapshot.status ? (
-          <p className="dashboard-status dashboard-status--empty">No live status document has arrived for this station yet.</p>
-        ) : null}
-        {snapshot.stale ? (
-          <p className="dashboard-status dashboard-status--warning">
-            Live status is stale. The latest station update is older than one minute.
-          </p>
-        ) : null}
-      </article>
+      ) : null}
       <LiveStationPanel station={props.model.station} snapshot={snapshot} realtimeEnabled={props.model.realtime !== null} />
     </section>
   );

@@ -33,18 +33,22 @@ export function FilterControls(props: FilterControlsProps): JSX.Element {
   const locationValues = [...props.filters.locationLabels];
   const signageValues = [...props.filters.signageVariants];
   const layoutValues = [...props.filters.layoutVariants];
+  const scopedStationCount = props.stationCount ?? stationOptions.length;
 
   return (
-    <section aria-label="Dashboard filters" className="dashboard-card">
-      <div className="dashboard-row">
+    <section aria-label="Dashboard filters" className="dashboard-card dashboard-filter-shell">
+      <div className="dashboard-row dashboard-row--baseline">
         <div>
-          <h2 className="dashboard-card-title">Filter surface</h2>
+          <p className="dashboard-page-kicker">Route filters</p>
+          <h2 className="dashboard-card-title">Comparison tool</h2>
           <p className="dashboard-subtitle">
-            Adjust station, location, experiment, and time filters with route-backed controls that preserve the current architecture.
+            Adjust station, location, experiment, and time filters with the existing GET query contract while using the shared Stitch translation layer.
           </p>
         </div>
-        <div className="dashboard-muted">
-          <strong>{props.stationCount ?? 0}</strong> stations in current directory scope
+        <div className="dashboard-chip-row dashboard-filter-summary" aria-label="Filter summary">
+          <span className="dashboard-chip dashboard-chip--active">{scopedStationCount} stations in scope</span>
+          <span className="dashboard-chip">Time label {props.filters.timeRange.label}</span>
+          <span className="dashboard-chip">Route-backed GET query</span>
         </div>
       </div>
 

@@ -142,25 +142,60 @@ function serializeFormToSearchParams(form: HTMLFormElement): URLSearchParams {
   return params;
 }
 
+function DashboardStandaloneShell(props: {
+  readonly children: JSX.Element;
+  readonly footerAction?: JSX.Element;
+}): JSX.Element {
+  return (
+    <section className="dashboard-shell dashboard-shell--standalone dashboard-auth-shell">
+      <header className="dashboard-auth-header">
+        <div className="dashboard-brand">
+          <span className="dashboard-brand-mark" aria-hidden="true">DS</span>
+          <span className="dashboard-brand-wordmark">BiNSIGHT</span>
+        </div>
+        <nav className="dashboard-auth-nav" aria-label="Dashboard sections preview">
+          <span>Dashboard</span>
+          <span>Analytics</span>
+          <span>Devices</span>
+          <span>Settings</span>
+        </nav>
+        <div className="dashboard-auth-actions" aria-hidden="true">
+          <span className="dashboard-auth-icon-button">Alerts</span>
+          <span className="dashboard-auth-avatar">OP</span>
+        </div>
+      </header>
+
+      <main className="dashboard-auth-main">{props.children}</main>
+
+      <footer className="dashboard-auth-footer">
+        <p className="dashboard-auth-footer-copy">2026 Binsight operator systems</p>
+        {props.footerAction ?? <span className="dashboard-auth-footer-action">Firebase Auth email access only</span>}
+      </footer>
+    </section>
+  );
+}
+
 function DashboardLoadingState(): JSX.Element {
   return (
-    <section className="dashboard-shell dashboard-shell--standalone">
-      <article className="dashboard-card dashboard-card--auth">
-        <h1 className="dashboard-card-title">Loading operator dashboard</h1>
-        <p className="dashboard-subtitle">Connecting to Firebase Auth, backend callables, and the live-status subscription surface.</p>
+    <DashboardStandaloneShell>
+      <article className="dashboard-card dashboard-card--auth dashboard-auth-card">
+        <p className="dashboard-auth-kicker">System handshake</p>
+        <h1 className="dashboard-card-title dashboard-auth-title">Loading operator dashboard</h1>
+        <p className="dashboard-subtitle dashboard-auth-copy">Connecting to Firebase Auth, backend callables, and the live-status subscription surface.</p>
       </article>
-    </section>
+    </DashboardStandaloneShell>
   );
 }
 
 function DashboardErrorState(props: { readonly error: unknown }): JSX.Element {
   return (
-    <section className="dashboard-shell dashboard-shell--standalone">
-      <article className="dashboard-card dashboard-card--auth">
-        <h1 className="dashboard-card-title">{isUnauthorizedError(props.error) ? "Operator access required" : "Dashboard load failed"}</h1>
-        <p className="dashboard-subtitle">{getFriendlyErrorMessage(props.error)}</p>
+    <DashboardStandaloneShell>
+      <article className="dashboard-card dashboard-card--auth dashboard-auth-card">
+        <p className="dashboard-auth-kicker">Access control</p>
+        <h1 className="dashboard-card-title dashboard-auth-title">{isUnauthorizedError(props.error) ? "Operator access required" : "Dashboard load failed"}</h1>
+        <p className="dashboard-subtitle dashboard-auth-copy">{getFriendlyErrorMessage(props.error)}</p>
       </article>
-    </section>
+    </DashboardStandaloneShell>
   );
 }
 
@@ -171,48 +206,92 @@ function DashboardLoginState(props: {
 }): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <section className="dashboard-shell dashboard-shell--standalone">
-      <article className="dashboard-card dashboard-card--auth">
-        <h1 className="dashboard-card-title">Operator sign-in</h1>
-        <p className="dashboard-subtitle">Sign in with a Firebase Auth email and password account to open the dashboard.</p>
+    <DashboardStandaloneShell
+      footerAction={<span className="dashboard-auth-footer-action">Social sign-in is unavailable in this demo build</span>}
+    >
+      <article className="dashboard-card dashboard-card--auth dashboard-auth-card">
+        <div className="dashboard-auth-card-header">
+          <p className="dashboard-auth-kicker">Operator access</p>
+          <h1 className="dashboard-card-title dashboard-auth-title">Login to BiNSIGHT</h1>
+          <p className="dashboard-subtitle dashboard-auth-copy">Access the waste-sorting dashboard with a Firebase Auth email and password account.</p>
+        </div>
+
         {props.error ? <p className="dashboard-status dashboard-status--warning">{props.error}</p> : null}
+
         <form
-          className="dashboard-section-stack"
+          className="dashboard-section-stack dashboard-auth-form"
           onSubmit={(event) => {
             event.preventDefault();
             void props.onSubmit(email, password);
           }}
         >
           <label className="dashboard-field">
-            <span className="dashboard-field-label">Email</span>
+            <span className="dashboard-field-label">Email address</span>
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.currentTarget.value)}
               className="dashboard-input"
               autoComplete="email"
+              placeholder="name@company.com"
               required={true}
             />
           </label>
+
           <label className="dashboard-field">
-            <span className="dashboard-field-label">Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.currentTarget.value)}
-              className="dashboard-input"
-              autoComplete="current-password"
-              required={true}
-            />
+            <span className="dashboard-auth-password-row">
+              <span className="dashboard-field-label">Password</span>
+              <span className="dashboard-auth-inline-link" aria-disabled="true">Reset unavailable</span>
+            </span>
+            <span className="dashboard-auth-password-input">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.currentTarget.value)}
+                className="dashboard-input"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                required={true}
+              />
+              <button
+                type="button"
+                className="dashboard-auth-visibility"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </span>
           </label>
-          <button type="submit" className="dashboard-button" disabled={props.busy}>
-            {props.busy ? "Signing in..." : "Sign in"}
+
+          <button type="submit" className="dashboard-button dashboard-button--primary" disabled={props.busy}>
+            {props.busy ? "Signing in..." : "Login to dashboard"}
           </button>
         </form>
+
+        <div className="dashboard-auth-divider" aria-hidden="true">
+          <span>Or continue with</span>
+        </div>
+
+        <div className="dashboard-auth-social-grid" aria-label="Unavailable social sign-in providers">
+          <button type="button" className="dashboard-auth-social-button" disabled={true} aria-disabled="true">
+            <span className="dashboard-auth-social-badge">G</span>
+            <span>Google unavailable</span>
+          </button>
+          <button type="button" className="dashboard-auth-social-button" disabled={true} aria-disabled="true">
+            <span className="dashboard-auth-social-badge">GH</span>
+            <span>GitHub unavailable</span>
+          </button>
+        </div>
+
+        <p className="dashboard-auth-footnote">
+          Need access? Contact the demo operator admin to provision an email-password account.
+        </p>
       </article>
-    </section>
+    </DashboardStandaloneShell>
   );
 }
 
