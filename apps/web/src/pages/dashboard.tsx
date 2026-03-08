@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import type { AnalyticsInsightsResponse, AnalyticsSummary, StationDirectoryResponse } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
@@ -6,14 +8,18 @@ import { AnalyticsInsightsPanel } from "../features/analytics/analytics-insights
 import { matchesStationFilters } from "../lib/query/dashboard-query.js";
 
 const DASHBOARD_LOGO_SRC = new URL("../../assets/logo.png", import.meta.url).href;
-const DASHBOARD_MAP_SRC = new URL("../../assets/map-close.png", import.meta.url).href;
 
 const fakeLocations = [
-  "Toronto Innovation Hub",
-  "Vancouver Waterfront Campus",
-  "Montreal Materials Lab",
-  "Calgary Operations Centre"
+  "Waterloo Innovation Centre",
+  "Vancouver Waterfront Campus"
 ] as const;
+
+type FakeLocation = (typeof fakeLocations)[number];
+
+const LOCATION_MAP_SRC: Record<FakeLocation, string> = {
+  "Waterloo Innovation Centre": new URL("../../assets/map.png", import.meta.url).href,
+  "Vancouver Waterfront Campus": new URL("../../assets/vancouver.png", import.meta.url).href
+};
 
 const dashboardNavigation = [
   {
@@ -116,7 +122,7 @@ export function DashboardPage(props: {
   const contaminationRate = props.model.summary.totals.totalAttempts > 0
     ? incorrectAttempts / props.model.summary.totals.totalAttempts
     : 0;
-  const selectedFakeLocation = getSelectedFakeLocation(props.context.filters);
+  const [selectedFakeLocation, setSelectedFakeLocation] = useState<FakeLocation>(getSelectedFakeLocation(props.context.filters));
   const scopeHighlights = createScopeHighlights(props.context, props.model);
   const dashboardMetrics: ReadonlyArray<{
     value: string;
@@ -200,7 +206,12 @@ export function DashboardPage(props: {
               <div className="dashboard-home-field">
                 <label className="dashboard-home-field-label" htmlFor="dashboard-location-select">Select location</label>
                 <div className="dashboard-home-select-shell">
-                  <select id="dashboard-location-select" className="dashboard-home-select" defaultValue={selectedFakeLocation}>
+                  <select
+                    id="dashboard-location-select"
+                    className="dashboard-home-select"
+                    value={selectedFakeLocation}
+                    onChange={(e) => setSelectedFakeLocation(e.target.value as FakeLocation)}
+                  >
                     {fakeLocations.map((location) => (
                       <option key={location} value={location}>{location}</option>
                     ))}
@@ -248,7 +259,7 @@ export function DashboardPage(props: {
               <span className="dashboard-home-panel-badge">{formatCount(props.model.visibleStations.length)} nodes</span>
             </div>
             <div className="dashboard-home-map-frame">
-              <img className="dashboard-home-map-image" src={DASHBOARD_MAP_SRC} alt="Spatial network map" />
+              <img className="dashboard-home-map-image" src={LOCATION_MAP_SRC[selectedFakeLocation]} alt="Spatial network map" />
             </div>
 
             <div className="dashboard-home-map-meta">
