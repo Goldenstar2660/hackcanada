@@ -77,7 +77,6 @@ class RealtimeSimulationScenario:
     shared_secret: str = "simulated-secret"
     classification_confidence: float = 0.97
     llm_fallback_used: bool = False
-    presence_debounce_seconds: float = 0.35
     disposal_timeout_seconds: float = 12.0
     reset_cooldown_seconds: float = 1.5
     tick_interval_seconds: float = 0.05
@@ -89,8 +88,6 @@ class RealtimeSimulationScenario:
     def validate(self) -> None:
         if self.disposal_zone not in {"left", "middle", "right"}:
             raise ValueError("disposal_zone must be one of: left, middle, right")
-        if self.presence_debounce_seconds <= 0:
-            raise ValueError("presence_debounce_seconds must be positive")
         if self.disposal_timeout_seconds <= 0:
             raise ValueError("disposal_timeout_seconds must be positive")
         if self.reset_cooldown_seconds < 0:
@@ -447,7 +444,6 @@ class RealtimeSimulationResult:
                 "disposalZone": self.scenario.disposal_zone,
                 "stationId": self.scenario.station_id,
                 "deviceId": self.scenario.device_id,
-                "presenceDebounceSeconds": self.scenario.presence_debounce_seconds,
                 "disposalTimeoutSeconds": self.scenario.disposal_timeout_seconds,
                 "resetCooldownSeconds": self.scenario.reset_cooldown_seconds,
                 "tickIntervalSeconds": self.scenario.tick_interval_seconds,
@@ -479,6 +475,7 @@ def build_simulation_settings(
         station_id=scenario.station_id,
         rules_preset_id="demo-canada-ottawa",
         rules_preset_version="1.0.0",
+        item_classifier_model_dir=Path("/tmp/binsight-simulation-model"),
         esp_endpoint=esp_endpoint,
         firebase_project_id="binsight-simulation",
         firebase_functions_region="us-central1",
@@ -486,7 +483,6 @@ def build_simulation_settings(
         binsight_device_id=scenario.device_id,
         binsight_device_shared_secret=scenario.shared_secret,
         publication_timeout_seconds=1.0,
-        presence_debounce_seconds=scenario.presence_debounce_seconds,
         disposal_timeout_seconds=scenario.disposal_timeout_seconds,
         reset_cooldown_seconds=scenario.reset_cooldown_seconds,
     )
@@ -531,7 +527,7 @@ def run_realtime_simulation(
         try:
             while monotonic() - started_at <= resolved_scenario.max_duration_seconds:
                 snapshot = runtime.session.snapshot
-                if snapshot.phase in {SessionPhase.IDLE, SessionPhase.PRESENCE_ARMING}:
+                if snapshot.phase is SessionPhase.IDLE:
                     runtime.start_session(image_source=resolved_scenario.image_source)
                 elif snapshot.phase in {SessionPhase.WAITING_FOR_DISPOSAL, SessionPhase.EMIT_RESULT}:
                     runtime.sync_from_esp()
@@ -674,12 +670,6 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Disposal zone to simulate when the user drops the item.",
     )
     parser.add_argument(
-        "--presence-debounce-seconds",
-        type=float,
-        default=0.35,
-        help="Real-time stable presence window before classification starts.",
-    )
-    parser.add_argument(
         "--disposal-timeout-seconds",
         type=float,
         default=12.0,
@@ -728,7 +718,6 @@ def main() -> int:
     scenario = RealtimeSimulationScenario(
         predicted_item=args.item,
         disposal_zone=args.disposal_zone,
-        presence_debounce_seconds=args.presence_debounce_seconds,
         disposal_timeout_seconds=args.disposal_timeout_seconds,
         reset_cooldown_seconds=args.reset_cooldown_seconds,
         tick_interval_seconds=args.tick_interval_seconds,

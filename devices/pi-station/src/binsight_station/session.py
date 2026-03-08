@@ -6,7 +6,6 @@ from enum import StrEnum
 
 class SessionPhase(StrEnum):
     IDLE = "idle"
-    PRESENCE_ARMING = "presence_arming"
     IDENTIFYING = "identifying"
     GUIDING = "guiding"
     WAITING_FOR_DISPOSAL = "waiting_for_disposal"
@@ -16,7 +15,6 @@ class SessionPhase(StrEnum):
 
 @dataclass(slots=True)
 class SessionTimingConfig:
-    presence_debounce_seconds: float = 0.35
     disposal_timeout_seconds: float = 12.0
     reset_cooldown_seconds: float = 1.5
 
@@ -35,7 +33,6 @@ class SessionSnapshot:
     total_attempts: int = 0
     total_correct_sorts: int = 0
     phase_started_at_monotonic: float | None = None
-    presence_confirm_at_monotonic: float | None = None
     disposal_timeout_at_monotonic: float | None = None
     reset_ready_at_monotonic: float | None = None
 
@@ -53,43 +50,15 @@ class SessionStateMachine:
     def timing(self) -> SessionTimingConfig:
         return replace(self._timing)
 
-    def begin_presence_arming(self, now_monotonic: float) -> SessionSnapshot:
-        self._snapshot = SessionSnapshot(
-            phase=SessionPhase.PRESENCE_ARMING,
-            total_attempts=self._snapshot.total_attempts,
-            total_correct_sorts=self._snapshot.total_correct_sorts,
-            phase_started_at_monotonic=now_monotonic,
-            presence_confirm_at_monotonic=now_monotonic + self._timing.presence_debounce_seconds,
-        )
-        return self.snapshot
-
-    def cancel_presence_arming(self, now_monotonic: float) -> SessionSnapshot:
-        if self._snapshot.phase is not SessionPhase.PRESENCE_ARMING:
-            raise ValueError("presence arming must be active before it can be cancelled")
+    def begin_identification(self, now_monotonic: float) -> SessionSnapshot:
+        if self._snapshot.phase is not SessionPhase.IDLE:
+            raise ValueError("identification can only begin from idle")
 
         self._snapshot = SessionSnapshot(
-            phase=SessionPhase.IDLE,
+            phase=SessionPhase.IDENTIFYING,
             latest_result_success=self._snapshot.latest_result_success,
             total_attempts=self._snapshot.total_attempts,
             total_correct_sorts=self._snapshot.total_correct_sorts,
-            phase_started_at_monotonic=now_monotonic,
-        )
-        return self.snapshot
-
-    def is_presence_confirmed(self, now_monotonic: float) -> bool:
-        if self._snapshot.phase is not SessionPhase.PRESENCE_ARMING:
-            return False
-
-        confirm_at = self._snapshot.presence_confirm_at_monotonic
-        return confirm_at is not None and now_monotonic >= confirm_at
-
-    def begin_identification(self, now_monotonic: float) -> SessionSnapshot:
-        if self._snapshot.phase is not SessionPhase.PRESENCE_ARMING:
-            raise ValueError("presence must be armed before identification begins")
-
-        self._snapshot = replace(
-            self._snapshot,
-            phase=SessionPhase.IDENTIFYING,
             phase_started_at_monotonic=now_monotonic,
         )
         return self.snapshot

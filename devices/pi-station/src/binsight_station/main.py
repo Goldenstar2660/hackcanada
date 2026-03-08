@@ -76,13 +76,12 @@ class RuntimeSettings:
     binsight_device_id: str | None
     binsight_device_shared_secret: str | None
     publication_timeout_seconds: float
-    presence_debounce_seconds: float
     disposal_timeout_seconds: float
     reset_cooldown_seconds: float
-    camera_capture_width: int
-    camera_capture_height: int
-    camera_capture_format: str
-    camera_capture_rotation_degrees: int
+    camera_capture_width: int = 640
+    camera_capture_height: int = 480
+    camera_capture_format: str = "jpg"
+    camera_capture_rotation_degrees: int = 180
 
 
 def load_runtime_settings() -> RuntimeSettings:
@@ -106,7 +105,6 @@ def load_runtime_settings() -> RuntimeSettings:
         binsight_device_id=_optional_env("BINSIGHT_DEVICE_ID"),
         binsight_device_shared_secret=_optional_env("BINSIGHT_DEVICE_SHARED_SECRET"),
         publication_timeout_seconds=float(os.getenv("BINSIGHT_PUBLICATION_TIMEOUT_SECONDS", "5.0")),
-        presence_debounce_seconds=float(os.getenv("PRESENCE_DEBOUNCE_SECONDS", "0.35")),
         disposal_timeout_seconds=float(os.getenv("DISPOSAL_TIMEOUT_SECONDS", "12.0")),
         reset_cooldown_seconds=float(os.getenv("RESET_COOLDOWN_SECONDS", "1.5")),
         camera_capture_width=int(os.getenv("CAMERA_CAPTURE_WIDTH", "640")),
@@ -165,7 +163,6 @@ class StationRuntime:
         )
         self.session = SessionStateMachine(
             SessionTimingConfig(
-                presence_debounce_seconds=settings.presence_debounce_seconds,
                 disposal_timeout_seconds=settings.disposal_timeout_seconds,
                 reset_cooldown_seconds=settings.reset_cooldown_seconds,
             )
@@ -207,25 +204,10 @@ class StationRuntime:
         self.esp_client.poll()
         return self.esp_client.presence_frame_count > previous_presence_count
 
-    def _advance_session_entry(
-        self,
-        image_source: str | None,
-        observed_presence_frame: bool,
-    ) -> SessionSnapshot:
+    def _advance_session_entry(self, image_source: str | None) -> SessionSnapshot:
         snapshot = self.session.snapshot
 
-        if snapshot.phase is SessionPhase.IDLE:
-            if not observed_presence_frame or not self.esp_client.has_stable_presence:
-                return snapshot
-            return self.session.begin_presence_arming(self._now())
-
-        if snapshot.phase is not SessionPhase.PRESENCE_ARMING:
-            return snapshot
-
-        now = self._now()
-        if not self.esp_client.has_stable_presence:
-            return self.session.cancel_presence_arming(now)
-        if not observed_presence_frame or not self.session.is_presence_confirmed(now):
+        if snapshot.phase is not SessionPhase.IDLE:
             return snapshot
 
         captured_image: CapturedImageSource | None = None
@@ -234,7 +216,7 @@ class StationRuntime:
             captured_image = self.image_source_provider.capture_image_source()
             classification_source = captured_image.image_source
 
-        self.session.begin_identification(now)
+        self.session.begin_identification(self._now())
         try:
             classification = self.classifier.classify(
                 ClassificationRequest(
@@ -325,7 +307,7 @@ class StationRuntime:
         tracking_active_before_poll = self.session.snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
         self.esp_client.request_health()
         observed_presence_frame = self._poll_esp()
-        snapshot = self._advance_session_entry(image_source, observed_presence_frame)
+        snapshot = self._advance_session_entry(image_source)
         snapshot, emitted_result = self._consume_hand_tracking(
             observed_presence_frame,
             tracking_active_before_poll=tracking_active_before_poll,
@@ -351,7 +333,6 @@ class StationRuntime:
         self.esp_client.request_health()
         self._poll_esp()
 
-        self.session.begin_presence_arming(self._now())
         self.session.begin_identification(self._now())
         guidance_snapshot = self.session.set_guidance(
             normalized_item,
