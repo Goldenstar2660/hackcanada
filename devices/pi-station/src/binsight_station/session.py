@@ -6,7 +6,6 @@ from enum import StrEnum
 
 class SessionPhase(StrEnum):
     IDLE = "idle"
-    PRESENCE_ARMING = "presence_arming"
     IDENTIFYING = "identifying"
     GUIDING = "guiding"
     WAITING_FOR_DISPOSAL = "waiting_for_disposal"
@@ -16,7 +15,6 @@ class SessionPhase(StrEnum):
 
 @dataclass(slots=True)
 class SessionTimingConfig:
-    presence_debounce_seconds: float = 0.35
     disposal_timeout_seconds: float = 12.0
     reset_cooldown_seconds: float = 1.5
 
@@ -30,12 +28,13 @@ class SessionSnapshot:
     llm_fallback_used: bool = False
     latest_hand_zone: str | None = None
     hand_present: bool = False
+    hand_count: int = 0
+    hand_confidence: float | None = None
     actual_disposal_zone: str | None = None
     latest_result_success: bool | None = None
     total_attempts: int = 0
     total_correct_sorts: int = 0
     phase_started_at_monotonic: float | None = None
-    presence_confirm_at_monotonic: float | None = None
     disposal_timeout_at_monotonic: float | None = None
     reset_ready_at_monotonic: float | None = None
 
@@ -53,43 +52,15 @@ class SessionStateMachine:
     def timing(self) -> SessionTimingConfig:
         return replace(self._timing)
 
-    def begin_presence_arming(self, now_monotonic: float) -> SessionSnapshot:
-        self._snapshot = SessionSnapshot(
-            phase=SessionPhase.PRESENCE_ARMING,
-            total_attempts=self._snapshot.total_attempts,
-            total_correct_sorts=self._snapshot.total_correct_sorts,
-            phase_started_at_monotonic=now_monotonic,
-            presence_confirm_at_monotonic=now_monotonic + self._timing.presence_debounce_seconds,
-        )
-        return self.snapshot
-
-    def cancel_presence_arming(self, now_monotonic: float) -> SessionSnapshot:
-        if self._snapshot.phase is not SessionPhase.PRESENCE_ARMING:
-            raise ValueError("presence arming must be active before it can be cancelled")
+    def begin_identification(self, now_monotonic: float) -> SessionSnapshot:
+        if self._snapshot.phase is not SessionPhase.IDLE:
+            raise ValueError("identification can only begin from idle")
 
         self._snapshot = SessionSnapshot(
-            phase=SessionPhase.IDLE,
+            phase=SessionPhase.IDENTIFYING,
             latest_result_success=self._snapshot.latest_result_success,
             total_attempts=self._snapshot.total_attempts,
             total_correct_sorts=self._snapshot.total_correct_sorts,
-            phase_started_at_monotonic=now_monotonic,
-        )
-        return self.snapshot
-
-    def is_presence_confirmed(self, now_monotonic: float) -> bool:
-        if self._snapshot.phase is not SessionPhase.PRESENCE_ARMING:
-            return False
-
-        confirm_at = self._snapshot.presence_confirm_at_monotonic
-        return confirm_at is not None and now_monotonic >= confirm_at
-
-    def begin_identification(self, now_monotonic: float) -> SessionSnapshot:
-        if self._snapshot.phase is not SessionPhase.PRESENCE_ARMING:
-            raise ValueError("presence must be armed before identification begins")
-
-        self._snapshot = replace(
-            self._snapshot,
-            phase=SessionPhase.IDENTIFYING,
             phase_started_at_monotonic=now_monotonic,
         )
         return self.snapshot
@@ -128,6 +99,28 @@ class SessionStateMachine:
         )
         return self.snapshot
 
+    def refresh_guidance(
+        self,
+        predicted_item: str,
+        disposal_method: str,
+        model_confidence: float,
+        llm_fallback_used: bool,
+        now_monotonic: float,
+    ) -> SessionSnapshot:
+        if self._snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL:
+            raise ValueError("guidance can only be refreshed while waiting for disposal")
+
+        self._snapshot = replace(
+            self._snapshot,
+            predicted_item=predicted_item,
+            correct_disposal_method=disposal_method,
+            model_confidence=model_confidence,
+            llm_fallback_used=llm_fallback_used,
+            phase_started_at_monotonic=now_monotonic,
+            disposal_timeout_at_monotonic=now_monotonic + self._timing.disposal_timeout_seconds,
+        )
+        return self.snapshot
+
     def is_disposal_wait_expired(self, now_monotonic: float) -> bool:
         if self._snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL:
             return False
@@ -140,6 +133,8 @@ class SessionStateMachine:
         zone: str | None,
         hand_present: bool,
         now_monotonic: float,
+        hand_count: int = 0,
+        hand_confidence: float | None = None,
     ) -> SessionSnapshot:
         if self._snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL:
             raise ValueError("hand tracking is only available while waiting for disposal")
@@ -157,6 +152,8 @@ class SessionStateMachine:
             phase=phase,
             latest_hand_zone=zone or self._snapshot.latest_hand_zone,
             hand_present=hand_present,
+            hand_count=max(0, hand_count),
+            hand_confidence=hand_confidence,
             actual_disposal_zone=actual_disposal_zone,
             phase_started_at_monotonic=now_monotonic,
         )
@@ -182,6 +179,8 @@ class SessionStateMachine:
             self._snapshot,
             phase=SessionPhase.RESETTING,
             hand_present=False,
+            hand_count=0,
+            hand_confidence=None,
             phase_started_at_monotonic=now_monotonic,
             reset_ready_at_monotonic=now_monotonic + self._timing.reset_cooldown_seconds,
         )
@@ -197,6 +196,23 @@ class SessionStateMachine:
     def complete_reset(self, now_monotonic: float) -> SessionSnapshot:
         if not self.is_reset_ready(now_monotonic):
             raise ValueError("reset cooldown has not elapsed")
+
+        self._snapshot = SessionSnapshot(
+            phase=SessionPhase.IDLE,
+            latest_result_success=self._snapshot.latest_result_success,
+            total_attempts=self._snapshot.total_attempts,
+            total_correct_sorts=self._snapshot.total_correct_sorts,
+            phase_started_at_monotonic=now_monotonic,
+        )
+        return self.snapshot
+
+    def cancel_active_session(self, now_monotonic: float) -> SessionSnapshot:
+        if self._snapshot.phase not in {
+            SessionPhase.IDENTIFYING,
+            SessionPhase.GUIDING,
+            SessionPhase.WAITING_FOR_DISPOSAL,
+        }:
+            raise ValueError("only an active session can be cancelled")
 
         self._snapshot = SessionSnapshot(
             phase=SessionPhase.IDLE,

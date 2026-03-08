@@ -11,6 +11,8 @@ Reduce sorting mistakes at shared bin stations and provide measurable waste-sort
 - One camera view
 - Three disposal zones: left / middle / right
 - Zones represent recycle / compost / garbage
+- Detectable/canonical item set is currently limited to: aluminum can, granola bar, and pickled radish
+- All other items are ignored for the current demo/model scope
 - Poster LEDs indicate correct disposal method
 - LCD shows live feedback and station counter
 - Dashboard shows station insights
@@ -18,9 +20,9 @@ Reduce sorting mistakes at shared bin stations and provide measurable waste-sort
 ## Business logic
 
 ### 1. Detection start
-- Station waits in low-power mode
-- Ultrasonic sensor detects a nearby person
-- Detection session begins
+- Station is always running and ready to identify an item
+- Detection does not wait for a low-power wake-up step or person-trigger sensor
+- When an item is presented to the station, identification begins immediately
 
 ### 2. Item identification
 - Camera captures the item in hand
@@ -120,7 +122,7 @@ These are not separate KPIs. Users determine them by comparing historical or gro
 - mark seeded records as demo data for presentation and filtering
 
 ## Configurable business rules
-- supported item set
+- supported item set (currently aluminum-can, granola-bar, pickled-radish)
 - item → disposal-method mapping
 - city / province rules preset
 - left / middle / right zone mapping
@@ -141,7 +143,7 @@ These are not separate KPIs. Users determine them by comparing historical or gro
 
 ## Non-business-logic technical notes
 Two hardware units:
-- ESP8266 + poster LEDs + ultrasonic sensor
+- ESP8266 + poster LEDs
 - Raspberry Pi 5 + camera + 16x2 LCD
 
 - ESP8266 and Pi communicate over Wi-Fi

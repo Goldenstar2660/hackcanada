@@ -13,7 +13,7 @@ from typing import Any, Callable
 import numpy as np
 from PIL import Image
 
-from .llm_client import LLMClient, LLMClientConfig, LLMClassificationError
+from .llm_client import LLMClient, LLMClassificationError
 
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,9 @@ class ClassificationSource(StrEnum):
     LOCAL = "local"
     DETERMINISTIC_DEMO = "deterministic_demo"
     LLM_FALLBACK = "llm_fallback"
+
+
+NO_DETECTION_ITEM = "none"
 
 
 @dataclass(slots=True)
@@ -71,6 +74,12 @@ class LocalPrediction:
 
 InterpreterFactory = Callable[[Path, int], Any]
 
+_COMMON_MODEL_FILENAMES = (
+    "model.tflite",
+    "model_unquant.tflite",
+    "model_quant.tflite",
+)
+
 
 class ClassificationPipeline:
     """Owns local inference and optional fallback selection."""
@@ -95,11 +104,8 @@ class ClassificationPipeline:
         source = local_prediction.source
         llm_fallback_used = confidence < request.confidence_threshold
         if llm_fallback_used:
-            if self._llm_client is None:
-                predicted_item = "fallback-item"
-            else:
-                predicted_item = self._infer_with_fallback(request.image_source)
-            confidence = 0.75
+            predicted_item = self._infer_with_fallback(request.image_source, predicted_item)
+            confidence = 0.0
             source = ClassificationSource.LLM_FALLBACK
 
         return ClassificationResult(
@@ -121,16 +127,17 @@ class ClassificationPipeline:
         runtime = self._get_runtime()
         return runtime.predict(image_source)
 
-    def _infer_with_fallback(self, image_source: str) -> str:
+    def _infer_with_fallback(self, image_source: str, predicted_item: str) -> str:
+        del predicted_item
         if self._llm_client is None:
-            return "fallback-item"
+            return NO_DETECTION_ITEM
 
         image_path = self._resolve_image_path(image_source)
         try:
             return self._llm_client.classify_image(image_path)
-        except LLMClassificationError as e:
-            logger.warning("LLM fallback classification failed: %s", e)
-            return "fallback-item"
+        except LLMClassificationError as error:
+            logger.warning("LLM fallback classification failed: %s", error)
+            return NO_DETECTION_ITEM
 
     def _resolve_image_path(self, image_source: str) -> Path:
         if image_source.startswith("file://"):
@@ -193,19 +200,13 @@ class _TFLiteRuntime:
 
 def _load_model_assets(model_dir: Path) -> ModelAssets:
     manifest_path = model_dir / "manifest.json"
-    model_path = model_dir / "model.tflite"
-    if not manifest_path.exists():
-        raise FileNotFoundError(f"TensorFlow Lite manifest was not found at {manifest_path}")
-    if not model_path.exists():
-        raise FileNotFoundError(f"TensorFlow Lite model was not found at {model_path}")
-
-    manifest = _load_manifest(manifest_path)
+    has_manifest = manifest_path.exists()
+    manifest = _load_manifest(manifest_path) if has_manifest else ModelManifest()
+    model_path = _resolve_model_path(model_dir)
     labels_path = model_dir / manifest.labels_file
     if not labels_path.exists():
         raise FileNotFoundError(f"model labels were not found at {labels_path}")
-    aliases_path = model_dir / manifest.aliases_file if manifest.aliases_file is not None else None
-    if aliases_path is not None and not aliases_path.exists():
-        raise FileNotFoundError(f"model aliases were not found at {aliases_path}")
+    aliases_path = _resolve_aliases_path(model_dir, manifest, has_manifest=has_manifest)
 
     return ModelAssets(
         model_dir=model_dir,
@@ -215,6 +216,35 @@ def _load_model_assets(model_dir: Path) -> ModelAssets:
         aliases_path=aliases_path,
         manifest=manifest,
     )
+
+
+def _resolve_model_path(model_dir: Path) -> Path:
+    for filename in _COMMON_MODEL_FILENAMES:
+        candidate = model_dir / filename
+        if candidate.exists():
+            return candidate
+
+    tried_filenames = ", ".join(_COMMON_MODEL_FILENAMES)
+    raise FileNotFoundError(
+        f"TensorFlow Lite model was not found in {model_dir}. Tried: {tried_filenames}"
+    )
+
+
+def _resolve_aliases_path(
+    model_dir: Path,
+    manifest: ModelManifest,
+    *,
+    has_manifest: bool,
+) -> Path | None:
+    if manifest.aliases_file is None:
+        return None
+
+    aliases_path = model_dir / manifest.aliases_file
+    if aliases_path.exists():
+        return aliases_path
+    if has_manifest:
+        raise FileNotFoundError(f"model aliases were not found at {aliases_path}")
+    return None
 
 
 def _load_manifest(manifest_path: Path) -> ModelManifest:
@@ -448,7 +478,7 @@ def _softmax(scores: np.ndarray) -> np.ndarray:
 def _normalize_label(label: str) -> str:
     normalized = re.sub(r"[^a-z0-9]+", "-", label.strip().lower())
     normalized = re.sub(r"-+", "-", normalized)
-    return normalized.strip("-") or "unknown-item"
+    return normalized.strip("-") or "pickled-radish"
 
 
 def _default_interpreter_factory(model_path: Path, num_threads: int) -> Any:

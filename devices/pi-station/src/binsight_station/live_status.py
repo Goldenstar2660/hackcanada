@@ -165,7 +165,6 @@ def _as_latest_event_summary(
 def _session_state_for_phase(phase: SessionPhase) -> str:
     phase_mapping = {
         SessionPhase.IDLE: "idle",
-        SessionPhase.PRESENCE_ARMING: "detecting-person",
         SessionPhase.IDENTIFYING: "identifying-item",
         SessionPhase.GUIDING: "guiding-user",
         SessionPhase.WAITING_FOR_DISPOSAL: "waiting-for-disposal",

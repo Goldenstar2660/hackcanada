@@ -1,6 +1,8 @@
 import { getFirestore } from "firebase-admin/firestore";
 
+import { createAnalyticsInsightsGenerator } from "../ai/analytics-insights.js";
 import { createGetAnalyticsSummaryHandler } from "../functions/get-analytics-summary.js";
+import { createGetAnalyticsInsightsHandler } from "../functions/get-analytics-insights.js";
 import { createGetEventHistoryHandler } from "../functions/get-event-history.js";
 import { createGetStationDirectoryHandler } from "../functions/get-station-directory.js";
 import { createIngestCameraFrameHandler } from "../functions/ingest-camera-frame.js";
@@ -16,6 +18,7 @@ import {
 
 const services = getBackendRuntimeServices();
 const firestore = getFirestore();
+const analyticsInsightsGenerator = createAnalyticsInsightsGenerator();
 
 async function createMaterializationLedger(eventId: string): Promise<boolean> {
   try {
@@ -58,6 +61,13 @@ export const ingestCameraFrame = createFirebaseHttpFunction(
 export const getAnalyticsSummary = createFirebaseCallableFunction(
   createGetAnalyticsSummaryHandler({
     queryService: services.dashboardQueryService
+  })
+);
+
+export const getAnalyticsInsights = createFirebaseCallableFunction(
+  createGetAnalyticsInsightsHandler({
+    queryService: services.dashboardQueryService,
+    insightsGenerator: analyticsInsightsGenerator
   })
 );
 

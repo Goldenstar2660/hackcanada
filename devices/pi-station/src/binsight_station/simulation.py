@@ -17,7 +17,8 @@ from .esp_client import (
     BACKEND_STATION_ID_HEADER,
     BACKEND_TIMESTAMP_HEADER,
 )
-from .main import DeterministicHandTracker, RuntimeSettings, StationRuntime
+from .hand_tracking import HandTrackingObservation
+from .main import RuntimeSettings, StationRuntime
 from .session import SessionPhase
 
 
@@ -70,14 +71,13 @@ class RecordedIngressRequest:
 
 @dataclass(slots=True)
 class RealtimeSimulationScenario:
-    predicted_item: str = "plastic-bottle"
+    predicted_item: str = "aluminum-can"
     disposal_zone: str = "left"
     station_id: str = "demo-station-001"
     device_id: str = "pi-sim-001"
     shared_secret: str = "simulated-secret"
     classification_confidence: float = 0.97
     llm_fallback_used: bool = False
-    presence_debounce_seconds: float = 0.35
     disposal_timeout_seconds: float = 12.0
     reset_cooldown_seconds: float = 1.5
     tick_interval_seconds: float = 0.05
@@ -89,8 +89,6 @@ class RealtimeSimulationScenario:
     def validate(self) -> None:
         if self.disposal_zone not in {"left", "middle", "right"}:
             raise ValueError("disposal_zone must be one of: left, middle, right")
-        if self.presence_debounce_seconds <= 0:
-            raise ValueError("presence_debounce_seconds must be positive")
         if self.disposal_timeout_seconds <= 0:
             raise ValueError("disposal_timeout_seconds must be positive")
         if self.reset_cooldown_seconds < 0:
@@ -117,6 +115,26 @@ class StaticClassifier:
         self.calls += 1
         self.requests.append(request)
         return self._result
+
+
+class SimulatedHandTracker:
+    def __init__(self, zone: str) -> None:
+        self._zone = zone
+        self._hand_present = False
+
+    def set_hand_present(self, hand_present: bool) -> None:
+        self._hand_present = hand_present
+
+    def observe(self, *, snapshot: object) -> HandTrackingObservation | None:
+        resolved_snapshot = snapshot
+        if self._hand_present:
+            return HandTrackingObservation(zone=self._zone, hand_present=True)
+        if getattr(resolved_snapshot, "hand_present", False):
+            return HandTrackingObservation(zone=None, hand_present=False)
+        return None
+
+    def close(self) -> None:
+        return None
 
 
 class SimulatedEspController:
@@ -416,7 +434,7 @@ class SimulatedBackendIngressServer:
     def _create_event_id(self, body: dict[str, Any]) -> str:
         station_id = str(body.get("station_id", self.station_id))
         timestamp = str(body.get("timestamp", ""))
-        predicted_item = str(body.get("predicted_item", "unknown-item"))
+        predicted_item = str(body.get("predicted_item", "pickled-radish"))
         return f"{station_id}_{timestamp}_{_normalize_item_token(predicted_item)}"
 
 
@@ -447,7 +465,6 @@ class RealtimeSimulationResult:
                 "disposalZone": self.scenario.disposal_zone,
                 "stationId": self.scenario.station_id,
                 "deviceId": self.scenario.device_id,
-                "presenceDebounceSeconds": self.scenario.presence_debounce_seconds,
                 "disposalTimeoutSeconds": self.scenario.disposal_timeout_seconds,
                 "resetCooldownSeconds": self.scenario.reset_cooldown_seconds,
                 "tickIntervalSeconds": self.scenario.tick_interval_seconds,
@@ -479,7 +496,7 @@ def build_simulation_settings(
         station_id=scenario.station_id,
         rules_preset_id="demo-canada-ottawa",
         rules_preset_version="1.0.0",
-        item_classifier_model_dir=Path("/tmp/simulation-model"),
+        item_classifier_model_dir=Path("/tmp/binsight-simulation-model"),
         esp_endpoint=esp_endpoint,
         firebase_project_id="binsight-simulation",
         firebase_functions_region="us-central1",
@@ -487,7 +504,6 @@ def build_simulation_settings(
         binsight_device_id=scenario.device_id,
         binsight_device_shared_secret=scenario.shared_secret,
         publication_timeout_seconds=1.0,
-        presence_debounce_seconds=scenario.presence_debounce_seconds,
         disposal_timeout_seconds=scenario.disposal_timeout_seconds,
         reset_cooldown_seconds=scenario.reset_cooldown_seconds,
         camera_capture_width=640,
@@ -519,8 +535,9 @@ def run_realtime_simulation(
         )
         runtime = StationRuntime(
             settings,
-            hand_tracking_input=DeterministicHandTracker((resolved_scenario.disposal_zone,)),
+            hand_tracking_input=SimulatedHandTracker(resolved_scenario.disposal_zone),
         )
+        simulated_hand_tracker = runtime.hand_tracking_input
         classifier = StaticClassifier(
             ClassificationResult(
                 predicted_item=resolved_scenario.predicted_item,
@@ -530,7 +547,6 @@ def run_realtime_simulation(
         )
         runtime.classifier = classifier
 
-        esp_server.set_presence(hand_present=True, stable=True)
         started_at = monotonic()
         guidance_seen_at: float | None = None
         hand_release_applied = False
@@ -540,7 +556,7 @@ def run_realtime_simulation(
         try:
             while monotonic() - started_at <= resolved_scenario.max_duration_seconds:
                 snapshot = runtime.session.snapshot
-                if snapshot.phase in {SessionPhase.IDLE, SessionPhase.PRESENCE_ARMING}:
+                if snapshot.phase is SessionPhase.IDLE:
                     runtime.start_session(image_source=resolved_scenario.image_source)
                 elif snapshot.phase in {SessionPhase.WAITING_FOR_DISPOSAL, SessionPhase.EMIT_RESULT}:
                     runtime.sync_from_esp()
@@ -548,17 +564,18 @@ def run_realtime_simulation(
                 now = monotonic()
                 if guidance_seen_at is None and esp_server.signal_history:
                     guidance_seen_at = now
+                    simulated_hand_tracker.set_hand_present(True)
 
                 if (
                     guidance_seen_at is not None
                     and not hand_release_applied
                     and now - guidance_seen_at >= resolved_scenario.hand_hold_seconds
                 ):
-                    esp_server.set_presence(hand_present=False, stable=False)
+                    simulated_hand_tracker.set_hand_present(False)
                     hand_release_applied = True
 
                 if runtime.last_event is not None and reset_started_at is None and resolved_scenario.perform_reset:
-                    runtime.begin_reset()
+                    runtime.begin_reset(clear_guidance=True)
                     reset_started_at = monotonic()
 
                 if reset_started_at is not None and runtime.session.snapshot.phase is SessionPhase.RESETTING:
@@ -675,18 +692,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
             "and fake backend ingress server."
         )
     )
-    parser.add_argument("--item", default="plastic-bottle", help="Predicted item to simulate.")
+    parser.add_argument("--item", default="aluminum-can", help="Predicted item to simulate.")
     parser.add_argument(
         "--disposal-zone",
         choices=("left", "middle", "right"),
         default="left",
         help="Disposal zone to simulate when the user drops the item.",
-    )
-    parser.add_argument(
-        "--presence-debounce-seconds",
-        type=float,
-        default=0.35,
-        help="Real-time stable presence window before classification starts.",
     )
     parser.add_argument(
         "--disposal-timeout-seconds",
@@ -737,7 +748,6 @@ def main() -> int:
     scenario = RealtimeSimulationScenario(
         predicted_item=args.item,
         disposal_zone=args.disposal_zone,
-        presence_debounce_seconds=args.presence_debounce_seconds,
         disposal_timeout_seconds=args.disposal_timeout_seconds,
         reset_cooldown_seconds=args.reset_cooldown_seconds,
         tick_interval_seconds=args.tick_interval_seconds,

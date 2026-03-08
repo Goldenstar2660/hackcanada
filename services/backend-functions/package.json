@@ -12,6 +12,7 @@
     "seed:demo": "node scripts/seed-demo-data.mjs"
   },
   "dependencies": {
+    "@binsight/contracts": "workspace:*",
     "firebase-admin": "^12.7.0",
     "firebase-functions": "^5.1.1"
   },

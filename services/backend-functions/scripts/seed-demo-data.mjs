@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +7,7 @@ import { getFirestore } from "firebase-admin/firestore";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../../..");
+const backendFunctionsRoot = path.resolve(__dirname, "..");
 
 const COLLECTIONS = {
   stations: "stations",
@@ -21,6 +22,124 @@ const COLLECTIONS = {
 };
 
 const SEED_REFERENCE_DATE = new Date("2026-03-07T15:00:00.000Z");
+
+function parseCliArgs(argv) {
+  const args = [...argv];
+  const has = (flag) => args.includes(flag);
+  const valueFor = (flag) => {
+    const index = args.indexOf(flag);
+    if (index === -1 || index + 1 >= args.length) {
+      return null;
+    }
+    return args[index + 1];
+  };
+
+  return {
+    dryRun: has("--dry-run"),
+    envFile: valueFor("--env-file")
+  };
+}
+
+function parseEnvDocument(document) {
+  const parsed = {};
+
+  for (const rawLine of document.split(/\r?\n/u)) {
+    const trimmed = rawLine.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const line = trimmed.startsWith("export ") ? trimmed.slice(7) : trimmed;
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    let value = line.slice(separatorIndex + 1).trim();
+    if (!key) {
+      continue;
+    }
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    parsed[key] = value;
+  }
+
+  return parsed;
+}
+
+async function loadEnvFile(envFilePath, { overwrite = false } = {}) {
+  try {
+    const document = await readFile(envFilePath, "utf8");
+    const parsed = parseEnvDocument(document);
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!overwrite && process.env[key] !== undefined) {
+        continue;
+      }
+      process.env[key] = value;
+    }
+    return true;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function discoverNamedEnvFiles() {
+  const directoryEntries = await readdir(backendFunctionsRoot, { withFileTypes: true });
+  return directoryEntries
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .filter((name) => name.startsWith(".env."))
+    .filter((name) => name !== ".env.example" && name !== ".env.local")
+    .sort();
+}
+
+async function loadBackendFunctionEnv({ envFile } = {}) {
+  const loadedEnvFiles = [];
+
+  if (envFile) {
+    const resolvedEnvFile = path.isAbsolute(envFile)
+      ? envFile
+      : path.resolve(repoRoot, envFile);
+    const loaded = await loadEnvFile(resolvedEnvFile);
+    if (!loaded) {
+      throw new Error(`Requested env file was not found: ${resolvedEnvFile}`);
+    }
+    loadedEnvFiles.push(path.relative(repoRoot, resolvedEnvFile));
+    return loadedEnvFiles;
+  }
+
+  for (const candidate of [".env", ".env.local"]) {
+    const candidatePath = path.join(backendFunctionsRoot, candidate);
+    if (await loadEnvFile(candidatePath)) {
+      loadedEnvFiles.push(path.relative(repoRoot, candidatePath));
+    }
+  }
+
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.BINSIGHT_FIREBASE_PROJECT_ID;
+  if (projectId) {
+    return loadedEnvFiles;
+  }
+
+  const namedEnvFiles = await discoverNamedEnvFiles();
+  if (namedEnvFiles.length === 1) {
+    const fallbackEnvPath = path.join(backendFunctionsRoot, namedEnvFiles[0]);
+    if (await loadEnvFile(fallbackEnvPath)) {
+      loadedEnvFiles.push(path.relative(repoRoot, fallbackEnvPath));
+    }
+  }
+
+  return loadedEnvFiles;
+}
 
 const STATIONS = [
   {
@@ -65,14 +184,9 @@ const ZONE_TO_METHOD = {
 };
 
 const ITEM_TO_METHOD = {
-  "plastic-bottle": "recycle",
-  "paper-takeout-container": "recycle",
-  "banana-peel": "compost",
-  "apple-core": "compost",
-  "coffee-cup": "garbage",
-  "pizza-box": "garbage",
-  "unknown-item": "garbage",
-  "fallback-item": "garbage"
+  "aluminum-can": "recycle",
+  "pickled-radish": "compost",
+  "granola-bar": "garbage"
 };
 
 const STATION_SCENARIOS = {
@@ -109,12 +223,12 @@ const STATION_SCENARIOS = {
 };
 
 const EVENT_BLUEPRINTS = [
-  { hour: 8, minute: 10, item: "coffee-cup", failureZone: "left" },
-  { hour: 10, minute: 5, item: "plastic-bottle", failureZone: "right" },
-  { hour: 11, minute: 40, item: "banana-peel", failureZone: "right" },
-  { hour: 12, minute: 15, item: "paper-takeout-container", failureZone: "middle" },
-  { hour: 14, minute: 5, item: "apple-core", failureZone: "left" },
-  { hour: 16, minute: 25, item: "pizza-box", failureZone: "left" }
+  { hour: 8, minute: 10, item: "granola-bar", failureZone: "left" },
+  { hour: 10, minute: 5, item: "aluminum-can", failureZone: "right" },
+  { hour: 11, minute: 40, item: "pickled-radish", failureZone: "right" },
+  { hour: 12, minute: 15, item: "aluminum-can", failureZone: "middle" },
+  { hour: 14, minute: 5, item: "pickled-radish", failureZone: "left" },
+  { hour: 16, minute: 25, item: "granola-bar", failureZone: "middle" }
 ];
 
 function createMetricTotals(totalAttempts = 0, totalCorrectSorts = 0) {
@@ -242,7 +356,7 @@ function createSeededEvent(stationId, date, blueprint, success) {
       actualDisposalZone,
       attemptResult: success ? "success" : "failure",
       modelConfidence: success ? 0.93 : 0.72,
-      llmFallbackUsed: predictedItem === "unknown-item" || predictedItem === "fallback-item"
+      llmFallbackUsed: false
     }
   };
 }
@@ -280,7 +394,7 @@ function buildSeedDataset() {
         timestamp: SEED_REFERENCE_DATE.toISOString(),
         sessionState: "guiding-user",
         cameraFeedActive: false,
-        currentDetectedItem: "plastic-bottle",
+        currentDetectedItem: "aluminum-can",
         currentDisposalMethod: "recycle",
         currentHandZone: "left",
         deviceHealth: {
@@ -456,9 +570,29 @@ async function commitInChunks(firestore, writes) {
 }
 
 async function main() {
+  const cliArgs = parseCliArgs(process.argv.slice(2));
+  const loadedEnvFiles = await loadBackendFunctionEnv({ envFile: cliArgs.envFile });
   const projectId = process.env.FIREBASE_PROJECT_ID || process.env.BINSIGHT_FIREBASE_PROJECT_ID;
   if (!projectId) {
     throw new Error("FIREBASE_PROJECT_ID or BINSIGHT_FIREBASE_PROJECT_ID is required for the demo seed workflow.");
+  }
+
+  const preset = await loadOttawaPreset();
+  const dataset = buildSeedDataset();
+
+  if (cliArgs.dryRun) {
+    console.log(JSON.stringify({
+      dryRun: true,
+      projectId,
+      loadedEnvFiles,
+      presetId: preset.presetId,
+      presetVersion: preset.version,
+      stationsSeeded: STATIONS.length,
+      liveStatusesSeeded: dataset.liveStatuses.length,
+      eventsSeeded: dataset.events.length,
+      rollupsSeeded: dataset.rollups.length
+    }, null, 2));
+    return;
   }
 
   const storageBucket = process.env.BINSIGHT_STORAGE_BUCKET;
@@ -469,8 +603,6 @@ async function main() {
   });
 
   const firestore = getFirestore();
-  const preset = await loadOttawaPreset();
-  const dataset = buildSeedDataset();
 
   const writes = [];
   writes.push((batch) => {
@@ -537,6 +669,7 @@ async function main() {
 
   console.log(JSON.stringify({
     projectId,
+    loadedEnvFiles,
     presetId: preset.presetId,
     presetVersion: preset.version,
     stationsSeeded: STATIONS.length,

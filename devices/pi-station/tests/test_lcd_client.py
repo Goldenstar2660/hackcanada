@@ -27,14 +27,14 @@ def test_lcd_client_writes_formatted_screens_to_hardware_writer() -> None:
     client = LcdClient(writer=writer)
 
     screen = client.render_guidance(
-        predicted_item="plastic-bottle",
+        predicted_item="aluminum-can",
         disposal_method="recycle",
         total_attempts=1,
         total_correct_sorts=1,
     )
 
     assert writer.screens == [screen]
-    assert screen.line_one.strip() == "plastic bottle"
+    assert screen.line_one.strip() == "aluminum can"
     assert screen.line_two.strip() == "Use recycle"
     assert len(screen.line_one) == 16
     assert len(screen.line_two) == 16

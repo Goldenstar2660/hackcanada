@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#247ad6",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#121920",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .brutalist-card {
+            border: 1px solid #000;
+            box-shadow: 0 0 0 0 rgba(0,0,0,0);
+            transition: transform 0.1s ease;
+        }
+        .brutalist-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 0 #000;
+        }
+        .active-blue {
+            color: #247ad6;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between px-6 py-4 border-b border-black sticky top-0 bg-white z-50">
+<div class="flex items-center gap-4">
+<div class="size-8 bg-primary flex items-center justify-center text-white border border-black">
+<span class="material-symbols-outlined text-xl">delete_sweep</span>
+</div>
+<h2 class="text-xl font-bold tracking-tighter uppercase">B<span class="lowercase">i</span>NSIGHT</h2>
+</div>
+<nav class="hidden md:flex items-center gap-8 text-[10px] uppercase font-mono font-bold tracking-widest">
+<a class="hover:text-primary" href="#">Dashboard</a>
+<a class="hover:text-primary" href="#">Analytics</a>
+<a class="hover:text-primary underline decoration-2 underline-offset-4" href="#">Devices</a>
+<a class="hover:text-primary" href="#">Settings</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="border border-black p-2 hover:bg-primary/10">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<div class="size-10 bg-slate-200 border border-black overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAozHdRFnLaM-wEM1-uDbs5LtUnP3VStyRe1aDfOOFjtdsJ_nWNF7vnw5OPyNV1fRRtwR0ZHWr_4O-Ef058RuKE4e_ZoUHjJ9DXa4BWCECVyFytxETSeIG4tHe3U9uzprD_fIjGdDuPd1crCzW9W5J9TrR0MsOg7kLz48AxJaCmol1zmNmzFC-8CId5O4PPBtt17ENQPSX2d0L4ZHE7MqUTFdGRg95HavzLM0UtpvNcS5OwWz-sB8fzftIP-xlxkN9_NuLHlyUsYpB-"/>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-[1200px] mx-auto w-full px-4 md:px-10 py-10">
+<!-- Hero Selection -->
+<div class="flex flex-wrap items-end justify-between gap-6 mb-12">
+<div class="space-y-2">
+<h1 class="text-4xl md:text-6xl font-black leading-none tracking-tighter uppercase">24 CURRENT ACTIVE DEVICES</h1>
+<div class="flex items-center gap-2">
+<div class="size-3 bg-primary rounded-full animate-pulse"></div>
+<p class="text-slate-500 font-medium uppercase tracking-widest text-xs">System Status: All Operational</p>
+</div>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white font-black px-8 py-4 uppercase tracking-tighter border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
+                    REGISTER NEW DEVICE
+                </button>
+</div>
+<!-- Filter Controls -->
+<div class="flex flex-wrap gap-4 mb-8 border-b-2 border-black pb-4">
+<button class="bg-black text-white px-4 py-1 text-sm font-bold uppercase">All Devices</button>
+<button class="bg-white text-black border border-black px-4 py-1 text-sm font-bold uppercase hover:bg-slate-50">Industrial</button>
+<button class="bg-white text-black border border-black px-4 py-1 text-sm font-bold uppercase hover:bg-slate-50">Monitoring</button>
+<button class="bg-white text-black border border-black px-4 py-1 text-sm font-bold uppercase hover:bg-slate-50">Sensors</button>
+</div>
+<!-- Device Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Device Card 1 -->
+<div class="brutalist-card bg-white dark:bg-slate-900 flex flex-col p-5">
+<div class="aspect-video bg-slate-100 dark:bg-slate-800 mb-4 border border-black overflow-hidden relative">
+<img alt="Device monitoring view" class="w-full h-full object-cover" data-alt="Industrial sensor device station WL042 visualization" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmfsELumzQRkANB0tg35x7DPAdfGassUNoEmTltdABWEWI74v8p57vPuSvbpRuoDGKLKUBQ_yPXaSSoEb6qrXzYKw8ATtT1Zij0ymrQt8nAbEdKHh9XzNUFnm3_d9HzJ8Hj6BZnp5ohkpZQ7tfDgqsNisD2avhLCJIFYkBMXdXx073iQ870CQZrNhGHRl8b2_LRJ3mvSWPnERvtAh4zlSMu5prAmwWKwdLjPDI2E8lnXxvsXRPWz5yeptNnMPNOXivyvmKkWaBWlhO"/>
+<div class="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 border border-black">LIVE</div>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-xl font-black uppercase leading-none tracking-tight">Station WL-042</h3>
+<div class="flex items-center gap-2 mb-3">
+<span class="size-2 bg-primary rounded-full"></span>
+<span class="text-xs font-bold uppercase text-primary">Active / Online</span>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-col gap-1">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</p>
+<p class="text-sm font-bold uppercase">Sector A-1: Main Hub</p>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 border border-black text-[10px] font-black uppercase py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Details</button>
+<button class="border border-black p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-sm">settings</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Device Card 2 -->
+<div class="brutalist-card bg-white dark:bg-slate-900 flex flex-col p-5">
+<div class="aspect-video bg-slate-100 dark:bg-slate-800 mb-4 border border-black overflow-hidden relative">
+<img alt="Device monitoring view" class="w-full h-full object-cover" data-alt="Industrial sensor device station MS019 visualization" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVYhHazphlfg_ovTG_T-qX0UD9b4oYeZIsv0wqP84V_K3PkjGMYy2A0DSjqxrwNmRM4wg6vbTkKvUjeI6YpgFsN8UYhS3QkKjPVY9yLxpqVrL9U3i4Zhq_i4aTvfgUbdTbOjcrWavr16Ck7SU-YirttR2irZ-OYBWtg3eLKsCx8VSzRJRG06bA--skKUkbc0nL6QqUPVXVJx-W5gbJpmDnLt5UVVv3UnYh5naU_ktWm5fEWk-E-BdR2eEspp0_Vn2JpVOwZlxoTdEN"/>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-xl font-black uppercase leading-none tracking-tight">Station MS-019</h3>
+<div class="flex items-center gap-2 mb-3">
+<span class="size-2 bg-primary rounded-full"></span>
+<span class="text-xs font-bold uppercase text-primary">Active / Online</span>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-col gap-1">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</p>
+<p class="text-sm font-bold uppercase">Sector B-4: Production</p>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 border border-black text-[10px] font-black uppercase py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Details</button>
+<button class="border border-black p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-sm">settings</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Device Card 3 -->
+<div class="brutalist-card bg-white dark:bg-slate-900 flex flex-col p-5">
+<div class="aspect-video bg-slate-100 dark:bg-slate-800 mb-4 border border-black overflow-hidden relative">
+<img alt="Device monitoring view" class="w-full h-full object-cover" data-alt="Industrial sensor device station RX105 visualization" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTQNXRt3BCL91IySm9raywniNVbkX9Ko7WiiVjwlTayofsTUdnbG7sN8bqqrpB1RgQ4cVot6jOK3W5Ya-r-v8F6AL0YpZkuh2kptv6CzbvJ_EXBDr_Pj5WregZ0d4GBsvVZzb1dhyxHtE8ge-udgi-cw2a8T3-naduvqhEvs8g3sq14jt9Us0X0uvLf9DQqgeU0USioJSotlEPgAoUEw9jNysRA1lTyGAVpao9jFYFkOaZc46B0ni8yLxLuTomtAjotzWXjUTdabzQ"/>
+<div class="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 border border-black">LIVE</div>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-xl font-black uppercase leading-none tracking-tight">Station RX-105</h3>
+<div class="flex items-center gap-2 mb-3">
+<span class="size-2 bg-primary rounded-full"></span>
+<span class="text-xs font-bold uppercase text-primary">Active / Online</span>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-col gap-1">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</p>
+<p class="text-sm font-bold uppercase">Sector C-2: Storage</p>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 border border-black text-[10px] font-black uppercase py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Details</button>
+<button class="border border-black p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-sm">settings</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Device Card 4 -->
+<div class="brutalist-card bg-white dark:bg-slate-900 flex flex-col p-5">
+<div class="aspect-video bg-slate-100 dark:bg-slate-800 mb-4 border border-black overflow-hidden relative">
+<img alt="Device monitoring view" class="w-full h-full object-cover" data-alt="Industrial sensor device station KT088 visualization" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdLbPs56kSqfu4VoA6FKODHGOgmuokKO9ipQqlG9B9A_xSPYSKNyoNOJ0B-9Ml3Saivf-JZJg3hmwxSq2AW9FTq5LCnnm9X-yv0Zty9NGCNyA3XG6IC5K2Uie9_cHuQ9yXtf_Z-GGvf9fDkbTN1ahjrUxtaJCOTknInyRHMPhJJ_8gfpjELz-L13BvrzuAslPF4wMjMCMtiDjNCH2SpUvBQdTZ7U1CDUUbLbpuAlNx1v4UzorxlGMfIX13lsSO1MVvZ4Z0iVJmKNEN"/>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-xl font-black uppercase leading-none tracking-tight">Station KT-088</h3>
+<div class="flex items-center gap-2 mb-3">
+<span class="size-2 bg-primary rounded-full"></span>
+<span class="text-xs font-bold uppercase text-primary">Active / Online</span>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-col gap-1">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</p>
+<p class="text-sm font-bold uppercase">Sector D-9: Logistics</p>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 border border-black text-[10px] font-black uppercase py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Details</button>
+<button class="border border-black p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-sm">settings</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Device Card 5 -->
+<div class="brutalist-card bg-white dark:bg-slate-900 flex flex-col p-5 opacity-70 grayscale">
+<div class="aspect-video bg-slate-100 dark:bg-slate-800 mb-4 border border-black overflow-hidden relative">
+<img alt="Device monitoring view" class="w-full h-full object-cover" data-alt="Device station ZF331 visualization - offline" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR_iEHivKYAj_WmKR_AwS1tw0WLlrBzYwHCE6jFBLcfTrX_4ssF3Hz-dJ96iMw2Eqxeoq6VfQxmQjT5TjLHCsKeyRJT3Br2VAIH1LVNHktGPFPM9f8BfhnUUNs3WSWkIJkSGGKJ1xYkwyZGwqwd3-JBwNVdcDG9v4MZEIdcNt0U2BIVLRivbQHy4CMVQ8OCGt5Fw8zy262XF9fVf0BiqDyW01EIpg2_Ryx7k5txETNN0DYXW4u_lfFZ9pDarHuCvWB18QoIZWIdefv"/>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-xl font-black uppercase leading-none tracking-tight">Station ZF-331</h3>
+<div class="flex items-center gap-2 mb-3">
+<span class="size-2 bg-slate-400 rounded-full"></span>
+<span class="text-xs font-bold uppercase text-slate-400">Offline / Syncing</span>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-col gap-1">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</p>
+<p class="text-sm font-bold uppercase">Sector F-1: External</p>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 border border-black text-[10px] font-black uppercase py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Details</button>
+<button class="border border-black p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-sm">settings</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Add New Device Ghost Card -->
+<button class="border-2 border-dashed border-slate-300 dark:border-slate-700 bg-transparent flex flex-col items-center justify-center p-5 group hover:border-primary transition-all">
+<div class="size-12 rounded-full border border-black flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-all">
+<span class="material-symbols-outlined">add</span>
+</div>
+<p class="font-black uppercase tracking-tight text-slate-400 group-hover:text-primary transition-colors">Add New Device</p>
+</button>
+</div>
+</main>
+<footer class="border-t border-black p-6 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500">© 2026 BINSIGHT DATA SYSTEMS. ALL RIGHTS RESERVED.</div>
+<button class="border border-black px-4 py-2 text-[10px] font-mono font-bold uppercase hover:bg-black hover:text-white transition-colors">Contact Us</button>
+</footer>
+</div>
+</div>
+</body></html>

@@ -1,4 +1,5 @@
 import type {
+  AnalyticsInsightsResponse,
   AnalyticsSummary,
   EventHistoryResponse,
   StationDirectoryResponse
@@ -75,6 +76,7 @@ export interface OperatorDashboardGateway {
   getStationDirectory(): Promise<StationDirectoryResponse>;
   getEventHistory(filters: DashboardFilterState): Promise<EventHistoryResponse>;
   getAnalytics(filters: DashboardFilterState, options?: AnalyticsRequestOptions): Promise<AnalyticsSummary>;
+  getAnalyticsInsights(filters: DashboardFilterState, options?: AnalyticsRequestOptions): Promise<AnalyticsInsightsResponse>;
   getComparisons(filters: DashboardFilterState): Promise<readonly ComparisonAnalysisResult[]>;
 }
 
@@ -109,6 +111,10 @@ export function createOperatorDashboardGateway(client: DashboardApiClient): Oper
 
     getAnalytics(filters, options) {
       return client.getAnalyticsSummary(createAnalyticsRequest(normalizeDashboardGatewayFilters(filters), options));
+    },
+
+    getAnalyticsInsights(filters, options) {
+      return client.getAnalyticsInsights(createAnalyticsRequest(normalizeDashboardGatewayFilters(filters), options));
     },
 
     async getComparisons(filters) {

@@ -9,16 +9,15 @@ from binsight_station.session import SessionStateMachine
 
 def _resolved_snapshot(*, zone: str, llm_fallback_used: bool = False):
     session = SessionStateMachine()
-    session.begin_presence_arming(0.0)
-    session.begin_identification(0.35)
+    session.begin_identification(0.0)
     session.set_guidance(
-        "plastic-bottle",
+        "aluminum-can",
         "recycle",
         0.62 if llm_fallback_used else 0.97,
         llm_fallback_used,
-        0.5,
+        0.1,
     )
-    session.begin_waiting_for_disposal(0.5)
+    session.begin_waiting_for_disposal(0.2)
     session.track_hand(zone=zone, hand_present=True, now_monotonic=1.0)
     return session.track_hand(zone=zone, hand_present=False, now_monotonic=1.1)
 
@@ -32,7 +31,7 @@ def test_disposal_event_payload_serializes_success_with_fallback_fields() -> Non
     assert event.to_payload() == {
         "stationId": "demo-station-001",
         "timestamp": event.timestamp,
-        "predictedItem": "plastic-bottle",
+        "predictedItem": "aluminum-can",
         "correctDisposalMethod": "recycle",
         "actualDisposalZone": "left",
         "attemptResult": "success",
@@ -56,10 +55,9 @@ def test_disposal_event_payload_serializes_failure_for_wrong_zone_mapping() -> N
 def test_live_status_payload_serializes_waiting_phase_and_latest_event_summary() -> None:
     preset = load_rules_preset("demo-canada-ottawa", "1.0.0")
     session = SessionStateMachine()
-    session.begin_presence_arming(0.0)
-    session.begin_identification(0.35)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.5)
-    waiting_snapshot = session.begin_waiting_for_disposal(0.5)
+    session.begin_identification(0.0)
+    session.set_guidance("aluminum-can", "recycle", 0.97, False, 0.1)
+    waiting_snapshot = session.begin_waiting_for_disposal(0.2)
     latest_event = create_disposal_event("demo-station-001", _resolved_snapshot(zone="left"), preset)
 
     status = LiveStatusPublisher().build_status(
@@ -74,7 +72,7 @@ def test_live_status_payload_serializes_waiting_phase_and_latest_event_summary()
         "timestamp": status.timestamp,
         "sessionState": "waiting-for-disposal",
         "cameraFeedActive": False,
-        "currentDetectedItem": "plastic-bottle",
+        "currentDetectedItem": "aluminum-can",
         "currentDisposalMethod": "recycle",
         "currentHandZone": None,
         "deviceHealth": {
@@ -84,7 +82,7 @@ def test_live_status_payload_serializes_waiting_phase_and_latest_event_summary()
         },
         "latestEvent": {
             "timestamp": latest_event.timestamp,
-            "predictedItem": "plastic-bottle",
+            "predictedItem": "aluminum-can",
             "correctDisposalMethod": "recycle",
             "actualDisposalZone": "left",
             "attemptResult": "success",
