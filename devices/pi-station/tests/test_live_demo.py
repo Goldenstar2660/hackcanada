@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from binsight_station.esp_client import EspClient, MemoryEspTransport
 from binsight_station.live_demo import run_live_demo
 from binsight_station.main import RuntimeSettings, StationRuntime
@@ -18,6 +20,7 @@ def test_live_demo_injects_fake_detection_and_drives_real_runtime_seams() -> Non
             station_id="demo-station-001",
             rules_preset_id="demo-canada-ottawa",
             rules_preset_version="1.0.0",
+            item_classifier_model_dir=Path("/tmp/mock-model"),
             esp_endpoint="serial://test",
             firebase_project_id="test-project",
             firebase_functions_region="us-central1",
@@ -28,6 +31,14 @@ def test_live_demo_injects_fake_detection_and_drives_real_runtime_seams() -> Non
             presence_debounce_seconds=0.35,
             disposal_timeout_seconds=12.0,
             reset_cooldown_seconds=0.0,
+            camera_capture_width=640,
+            camera_capture_height=480,
+            camera_capture_format="jpg",
+            camera_capture_rotation_degrees=180,
+            llm_fallback_enabled=False,
+            google_api_key=None,
+            llm_model="gemini-2.0-flash",
+            llm_timeout_seconds=10.0,
         ),
         monotonic_clock=iter([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]).__next__,
         esp_client=EspClient("serial://test", transport=transport),

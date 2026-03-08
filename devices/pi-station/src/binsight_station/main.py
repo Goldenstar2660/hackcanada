@@ -15,6 +15,7 @@ from .classification import ClassificationPipeline, ClassificationRequest
 from .esp_client import EspClient, GuidanceCommand
 from .events import DisposalEvent, create_disposal_event
 from .lcd_client import LcdClient
+from .llm_client import LLMClient, LLMClientConfig
 from .live_status import DeviceHealth, LiveStatus, LiveStatusPublisher
 from .publishers import PublicationAdapter, PublicationError
 from .rules import RulesPreset, load_rules_preset
@@ -83,6 +84,10 @@ class RuntimeSettings:
     camera_capture_height: int
     camera_capture_format: str
     camera_capture_rotation_degrees: int
+    llm_fallback_enabled: bool
+    google_api_key: str | None
+    llm_model: str
+    llm_timeout_seconds: float
 
 
 def load_runtime_settings() -> RuntimeSettings:
@@ -113,6 +118,10 @@ def load_runtime_settings() -> RuntimeSettings:
         camera_capture_height=int(os.getenv("CAMERA_CAPTURE_HEIGHT", "480")),
         camera_capture_format=os.getenv("CAMERA_CAPTURE_FORMAT", "jpg").strip().lower() or "jpg",
         camera_capture_rotation_degrees=int(os.getenv("CAMERA_CAPTURE_ROTATION_DEGREES", "180")),
+        llm_fallback_enabled=os.getenv("LLM_FALLBACK_ENABLED", "false").strip().lower() == "true",
+        google_api_key=_optional_env("GOOGLE_API_KEY"),
+        llm_model=os.getenv("LLM_MODEL", "gemini-2.0-flash"),
+        llm_timeout_seconds=float(os.getenv("LLM_TIMEOUT_SECONDS", "10.0")),
     )
 
 
@@ -170,7 +179,11 @@ class StationRuntime:
                 reset_cooldown_seconds=settings.reset_cooldown_seconds,
             )
         )
-        self.classifier = classifier or ClassificationPipeline(model_dir=settings.item_classifier_model_dir)
+        llm_client = self._create_llm_client(settings) if classifier is None else None
+        self.classifier = classifier or ClassificationPipeline(
+            model_dir=settings.item_classifier_model_dir,
+            llm_client=llm_client,
+        )
         self.esp_client = esp_client or EspClient(settings.esp_endpoint)
         self.lcd_client = lcd_client or LcdClient()
         self.live_status_publisher = LiveStatusPublisher()
@@ -191,6 +204,18 @@ class StationRuntime:
             total_attempts=self.session.snapshot.total_attempts,
             total_correct_sorts=self.session.snapshot.total_correct_sorts,
         )
+
+    def _create_llm_client(self, settings: RuntimeSettings) -> LLMClient | None:
+        if not settings.llm_fallback_enabled:
+            return None
+        if not settings.google_api_key:
+            return None
+        config = LLMClientConfig(
+            api_key=settings.google_api_key,
+            model=settings.llm_model,
+            timeout_seconds=settings.llm_timeout_seconds,
+        )
+        return LLMClient(config)
 
     def _now(self) -> float:
         return self._monotonic_clock()

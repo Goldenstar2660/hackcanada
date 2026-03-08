@@ -479,6 +479,7 @@ def build_simulation_settings(
         station_id=scenario.station_id,
         rules_preset_id="demo-canada-ottawa",
         rules_preset_version="1.0.0",
+        item_classifier_model_dir=Path("/tmp/simulation-model"),
         esp_endpoint=esp_endpoint,
         firebase_project_id="binsight-simulation",
         firebase_functions_region="us-central1",
@@ -489,6 +490,14 @@ def build_simulation_settings(
         presence_debounce_seconds=scenario.presence_debounce_seconds,
         disposal_timeout_seconds=scenario.disposal_timeout_seconds,
         reset_cooldown_seconds=scenario.reset_cooldown_seconds,
+        camera_capture_width=640,
+        camera_capture_height=480,
+        camera_capture_format="jpg",
+        camera_capture_rotation_degrees=180,
+        llm_fallback_enabled=False,
+        google_api_key=None,
+        llm_model="gemini-2.0-flash",
+        llm_timeout_seconds=10.0,
     )
 
 

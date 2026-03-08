@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 import importlib
 import json
+import logging
 import math
 from pathlib import Path
 import re
@@ -11,6 +12,11 @@ from typing import Any, Callable
 
 import numpy as np
 from PIL import Image
+
+from .llm_client import LLMClient, LLMClientConfig, LLMClassificationError
+
+
+logger = logging.getLogger(__name__)
 
 
 class ClassificationSource(StrEnum):
@@ -74,10 +80,13 @@ class ClassificationPipeline:
         *,
         model_dir: str | Path | None = None,
         interpreter_factory: InterpreterFactory | None = None,
+        llm_client: LLMClient | None = None,
     ) -> None:
         self._model_dir = Path(model_dir).resolve() if model_dir is not None else None
         self._interpreter_factory = _default_interpreter_factory if interpreter_factory is None else interpreter_factory
         self._runtime: _TFLiteRuntime | None = None
+        self._llm_client = llm_client
+        self._valid_labels: frozenset[str] | None = None
 
     def classify(self, request: ClassificationRequest) -> ClassificationResult:
         local_prediction = self._infer_local_item(request.image_source)
@@ -86,7 +95,10 @@ class ClassificationPipeline:
         source = local_prediction.source
         llm_fallback_used = confidence < request.confidence_threshold
         if llm_fallback_used:
-            predicted_item = self._infer_with_fallback(request.image_source)
+            if self._llm_client is None:
+                predicted_item = "fallback-item"
+            else:
+                predicted_item = self._infer_with_fallback(request.image_source)
             confidence = 0.75
             source = ClassificationSource.LLM_FALLBACK
 
@@ -110,8 +122,24 @@ class ClassificationPipeline:
         return runtime.predict(image_source)
 
     def _infer_with_fallback(self, image_source: str) -> str:
-        del image_source
-        return "fallback-item"
+        if self._llm_client is None:
+            return "fallback-item"
+
+        image_path = self._resolve_image_path(image_source)
+        try:
+            return self._llm_client.classify_image(image_path)
+        except LLMClassificationError as e:
+            logger.warning("LLM fallback classification failed: %s", e)
+            return "fallback-item"
+
+    def _resolve_image_path(self, image_source: str) -> Path:
+        if image_source.startswith("file://"):
+            resolved = Path(image_source.removeprefix("file://"))
+        else:
+            resolved = Path(image_source)
+        if not resolved.exists():
+            raise FileNotFoundError(f"classification image source was not found: {resolved}")
+        return resolved
 
     def _get_runtime(self) -> _TFLiteRuntime:
         if self._runtime is None:
