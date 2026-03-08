@@ -22,13 +22,17 @@ from binsight_station.session import SessionPhase, SessionStateMachine
 
 class StubClassifier:
     def __init__(self, *results: ClassificationResult) -> None:
-        self._results = iter(results)
+        self._results = list(results)
         self.calls = 0
 
     def classify(self, request: object) -> ClassificationResult:
         del request
+        if not self._results:
+            raise AssertionError("stub classifier requires at least one result")
         self.calls += 1
-        return next(self._results)
+        if self.calls <= len(self._results):
+            return self._results[self.calls - 1]
+        return self._results[-1]
 
 
 class StaticImageSourceProvider:
@@ -211,6 +215,57 @@ def test_runtime_fallback_classification_flow_marks_event_and_live_status() -> N
     }
 
 
+def test_runtime_stays_idle_when_classifier_returns_none() -> None:
+    transport = MemoryEspTransport()
+    runtime = _build_runtime(12.0, 12.1, transport=transport)
+    runtime.classifier = StubClassifier(
+        ClassificationResult(
+            predicted_item="none",
+            confidence=0.0,
+            llm_fallback_used=True,
+        )
+    )
+
+    snapshot, status = runtime.start_session(image_source="camera://uncertain")
+
+    assert snapshot.phase is SessionPhase.IDLE
+    assert snapshot.predicted_item is None
+    assert status.to_payload()["sessionState"] == "idle"
+    assert status.to_payload()["currentDetectedItem"] is None
+    assert runtime.esp_client.last_command is None
+    assert runtime.lcd_client.last_screen is not None
+    assert runtime.lcd_client.last_screen.mode == "standby"
+
+
+def test_runtime_refreshes_guidance_while_waiting_for_disposal() -> None:
+    transport = MemoryEspTransport()
+    runtime = _build_runtime(50.0, 50.1, 50.2, 50.3, 50.4, transport=transport)
+    runtime.classifier = StubClassifier(
+        ClassificationResult(
+            predicted_item="aluminum-can",
+            confidence=0.97,
+            llm_fallback_used=False,
+        ),
+        ClassificationResult(
+            predicted_item="pickled-radish",
+            confidence=0.98,
+            llm_fallback_used=False,
+        ),
+    )
+    runtime.hand_tracking_input = NoopHandTrackingInput()
+
+    waiting_snapshot, _ = runtime.start_session(image_source="camera://first")
+    refreshed_status = runtime.sync_from_esp()
+
+    assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+    assert runtime.session.snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+    assert runtime.session.snapshot.predicted_item == "pickled-radish"
+    assert runtime.session.snapshot.correct_disposal_method == "compost"
+    assert refreshed_status.to_payload()["currentDetectedItem"] == "pickled-radish"
+    assert transport.sent_frames.count("indicator:left") == 1
+    assert transport.sent_frames.count("indicator:middle") == 1
+
+
 def test_runtime_does_not_wait_for_stable_esp_presence_before_identification() -> None:
     transport = MemoryEspTransport()
     runtime = _build_runtime(20.0, 20.1, 20.2, transport=transport)
@@ -276,7 +331,7 @@ def test_runtime_uses_mediapipe_hand_tracking_without_esp_presence_frames() -> N
         HandLandmarkObservation(hand_present=False),
         HandLandmarkObservation(hand_present=False),
     )
-    clock = iter([40.0, 40.2, 40.4, 40.6, 40.8, 41.0]).__next__
+    clock = iter([40.0, 40.2, 40.4, 40.6, 40.8, 41.0, 41.2, 41.4, 41.6]).__next__
     runtime = StationRuntime(
         load_runtime_settings(),
         monotonic_clock=clock,
@@ -302,14 +357,14 @@ def test_runtime_uses_mediapipe_hand_tracking_without_esp_presence_frames() -> N
 
     tracked_status = runtime.sync_from_esp()
 
-    assert provider.calls == 1
+    assert provider.calls == 2
     assert tracked_status.to_payload()["currentHandZone"] == "middle"
 
     interim_status = runtime.sync_from_esp()
     result_status = runtime.sync_from_esp()
 
     assert interim_status.to_payload()["currentHandZone"] == "middle"
-    assert provider.calls == 3
+    assert provider.calls == 6
     assert detector.calls == 3
     assert runtime.last_event is not None
     assert runtime.last_event.actual_disposal_zone == "middle"

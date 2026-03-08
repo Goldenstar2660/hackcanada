@@ -29,5 +29,5 @@
     "middle": "compost",
     "right": "garbage"
   },
-  "lowConfidenceThreshold": 0.65
+  "lowConfidenceThreshold": 0.95
 }

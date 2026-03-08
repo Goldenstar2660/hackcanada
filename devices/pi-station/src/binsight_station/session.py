@@ -99,6 +99,28 @@ class SessionStateMachine:
         )
         return self.snapshot
 
+    def refresh_guidance(
+        self,
+        predicted_item: str,
+        disposal_method: str,
+        model_confidence: float,
+        llm_fallback_used: bool,
+        now_monotonic: float,
+    ) -> SessionSnapshot:
+        if self._snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL:
+            raise ValueError("guidance can only be refreshed while waiting for disposal")
+
+        self._snapshot = replace(
+            self._snapshot,
+            predicted_item=predicted_item,
+            correct_disposal_method=disposal_method,
+            model_confidence=model_confidence,
+            llm_fallback_used=llm_fallback_used,
+            phase_started_at_monotonic=now_monotonic,
+            disposal_timeout_at_monotonic=now_monotonic + self._timing.disposal_timeout_seconds,
+        )
+        return self.snapshot
+
     def is_disposal_wait_expired(self, now_monotonic: float) -> bool:
         if self._snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL:
             return False
@@ -174,6 +196,23 @@ class SessionStateMachine:
     def complete_reset(self, now_monotonic: float) -> SessionSnapshot:
         if not self.is_reset_ready(now_monotonic):
             raise ValueError("reset cooldown has not elapsed")
+
+        self._snapshot = SessionSnapshot(
+            phase=SessionPhase.IDLE,
+            latest_result_success=self._snapshot.latest_result_success,
+            total_attempts=self._snapshot.total_attempts,
+            total_correct_sorts=self._snapshot.total_correct_sorts,
+            phase_started_at_monotonic=now_monotonic,
+        )
+        return self.snapshot
+
+    def cancel_active_session(self, now_monotonic: float) -> SessionSnapshot:
+        if self._snapshot.phase not in {
+            SessionPhase.IDENTIFYING,
+            SessionPhase.GUIDING,
+            SessionPhase.WAITING_FOR_DISPOSAL,
+        }:
+            raise ValueError("only an active session can be cancelled")
 
         self._snapshot = SessionSnapshot(
             phase=SessionPhase.IDLE,

@@ -328,9 +328,9 @@ def test_classification_pipeline_uses_rules_threshold_for_low_confidence_fallbac
         ClassificationRequest(image_source=str(image_path), confidence_threshold=0.65)
     )
 
-    assert result.predicted_item == "aluminum-can"
+    assert result.predicted_item == "none"
     assert result.llm_fallback_used is True
-    assert result.confidence == 0.75
+    assert result.confidence == 0.0
 
 
 def test_classification_pipeline_fails_when_required_assets_are_missing(tmp_path: Path) -> None:

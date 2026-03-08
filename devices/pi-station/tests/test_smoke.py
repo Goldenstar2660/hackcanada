@@ -20,10 +20,10 @@ class StubClassifier:
 
     def classify(self, request: object) -> ClassificationResult:
         del request
-        if self.calls >= len(self._results):
-            raise AssertionError("classifier was called more times than expected")
-
-        result = self._results[self.calls]
+        if not self._results:
+            raise AssertionError("classifier was called without configured results")
+        index = min(self.calls, len(self._results) - 1)
+        result = self._results[index]
         self.calls += 1
         return result
 
@@ -97,6 +97,31 @@ def test_runtime_starts_even_when_presence_frames_show_no_hand() -> None:
     assert waiting_snapshot.phase == SessionPhase.WAITING_FOR_DISPOSAL
     assert waiting_status.phase == "waiting-for-disposal"
     assert runtime.classifier.last_request is not None
+
+
+def test_runtime_stays_idle_when_classifier_reports_none() -> None:
+    transport = MemoryEspTransport()
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=iter([6.0, 6.1]).__next__,
+        esp_client=EspClient("serial://test", transport=transport),
+        publication_client=PublicationAdapter("test-project"),
+        image_source_provider=StaticImageSourceProvider("demo://background"),
+    )
+    runtime.classifier = RecordingClassifier(
+        ClassificationResult(
+            predicted_item="none",
+            confidence=0.0,
+            llm_fallback_used=True,
+        )
+    )
+
+    snapshot, status = runtime.start_session(image_source="camera://uncertain")
+
+    assert snapshot.phase == SessionPhase.IDLE
+    assert status.phase == "idle"
+    assert status.to_payload()["currentDetectedItem"] is None
+    assert runtime.esp_client.last_command is None
 
 
 def test_session_tracks_configured_timing_windows() -> None:

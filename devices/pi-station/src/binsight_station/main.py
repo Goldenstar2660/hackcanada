@@ -10,7 +10,7 @@ from typing import Callable
 from dotenv import load_dotenv
 
 from .camera_capture import CameraCaptureSettings, CapturedImageSource, ImageSourceProvider, PiCameraImageSourceProvider
-from .classification import ClassificationPipeline, ClassificationRequest
+from .classification import ClassificationPipeline, ClassificationRequest, ClassificationResult, NO_DETECTION_ITEM
 from .esp_client import EspClient, GuidanceCommand
 from .events import DisposalEvent, create_disposal_event
 from .hand_tracking import DeterministicHandTracker, HandTrackingInput, MediaPipeHandsTracker
@@ -177,21 +177,15 @@ class StationRuntime:
     def _poll_esp(self) -> None:
         self.esp_client.poll()
 
-    def _advance_session_entry(self, image_source: str | None) -> SessionSnapshot:
-        snapshot = self.session.snapshot
-
-        if snapshot.phase is not SessionPhase.IDLE:
-            return snapshot
-
+    def _classify_current_view(self, image_source: str | None = None) -> ClassificationResult:
         captured_image: CapturedImageSource | None = None
         classification_source = image_source
         if classification_source is None:
             captured_image = self.image_source_provider.capture_image_source()
             classification_source = captured_image.image_source
 
-        self.session.begin_identification(self._now())
         try:
-            classification = self.classifier.classify(
+            return self.classifier.classify(
                 ClassificationRequest(
                     image_source=classification_source,
                     confidence_threshold=self.rules.low_confidence_threshold,
@@ -201,6 +195,26 @@ class StationRuntime:
             if captured_image is not None:
                 captured_image.cleanup()
 
+    def _cancel_active_session(self) -> SessionSnapshot:
+        snapshot = self.session.cancel_active_session(self._now())
+        self.esp_client.clear_guidance()
+        self.lcd_client.render_standby(
+            total_attempts=snapshot.total_attempts,
+            total_correct_sorts=snapshot.total_correct_sorts,
+        )
+        return snapshot
+
+    def _advance_session_entry(self, image_source: str | None) -> SessionSnapshot:
+        snapshot = self.session.snapshot
+
+        if snapshot.phase is not SessionPhase.IDLE:
+            return snapshot
+
+        classification = self._classify_current_view(image_source)
+        if classification.predicted_item == NO_DETECTION_ITEM:
+            return snapshot
+
+        self.session.begin_identification(self._now())
         disposal_method = self.rules.disposal_method_for_item(classification.predicted_item)
         guidance_snapshot = self.session.set_guidance(
             classification.predicted_item,
@@ -217,6 +231,43 @@ class StationRuntime:
             total_correct_sorts=guidance_snapshot.total_correct_sorts,
         )
         return self.session.begin_waiting_for_disposal(self._now())
+
+    def _refresh_active_classification(self, image_source: str | None = None) -> SessionSnapshot:
+        snapshot = self.session.snapshot
+        if snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL:
+            return snapshot
+
+        classification = self._classify_current_view(image_source)
+        if classification.predicted_item == NO_DETECTION_ITEM:
+            if snapshot.hand_present:
+                return snapshot
+            return self._cancel_active_session()
+
+        disposal_method = self.rules.disposal_method_for_item(classification.predicted_item)
+        refreshed_snapshot = self.session.refresh_guidance(
+            classification.predicted_item,
+            disposal_method,
+            classification.confidence,
+            classification.llm_fallback_used,
+            self._now(),
+        )
+        if (
+            refreshed_snapshot.predicted_item != snapshot.predicted_item
+            or refreshed_snapshot.correct_disposal_method != snapshot.correct_disposal_method
+        ):
+            guidance_snapshot = self.session.snapshot
+            self.esp_client.send_guidance(
+                GuidanceCommand(
+                    indicator_zone=self.rules.zone_for_disposal_method(disposal_method),
+                )
+            )
+            self.lcd_client.render_guidance(
+                predicted_item=guidance_snapshot.predicted_item or classification.predicted_item,
+                disposal_method=guidance_snapshot.correct_disposal_method or disposal_method,
+                total_attempts=guidance_snapshot.total_attempts,
+                total_correct_sorts=guidance_snapshot.total_correct_sorts,
+            )
+        return refreshed_snapshot
 
     def _consume_hand_tracking(self) -> tuple[SessionSnapshot, bool]:
         snapshot = self.session.snapshot
@@ -326,6 +377,9 @@ class StationRuntime:
     def sync_from_esp(self) -> LiveStatus:
         self.esp_client.request_health()
         self._poll_esp()
+        snapshot = self._refresh_active_classification()
+        if snapshot.phase is SessionPhase.IDLE:
+            return self._publish_runtime_status(snapshot, latest_event=self.last_event)
         snapshot, emitted_result = self._consume_hand_tracking()
         if emitted_result and self.last_live_status is not None:
             return self.last_live_status

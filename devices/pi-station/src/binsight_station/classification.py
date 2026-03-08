@@ -19,6 +19,9 @@ class ClassificationSource(StrEnum):
     LLM_FALLBACK = "llm_fallback"
 
 
+NO_DETECTION_ITEM = "none"
+
+
 @dataclass(slots=True)
 class ClassificationResult:
     predicted_item: str
@@ -93,7 +96,7 @@ class ClassificationPipeline:
         llm_fallback_used = confidence < request.confidence_threshold
         if llm_fallback_used:
             predicted_item = self._infer_with_fallback(request.image_source, predicted_item)
-            confidence = 0.75
+            confidence = 0.0
             source = ClassificationSource.LLM_FALLBACK
 
         return ClassificationResult(
@@ -117,7 +120,8 @@ class ClassificationPipeline:
 
     def _infer_with_fallback(self, image_source: str, predicted_item: str) -> str:
         del image_source
-        return predicted_item
+        del predicted_item
+        return NO_DETECTION_ITEM
 
     def _get_runtime(self) -> _TFLiteRuntime:
         if self._runtime is None:
