@@ -17,7 +17,7 @@ const fakeLocations = [
 type FakeLocation = (typeof fakeLocations)[number];
 
 const LOCATION_MAP_SRC: Record<FakeLocation, string> = {
-  "Waterloo Innovation Centre": new URL("../../assets/map.png", import.meta.url).href,
+  "Waterloo Innovation Centre": new URL("../../assets/map-close.png", import.meta.url).href,
   "Vancouver Waterfront Campus": new URL("../../assets/vancouver.png", import.meta.url).href
 };
 
