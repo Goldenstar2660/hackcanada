@@ -1,7 +1,8 @@
-import type { AnalyticsSummary, StationDirectoryResponse } from "@binsight/contracts";
+import type { AnalyticsInsightsResponse, AnalyticsSummary, StationDirectoryResponse } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 
+import { AnalyticsInsightsPanel } from "../features/analytics/analytics-insights-panel.js";
 import { matchesStationFilters } from "../lib/query/dashboard-query.js";
 
 const DASHBOARD_LOGO_SRC = new URL("../../assets/logo.png", import.meta.url).href;
@@ -36,6 +37,7 @@ const dashboardNavigation = [
 
 export interface DashboardPageModel {
   readonly summary: AnalyticsSummary;
+  readonly insights: AnalyticsInsightsResponse;
   readonly availableFilters: StationDirectoryResponse["filters"];
   readonly visibleStations: readonly StationDirectoryResponse["stations"][number][];
   readonly facilityCount: number;
@@ -81,12 +83,15 @@ function createScopeHighlights(context: DashboardPageLoadContext, model: Dashboa
 }
 
 export async function loadDashboardPage(context: DashboardPageLoadContext): Promise<DashboardPageModel> {
-  const [directory, summary] = await Promise.all([
+  const analyticsRequestOptions = {
+    groupBy: ["buildingId"] as const,
+    timeBucket: "day" as const
+  };
+
+  const [directory, summary, insights] = await Promise.all([
     context.providers.api.getStationDirectory(),
-    context.providers.api.getAnalytics(context.filters, {
-      groupBy: ["buildingId"],
-      timeBucket: "day"
-    })
+    context.providers.api.getAnalytics(context.filters, analyticsRequestOptions),
+    context.providers.api.getAnalyticsInsights(context.filters, analyticsRequestOptions)
   ]);
 
   const visibleStations = directory.stations.filter((station) => matchesStationFilters(station, context.filters));
@@ -95,6 +100,7 @@ export async function loadDashboardPage(context: DashboardPageLoadContext): Prom
 
   return {
     summary,
+    insights,
     availableFilters: directory.filters,
     visibleStations,
     facilityCount,
@@ -229,6 +235,8 @@ export function DashboardPage(props: {
             </article>
           ))}
         </section>
+
+        <AnalyticsInsightsPanel insights={props.model.insights} kicker="AI dashboard insights" />
 
         <section className="dashboard-home-lower-grid">
           <article className="dashboard-home-panel dashboard-home-panel--map">
