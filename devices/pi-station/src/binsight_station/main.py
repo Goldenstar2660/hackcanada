@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from collections import deque
-from collections.abc import Sequence
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
-from typing import Callable, Protocol
+from typing import Callable
 
 from dotenv import load_dotenv
 
@@ -14,6 +12,7 @@ from .camera_capture import CameraCaptureSettings, CapturedImageSource, ImageSou
 from .classification import ClassificationPipeline, ClassificationRequest
 from .esp_client import EspClient, GuidanceCommand
 from .events import DisposalEvent, create_disposal_event
+from .hand_tracking import DeterministicHandTracker, HandTrackingInput, MediaPipeHandsTracker
 from .lcd_client import LcdClient
 from .live_status import DeviceHealth, LiveStatus, LiveStatusPublisher
 from .publishers import PublicationAdapter, PublicationError
@@ -22,80 +21,6 @@ from .session import SessionPhase, SessionSnapshot, SessionStateMachine, Session
 
 
 DEFAULT_DEMO_CLASSIFICATION_SOURCE = "demo://plastic-bottle"
-
-
-@dataclass(slots=True, frozen=True)
-class HandTrackingObservation:
-    zone: str | None
-    hand_present: bool
-
-
-class HandTrackingInput(Protocol):
-    def observe(self, *, hand_present: bool, snapshot: SessionSnapshot) -> HandTrackingObservation | None: ...
-
-
-class DeterministicHandTracker:
-    def __init__(self, zones: Sequence[str] = ("left",)) -> None:
-        resolved_zones = tuple(zone.strip().lower() for zone in zones if zone.strip())
-        if not resolved_zones:
-            raise ValueError("deterministic hand tracker requires at least one zone")
-        for zone in resolved_zones:
-            if zone not in {"left", "middle", "right"}:
-                raise ValueError(f"unsupported deterministic hand-tracking zone: {zone}")
-
-        self._zones = deque(resolved_zones)
-        self._active_zone: str | None = None
-
-    def observe(self, *, hand_present: bool, snapshot: SessionSnapshot) -> HandTrackingObservation | None:
-        del snapshot
-
-        if hand_present:
-            if self._active_zone is None:
-                self._active_zone = self._zones[0]
-                if len(self._zones) > 1:
-                    self._zones.rotate(-1)
-            return HandTrackingObservation(zone=self._active_zone, hand_present=True)
-
-        if self._active_zone is None:
-            return None
-
-        self._active_zone = None
-        return HandTrackingObservation(zone=None, hand_present=False)
-
-
-class CameraBackedHandTracker:
-    def __init__(
-        self,
-        *,
-        model_dir: Path,
-        image_source_provider: ImageSourceProvider,
-        classifier: ClassificationPipeline | None = None,
-    ) -> None:
-        self._image_source_provider = image_source_provider
-        self._classifier = classifier or ClassificationPipeline(model_dir=model_dir)
-
-    def observe(self, *, hand_present: bool, snapshot: SessionSnapshot) -> HandTrackingObservation | None:
-        if not hand_present:
-            if not snapshot.hand_present:
-                return None
-            return HandTrackingObservation(zone=None, hand_present=False)
-
-        captured_image = self._image_source_provider.capture_image_source()
-        try:
-            prediction = self._classifier.classify(
-                ClassificationRequest(
-                    image_source=captured_image.image_source,
-                    confidence_threshold=0.0,
-                )
-            )
-        finally:
-            captured_image.cleanup()
-
-        return HandTrackingObservation(
-            zone=_require_hand_zone(prediction.predicted_item),
-            hand_present=True,
-        )
-
 
 @dataclass(slots=True)
 class RuntimeSettings:
@@ -116,7 +41,10 @@ class RuntimeSettings:
     camera_capture_height: int = 480
     camera_capture_format: str = "jpg"
     camera_capture_rotation_degrees: int = 180
-    hand_location_model_dir: Path | None = None
+    hand_absence_frame_threshold: int = 2
+    hand_min_detection_confidence: float = 0.5
+    hand_min_tracking_confidence: float = 0.5
+    hand_max_num_hands: int = 1
 
 
 def load_runtime_settings() -> RuntimeSettings:
@@ -128,18 +56,11 @@ def load_runtime_settings() -> RuntimeSettings:
         env_name="ITEM_CLASSIFIER_MODEL_DIR",
         default_relative_path=Path("models") / "item_classification",
     )
-    resolved_hand_location_model_dir = _resolve_model_dir(
-        project_root,
-        env_name="HAND_LOCATION_MODEL_DIR",
-        default_relative_path=Path("models") / "hand_location",
-    )
-
     return RuntimeSettings(
         station_id=os.getenv("STATION_ID", "demo-station-001"),
         rules_preset_id=os.getenv("RULES_PRESET_ID", "demo-canada-ottawa"),
         rules_preset_version=os.getenv("RULES_PRESET_VERSION", "1.0.0"),
         item_classifier_model_dir=resolved_item_model_dir,
-        hand_location_model_dir=resolved_hand_location_model_dir,
         esp_endpoint=os.getenv("ESP_ENDPOINT", "http://192.168.4.1"),
         firebase_project_id=firebase_project_id,
         firebase_functions_region=os.getenv("FIREBASE_FUNCTIONS_REGION", "us-central1"),
@@ -153,6 +74,10 @@ def load_runtime_settings() -> RuntimeSettings:
         camera_capture_height=int(os.getenv("CAMERA_CAPTURE_HEIGHT", "480")),
         camera_capture_format=os.getenv("CAMERA_CAPTURE_FORMAT", "jpg").strip().lower() or "jpg",
         camera_capture_rotation_degrees=int(os.getenv("CAMERA_CAPTURE_ROTATION_DEGREES", "180")),
+        hand_absence_frame_threshold=int(os.getenv("HAND_ABSENCE_FRAME_THRESHOLD", "2")),
+        hand_min_detection_confidence=float(os.getenv("HAND_MIN_DETECTION_CONFIDENCE", "0.5")),
+        hand_min_tracking_confidence=float(os.getenv("HAND_MIN_TRACKING_CONFIDENCE", "0.5")),
+        hand_max_num_hands=int(os.getenv("HAND_MAX_NUM_HANDS", "1")),
     )
 
 
@@ -177,15 +102,6 @@ def _normalize_demo_predicted_item(predicted_item: str) -> str:
     if not normalized:
         raise ValueError("predicted_item is required")
     return normalized
-
-
-def _require_hand_zone(predicted_zone: str) -> str:
-    normalized_zone = predicted_zone.strip().lower()
-    if normalized_zone not in {"left", "middle", "right"}:
-        raise ValueError(f"hand-location model returned unsupported zone: {predicted_zone}")
-    return normalized_zone
-
-
 def create_publication_adapter(settings: RuntimeSettings) -> PublicationAdapter:
     if not settings.binsight_device_id or not settings.binsight_device_shared_secret:
         return PublicationAdapter(settings.firebase_project_id)
@@ -259,10 +175,8 @@ class StationRuntime:
             cloud_sync=self.publication_client.cloud_sync_status,
         )
 
-    def _poll_esp(self) -> bool:
-        previous_presence_count = self.esp_client.presence_frame_count
+    def _poll_esp(self) -> None:
         self.esp_client.poll()
-        return self.esp_client.presence_frame_count > previous_presence_count
 
     def _advance_session_entry(self, image_source: str | None) -> SessionSnapshot:
         snapshot = self.session.snapshot
@@ -305,24 +219,12 @@ class StationRuntime:
         )
         return self.session.begin_waiting_for_disposal(self._now())
 
-    def _consume_hand_tracking(
-        self,
-        observed_presence_frame: bool,
-        *,
-        tracking_active_before_poll: bool,
-    ) -> tuple[SessionSnapshot, bool]:
+    def _consume_hand_tracking(self) -> tuple[SessionSnapshot, bool]:
         snapshot = self.session.snapshot
-        if (
-            not tracking_active_before_poll
-            or snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL
-            or not observed_presence_frame
-        ):
+        if snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL:
             return snapshot, False
 
-        observation = self.hand_tracking_input.observe(
-            hand_present=self.esp_client.last_presence.hand_present,
-            snapshot=snapshot,
-        )
+        observation = self.hand_tracking_input.observe(snapshot=snapshot)
         if observation is None:
             return snapshot, False
 
@@ -366,12 +268,9 @@ class StationRuntime:
     def start_session(self, image_source: str | None = None) -> tuple[SessionSnapshot, LiveStatus]:
         tracking_active_before_poll = self.session.snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
         self.esp_client.request_health()
-        observed_presence_frame = self._poll_esp()
+        self._poll_esp()
         snapshot = self._advance_session_entry(image_source)
-        snapshot, emitted_result = self._consume_hand_tracking(
-            observed_presence_frame,
-            tracking_active_before_poll=tracking_active_before_poll,
-        )
+        snapshot, emitted_result = self._consume_hand_tracking() if tracking_active_before_poll else (snapshot, False)
         if emitted_result and self.last_live_status is not None:
             return snapshot, self.last_live_status
         return snapshot, self._publish_runtime_status(snapshot, latest_event=self.last_event)
@@ -424,13 +323,9 @@ class StationRuntime:
         )
 
     def sync_from_esp(self) -> LiveStatus:
-        tracking_active_before_poll = self.session.snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
         self.esp_client.request_health()
-        observed_presence_frame = self._poll_esp()
-        snapshot, emitted_result = self._consume_hand_tracking(
-            observed_presence_frame,
-            tracking_active_before_poll=tracking_active_before_poll,
-        )
+        self._poll_esp()
+        snapshot, emitted_result = self._consume_hand_tracking()
         if emitted_result and self.last_live_status is not None:
             return self.last_live_status
         return self._publish_runtime_status(snapshot, latest_event=self.last_event)
@@ -501,6 +396,7 @@ class StationRuntime:
         return self.session.snapshot, event
 
     def close(self) -> None:
+        self.hand_tracking_input.close()
         self.lcd_client.close()
 
 
@@ -509,11 +405,12 @@ def _build_default_hand_tracking_input(
     *,
     image_source_provider: ImageSourceProvider,
 ) -> HandTrackingInput:
-    if settings.hand_location_model_dir is None:
-        return DeterministicHandTracker()
-    return CameraBackedHandTracker(
-        model_dir=settings.hand_location_model_dir,
+    return MediaPipeHandsTracker(
         image_source_provider=image_source_provider,
+        absence_frame_threshold=settings.hand_absence_frame_threshold,
+        min_detection_confidence=settings.hand_min_detection_confidence,
+        min_tracking_confidence=settings.hand_min_tracking_confidence,
+        max_num_hands=settings.hand_max_num_hands,
     )
 
 

@@ -5,7 +5,12 @@ from collections.abc import Iterator
 from binsight_station.classification import ClassificationResult
 from binsight_station.camera_capture import CapturedImageSource
 from binsight_station.esp_client import EspClient, MemoryEspTransport
-from binsight_station.main import CameraBackedHandTracker, DeterministicHandTracker, StationRuntime, load_runtime_settings
+from binsight_station.hand_tracking import (
+    DeterministicHandTracker,
+    HandLandmarkObservation,
+    MediaPipeHandsTracker,
+)
+from binsight_station.main import StationRuntime, load_runtime_settings
 from binsight_station.publishers import PublicationAdapter
 from binsight_station.session import SessionPhase, SessionStateMachine
 
@@ -31,6 +36,21 @@ class StaticImageSourceProvider:
         return CapturedImageSource(self.image_source)
 
 
+class SequencedHandDetector:
+    def __init__(self, *observations: HandLandmarkObservation) -> None:
+        self._observations = iter(observations)
+        self.calls = 0
+        self.closed = False
+
+    def detect(self, image_source: str) -> HandLandmarkObservation:
+        del image_source
+        self.calls += 1
+        return next(self._observations)
+
+    def close(self) -> None:
+        self.closed = True
+
+
 def _sequence_clock(*values: float) -> Iterator[float]:
     return iter(values)
 
@@ -48,18 +68,6 @@ def _build_runtime(
         esp_client=EspClient("serial://test", transport=resolved_transport),
         publication_client=PublicationAdapter("test-project"),
         image_source_provider=StaticImageSourceProvider(image_source),
-    )
-
-
-def _queue_stable_presence(transport: MemoryEspTransport, sequence: int) -> None:
-    transport.queue_incoming(
-        f"presence present=1 zone=off stable=1 seq={sequence}",
-    )
-
-
-def _queue_absent_presence(transport: MemoryEspTransport, sequence: int) -> None:
-    transport.queue_incoming(
-        f"presence present=0 zone=off stable=0 seq={sequence}",
     )
 
 
@@ -200,7 +208,6 @@ def test_runtime_does_not_wait_for_stable_esp_presence_before_identification() -
         )
     )
 
-    _queue_absent_presence(transport, 1)
     waiting_snapshot, waiting_status = runtime.start_session(image_source="camera://presence-gate")
 
     assert runtime.classifier.calls == 1
@@ -233,13 +240,11 @@ def test_runtime_uses_deterministic_hand_tracking_without_camera_feed() -> None:
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
     assert waiting_status is not None
 
-    _queue_stable_presence(transport, 1)
     tracked_status = runtime.sync_from_esp()
 
     assert waiting_status.to_payload()["cameraFeedActive"] is False
     assert tracked_status.to_payload()["currentHandZone"] == "right"
 
-    _queue_absent_presence(transport, 2)
     result_status = runtime.sync_from_esp()
 
     assert runtime.last_event is not None
@@ -249,9 +254,14 @@ def test_runtime_uses_deterministic_hand_tracking_without_camera_feed() -> None:
     assert result_status.to_payload()["latestEvent"]["actualDisposalZone"] == "right"
 
 
-def test_runtime_uses_camera_backed_hand_tracking_while_esp_controls_presence() -> None:
+def test_runtime_uses_mediapipe_hand_tracking_without_esp_presence_frames() -> None:
     transport = MemoryEspTransport()
     provider = StaticImageSourceProvider("camera://hand-zone")
+    detector = SequencedHandDetector(
+        HandLandmarkObservation(hand_present=True, zone="middle", normalized_x=0.5),
+        HandLandmarkObservation(hand_present=False),
+        HandLandmarkObservation(hand_present=False),
+    )
     clock = iter([40.0, 40.2, 40.4, 40.6, 40.8, 41.0]).__next__
     runtime = StationRuntime(
         load_runtime_settings(),
@@ -259,16 +269,9 @@ def test_runtime_uses_camera_backed_hand_tracking_while_esp_controls_presence() 
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
         image_source_provider=provider,
-        hand_tracking_input=CameraBackedHandTracker(
-            model_dir=load_runtime_settings().item_classifier_model_dir,
+        hand_tracking_input=MediaPipeHandsTracker(
             image_source_provider=provider,
-            classifier=StubClassifier(
-                ClassificationResult(
-                    predicted_item="middle",
-                    confidence=0.92,
-                    llm_fallback_used=False,
-                )
-            ),
+            detector=detector,
         ),
     )
     runtime.classifier = StubClassifier(
@@ -283,17 +286,20 @@ def test_runtime_uses_camera_backed_hand_tracking_while_esp_controls_presence() 
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
     assert provider.calls == 0
 
-    _queue_stable_presence(transport, 1)
     tracked_status = runtime.sync_from_esp()
 
     assert provider.calls == 1
     assert tracked_status.to_payload()["currentHandZone"] == "middle"
 
-    _queue_absent_presence(transport, 2)
+    interim_status = runtime.sync_from_esp()
     result_status = runtime.sync_from_esp()
 
-    assert provider.calls == 1
+    assert interim_status.to_payload()["currentHandZone"] == "middle"
+    assert provider.calls == 3
+    assert detector.calls == 3
     assert runtime.last_event is not None
     assert runtime.last_event.actual_disposal_zone == "middle"
     assert runtime.last_event.success is True
     assert result_status.to_payload()["latestEvent"]["actualDisposalZone"] == "middle"
+    runtime.close()
+    assert detector.closed is True

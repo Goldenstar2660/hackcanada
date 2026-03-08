@@ -206,11 +206,15 @@ This is the command to use when you want to say: **“pretend the model just det
 The Pi runtime now uses these model directories by default:
 
 * `devices/pi-station/models/item_classification/` for item identification
-* `devices/pi-station/models/hand_location/` for hand-zone selection while a hand is present
 
-You can override those locations with `ITEM_CLASSIFIER_MODEL_DIR` and `HAND_LOCATION_MODEL_DIR` in `devices/pi-station/.env`.
+You can override item-identification assets with `ITEM_CLASSIFIER_MODEL_DIR` in `devices/pi-station/.env`.
 
-`hand_presence` is intentionally not wired yet because there is no checked-in model for it. The runtime still uses ESP presence frames as the authoritative `hand_present` signal and uses the `hand_location` model only to determine the latest zone before disappearance.
+Hand presence and hand-zone tracking now come from MediaPipe Hands through the Pi camera. ESP remains responsible for LED guidance, acknowledgements, reset, and health status only. The current integration uses the existing still-image capture seam rather than a streaming camera pipeline, which keeps the runtime change small but is not yet the most performance-optimized option.
+
+Install notes:
+
+* local Windows development uses the regular `mediapipe` dependency path
+* Raspberry Pi 5 on Linux `aarch64` is pinned to `mediapipe==0.10.14` in this repo because newer upstream wheels are not consistently published for that platform
 
 The item-classification directory can now be either a strict manifest-based bundle or a lighter checked-in bundle. The runtime looks for these model filenames in order: `model.tflite`, `model_unquant.tflite`, `model_quant.tflite`.
 
@@ -234,16 +238,6 @@ Asset responsibilities:
 If `manifest.json` is omitted, the runtime uses defaults: RGB input, bilinear resize, automatic input-layout detection, automatic output-activation handling, and `numThreads=4`.
 
 The checked-in `item_classification` model needs label remapping because its raw labels do not match the demo rules preset item ids directly. That mapping lives in `devices/pi-station/models/item_classification/aliases.json`.
-
-Supported hand-location layout:
-
-```text
-devices/pi-station/models/hand_location/
-├── model.tflite
-└── labels.txt
-```
-
-The hand-location model is used only while ESP reports `hand_present=true`. When ESP reports disappearance, the runtime records the most recent camera-predicted zone as the actual disposal zone.
 
 Example manifest:
 
@@ -331,15 +325,18 @@ The minimum Phase 1 configuration set is:
 * `RULES_PRESET_ID`: Active rules preset id, currently `demo-canada-ottawa`
 * `RULES_PRESET_VERSION`: Active rules preset version, currently `1.0.0`
 * `ITEM_CLASSIFIER_MODEL_DIR`: item-classification model asset directory, relative to `devices/pi-station/` by default
-* `HAND_LOCATION_MODEL_DIR`: hand-location model asset directory, relative to `devices/pi-station/` by default
+* `HAND_ABSENCE_FRAME_THRESHOLD`: number of consecutive no-hand detections required before a drop is emitted
+* `HAND_MIN_DETECTION_CONFIDENCE`: MediaPipe hand-detection confidence threshold
+* `HAND_MIN_TRACKING_CONFIDENCE`: MediaPipe tracking confidence threshold
+* `HAND_MAX_NUM_HANDS`: maximum hands to track, default `1` for the demo station
 * `ESP_ENDPOINT`: ESP8266 base URL on the shared network, for example `http://192.168.4.1`
 * `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`: Firebase project id for the demo environment. The runtime prefers `FIREBASE_PROJECT_ID` when both are set, but it accepts the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` fallback for repo-local config.
 * `BINSIGHT_DEVICE_ID`: Device id that will be used for authenticated backend publication
 * `BINSIGHT_DEVICE_SHARED_SECRET`: Shared secret paired with the device id for backend ingress
 * `DISPOSAL_TIMEOUT_SECONDS`: Wait window for disposal before the runtime resets
 * `RESET_COOLDOWN_SECONDS`: Cooldown window before the station returns to idle after reset
-* `CAMERA_CAPTURE_WIDTH`: captured image width for item identification and hand-zone inference
-* `CAMERA_CAPTURE_HEIGHT`: captured image height for item identification and hand-zone inference
+* `CAMERA_CAPTURE_WIDTH`: captured image width for item identification and MediaPipe hand tracking
+* `CAMERA_CAPTURE_HEIGHT`: captured image height for item identification and MediaPipe hand tracking
 * `CAMERA_CAPTURE_FORMAT`: image format passed to the Pi camera CLI, typically `jpg`
 * `CAMERA_CAPTURE_ROTATION_DEGREES`: rotation applied during capture, usually `180` for the current mounted camera orientation
 

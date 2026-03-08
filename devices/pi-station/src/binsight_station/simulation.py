@@ -17,7 +17,8 @@ from .esp_client import (
     BACKEND_STATION_ID_HEADER,
     BACKEND_TIMESTAMP_HEADER,
 )
-from .main import DeterministicHandTracker, RuntimeSettings, StationRuntime
+from .hand_tracking import HandTrackingObservation
+from .main import RuntimeSettings, StationRuntime
 from .session import SessionPhase
 
 
@@ -114,6 +115,26 @@ class StaticClassifier:
         self.calls += 1
         self.requests.append(request)
         return self._result
+
+
+class SimulatedHandTracker:
+    def __init__(self, zone: str) -> None:
+        self._zone = zone
+        self._hand_present = False
+
+    def set_hand_present(self, hand_present: bool) -> None:
+        self._hand_present = hand_present
+
+    def observe(self, *, snapshot: object) -> HandTrackingObservation | None:
+        resolved_snapshot = snapshot
+        if self._hand_present:
+            return HandTrackingObservation(zone=self._zone, hand_present=True)
+        if getattr(resolved_snapshot, "hand_present", False):
+            return HandTrackingObservation(zone=None, hand_present=False)
+        return None
+
+    def close(self) -> None:
+        return None
 
 
 class SimulatedEspController:
@@ -506,8 +527,9 @@ def run_realtime_simulation(
         )
         runtime = StationRuntime(
             settings,
-            hand_tracking_input=DeterministicHandTracker((resolved_scenario.disposal_zone,)),
+            hand_tracking_input=SimulatedHandTracker(resolved_scenario.disposal_zone),
         )
+        simulated_hand_tracker = runtime.hand_tracking_input
         classifier = StaticClassifier(
             ClassificationResult(
                 predicted_item=resolved_scenario.predicted_item,
@@ -517,7 +539,6 @@ def run_realtime_simulation(
         )
         runtime.classifier = classifier
 
-        esp_server.set_presence(hand_present=True, stable=True)
         started_at = monotonic()
         guidance_seen_at: float | None = None
         hand_release_applied = False
@@ -535,13 +556,14 @@ def run_realtime_simulation(
                 now = monotonic()
                 if guidance_seen_at is None and esp_server.signal_history:
                     guidance_seen_at = now
+                    simulated_hand_tracker.set_hand_present(True)
 
                 if (
                     guidance_seen_at is not None
                     and not hand_release_applied
                     and now - guidance_seen_at >= resolved_scenario.hand_hold_seconds
                 ):
-                    esp_server.set_presence(hand_present=False, stable=False)
+                    simulated_hand_tracker.set_hand_present(False)
                     hand_release_applied = True
 
                 if runtime.last_event is not None and reset_started_at is None and resolved_scenario.perform_reset:
