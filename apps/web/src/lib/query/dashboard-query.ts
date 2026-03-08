@@ -178,14 +178,18 @@ export function serializeDashboardFilters(filters: DashboardFilterState): URLSea
 }
 
 export function createEventHistoryRequest(filters: DashboardFilterState): EventHistoryQuery {
+  const optionalFilterFields = {
+    ...(filters.stationIds.length > 0 ? { stationIds: filters.stationIds } : {}),
+    ...(filters.buildingIds.length > 0 ? { buildingIds: filters.buildingIds } : {}),
+    ...(filters.floorIds.length > 0 ? { floorIds: filters.floorIds } : {}),
+    ...(filters.locationLabels.length > 0 ? { locationLabels: filters.locationLabels } : {}),
+    ...(filters.signageVariants.length > 0 ? { signageVariants: filters.signageVariants } : {}),
+    ...(filters.layoutVariants.length > 0 ? { layoutVariants: filters.layoutVariants } : {})
+  };
+
   return {
     timeRange: filters.timeRange,
-    stationIds: filters.stationIds.length > 0 ? filters.stationIds : undefined,
-    buildingIds: filters.buildingIds.length > 0 ? filters.buildingIds : undefined,
-    floorIds: filters.floorIds.length > 0 ? filters.floorIds : undefined,
-    locationLabels: filters.locationLabels.length > 0 ? filters.locationLabels : undefined,
-    signageVariants: filters.signageVariants.length > 0 ? filters.signageVariants : undefined,
-    layoutVariants: filters.layoutVariants.length > 0 ? filters.layoutVariants : undefined,
+    ...optionalFilterFields,
     pageSize: 50
   };
 }
@@ -198,18 +202,22 @@ export function createAnalyticsRequest(
     ? ([...options.metrics] as [MetricKey, ...MetricKey[]])
     : ([...DEFAULT_ANALYTICS_METRICS] as [MetricKey, ...MetricKey[]]);
 
+  const optionalFilterFields = {
+    ...(filters.stationIds.length > 0 ? { stationIds: filters.stationIds } : {}),
+    ...(filters.buildingIds.length > 0 ? { buildingIds: filters.buildingIds } : {}),
+    ...(filters.floorIds.length > 0 ? { floorIds: filters.floorIds } : {}),
+    ...(filters.locationLabels.length > 0 ? { locationLabels: filters.locationLabels } : {}),
+    ...(filters.signageVariants.length > 0 ? { signageVariants: filters.signageVariants } : {}),
+    ...(filters.layoutVariants.length > 0 ? { layoutVariants: filters.layoutVariants } : {})
+  };
+
   return {
     timeRange: filters.timeRange,
-    stationIds: filters.stationIds.length > 0 ? filters.stationIds : undefined,
-    buildingIds: filters.buildingIds.length > 0 ? filters.buildingIds : undefined,
-    floorIds: filters.floorIds.length > 0 ? filters.floorIds : undefined,
-    locationLabels: filters.locationLabels.length > 0 ? filters.locationLabels : undefined,
-    signageVariants: filters.signageVariants.length > 0 ? filters.signageVariants : undefined,
-    layoutVariants: filters.layoutVariants.length > 0 ? filters.layoutVariants : undefined,
+    ...optionalFilterFields,
     metrics,
-    groupBy: options.groupBy,
-    compareBy: options.compareBy,
-    timeBucket: options.timeBucket
+    ...(options.groupBy && options.groupBy.length > 0 ? { groupBy: options.groupBy } : {}),
+    ...(options.compareBy ? { compareBy: options.compareBy } : {}),
+    ...(options.timeBucket ? { timeBucket: options.timeBucket } : {})
   };
 }
 

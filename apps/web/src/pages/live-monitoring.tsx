@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { FilterControls } from "../features/filters/filter-controls.js";
 import { LiveStationPanel } from "../features/live/live-station-panel.js";
+import { createUnavailableSnapshot } from "../lib/firebase/live-monitoring.js";
 
 export interface LiveMonitoringRealtimeBinding {
   readonly stationId: string;
@@ -45,9 +46,7 @@ export async function loadLiveMonitoringPage(context: DashboardPageLoadContext):
   const directory = await context.providers.api.getStationDirectory();
   const station = directory.stations.find((entry) => entry.stationId === stationId) ?? null;
   const realtime = station ? createLiveMonitoringRealtimeBinding(context.providers.live, station.stationId) : null;
-  const snapshot = station
-    ? await context.providers.live.loadInitialSnapshot(stationId).catch(() => context.providers.live.createSnapshot(stationId, null))
-    : await context.providers.live.createSnapshot(stationId, null);
+  const snapshot = createUnavailableSnapshot(stationId);
 
   return {
     station,

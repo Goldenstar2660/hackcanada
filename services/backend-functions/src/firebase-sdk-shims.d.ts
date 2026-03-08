@@ -109,6 +109,14 @@ declare module "firebase-admin/storage" {
 }
 
 declare module "firebase-functions/v2/https" {
+  export type Invoker = "public" | "private" | string | readonly string[];
+
+  export interface HttpsOptions {
+    readonly invoker?: Invoker;
+  }
+
+  export interface CallableOptions extends HttpsOptions {}
+
   export interface Request {
     readonly method: string;
     readonly headers: Readonly<Record<string, string | readonly string[] | undefined>>;
@@ -136,7 +144,12 @@ declare module "firebase-functions/v2/https" {
   export type CallableFunction<T = unknown, TResult = unknown> = (request: CallableRequest<T>) => TResult | Promise<TResult>;
 
   export function onRequest(handler: HttpsFunction): HttpsFunction;
+  export function onRequest(options: HttpsOptions, handler: HttpsFunction): HttpsFunction;
   export function onCall<T = unknown, TResult = unknown>(handler: CallableFunction<T, TResult>): CallableFunction<T, TResult>;
+  export function onCall<T = unknown, TResult = unknown>(
+    options: CallableOptions,
+    handler: CallableFunction<T, TResult>
+  ): CallableFunction<T, TResult>;
 
   export class HttpsError extends Error {
     readonly code: string;
