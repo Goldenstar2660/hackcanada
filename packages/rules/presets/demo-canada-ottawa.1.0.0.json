@@ -6,46 +6,21 @@
     "provinceOrState": "Ontario"
   },
   "supportedItems": [
-    "plastic-bottle",
-    "banana-peel",
-    "coffee-cup",
-    "pizza-box",
-    "paper-takeout-container",
-    "apple-core",
-    "unknown-item",
-    "fallback-item"
+    "aluminum-can",
+    "granola-bar",
+    "pickled-radish"
   ],
   "itemMappings": [
     {
-      "itemType": "plastic-bottle",
+      "itemType": "aluminum-can",
       "disposalMethod": "recycle"
     },
     {
-      "itemType": "banana-peel",
+      "itemType": "pickled-radish",
       "disposalMethod": "compost"
     },
     {
-      "itemType": "coffee-cup",
-      "disposalMethod": "garbage"
-    },
-    {
-      "itemType": "pizza-box",
-      "disposalMethod": "garbage"
-    },
-    {
-      "itemType": "paper-takeout-container",
-      "disposalMethod": "recycle"
-    },
-    {
-      "itemType": "apple-core",
-      "disposalMethod": "compost"
-    },
-    {
-      "itemType": "unknown-item",
-      "disposalMethod": "garbage"
-    },
-    {
-      "itemType": "fallback-item",
+      "itemType": "granola-bar",
       "disposalMethod": "garbage"
     }
   ],
@@ -54,5 +29,5 @@
     "middle": "compost",
     "right": "garbage"
   },
-  "lowConfidenceThreshold": 0.65
+  "lowConfidenceThreshold": 0.95
 }

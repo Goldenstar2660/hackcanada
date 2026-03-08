@@ -171,7 +171,7 @@ def run_live_demo(
 
     final_snapshot: SessionSnapshot = runtime.session.snapshot
     if reset_after_result:
-        final_snapshot = runtime.begin_reset()
+        final_snapshot = runtime.begin_reset(clear_guidance=True)
         cooldown = runtime.settings.reset_cooldown_seconds
         _sleep_if_needed(cooldown)
         final_snapshot = runtime.complete_reset()
@@ -293,7 +293,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
             "Pretend the model detected an item, then simulate a believable hand-present -> hand-disappears drop flow through the real ESP and backend/dashboard path."
         )
     )
-    parser.add_argument("--item", default="plastic-bottle", help="Detected item to inject into the real runtime.")
+    parser.add_argument("--item", default="aluminum-can", help="Detected item to inject into the real runtime.")
     parser.add_argument(
         "--zone",
         choices=("left", "middle", "right"),
@@ -348,7 +348,7 @@ def _build_sequence_arg_parser() -> argparse.ArgumentParser:
         required=True,
         help=(
             "Comma-separated item[:zone] steps, for example: "
-            "plastic-bottle:left,coffee-cup:left,banana-peel:middle. "
+            "aluminum-can:left,granola-bar:left,pickled-radish:middle. "
             "If zone is omitted, the correct zone for that item is used."
         ),
     )

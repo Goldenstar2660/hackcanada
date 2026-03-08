@@ -67,28 +67,34 @@ def _write_model_assets(
     tmp_path: Path,
     *,
     manifest: dict[str, object] | None = None,
-    labels: tuple[str, ...] = ("plastic bottle", "banana peel", "apple core"),
+    labels: tuple[str, ...] = ("aluminum can", "granola bar", "pickled radish"),
     aliases: dict[str, str] | None = None,
+    model_dir_name: str = "item_classifier",
+    model_filename: str = "model.tflite",
+    include_manifest: bool = True,
+    include_aliases: bool = True,
 ) -> Path:
-    model_dir = tmp_path / "item_classifier"
+    model_dir = tmp_path / model_dir_name
     model_dir.mkdir()
-    (model_dir / "model.tflite").write_bytes(b"fake-model")
-    (model_dir / "manifest.json").write_text(
-        json.dumps(
-            {
-                "labelsFile": "labels.txt",
-                "aliasesFile": "aliases.json",
-                "numThreads": 2,
-                **(manifest or {}),
-            }
-        ),
-        encoding="utf-8",
-    )
+    (model_dir / model_filename).write_bytes(b"fake-model")
+    if include_manifest:
+        (model_dir / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "labelsFile": "labels.txt",
+                    "aliasesFile": "aliases.json",
+                    "numThreads": 2,
+                    **(manifest or {}),
+                }
+            ),
+            encoding="utf-8",
+        )
     (model_dir / "labels.txt").write_text("\n".join(labels), encoding="utf-8")
-    (model_dir / "aliases.json").write_text(
-        json.dumps(aliases or {"plastic bottle": "plastic-bottle", "banana peel": "banana-peel", "apple core": "apple-core"}),
-        encoding="utf-8",
-    )
+    if include_aliases:
+        (model_dir / "aliases.json").write_text(
+            json.dumps(aliases or {"aluminum can": "aluminum-can", "granola bar": "granola-bar", "pickled radish": "pickled-radish"}),
+            encoding="utf-8",
+        )
     return model_dir
 
 
@@ -101,10 +107,10 @@ def test_classification_pipeline_supports_demo_sources_without_model_assets() ->
     pipeline = ClassificationPipeline()
 
     result = pipeline.classify(
-        ClassificationRequest(image_source="demo://banana-peel", confidence_threshold=0.65)
+        ClassificationRequest(image_source="demo://pickled-radish", confidence_threshold=0.65)
     )
 
-    assert result.predicted_item == "banana-peel"
+    assert result.predicted_item == "pickled-radish"
     assert result.confidence == 0.99
     assert result.llm_fallback_used is False
 
@@ -143,13 +149,64 @@ def test_classification_pipeline_loads_manifest_aliases_and_uint8_input(tmp_path
         ClassificationRequest(image_source=str(image_path), confidence_threshold=0.65)
     )
 
-    assert result.predicted_item == "banana-peel"
+    assert result.predicted_item == "granola-bar"
     assert result.confidence == pytest.approx(0.9)
     assert result.llm_fallback_used is False
     assert interpreter_holder["interpreter"].num_threads == 2
     assert interpreter_holder["interpreter"].input_tensor is not None
     assert interpreter_holder["interpreter"].input_tensor.shape == (1, 2, 2, 3)
     assert interpreter_holder["interpreter"].input_tensor.dtype == np.uint8
+
+
+def test_classification_pipeline_supports_common_model_names_without_manifest(tmp_path: Path) -> None:
+    model_dir = _write_model_assets(
+        tmp_path,
+        model_dir_name="item_classification",
+        model_filename="model_unquant.tflite",
+        include_manifest=False,
+        labels=("Aluminum Can", "Granola Bar", "Pickled Radish"),
+        aliases={
+            "Aluminum Can": "aluminum-can",
+            "Granola Bar": "granola-bar",
+            "Pickled Radish": "pickled-radish",
+        },
+    )
+    image_path = _write_image(tmp_path / "frame-unquant.jpg", color=(50, 75, 100))
+    interpreter_holder: dict[str, FakeInterpreter] = {}
+
+    def interpreter_factory(model_path: Path, num_threads: int) -> FakeInterpreter:
+        interpreter = FakeInterpreter(
+            output_tensor=np.array([[0.8, 0.15, 0.05]], dtype=np.float32),
+            input_detail={
+                "index": 0,
+                "shape": np.array([1, 2, 2, 3]),
+                "dtype": np.float32,
+                "quantization_parameters": {"scales": np.array([]), "zero_points": np.array([])},
+                "quantization": (0.0, 0),
+            },
+            output_detail={
+                "index": 1,
+                "shape": np.array([1, 3]),
+                "dtype": np.float32,
+                "quantization_parameters": {"scales": np.array([]), "zero_points": np.array([])},
+                "quantization": (0.0, 0),
+            },
+            model_path=str(model_path),
+            num_threads=num_threads,
+        )
+        interpreter_holder["interpreter"] = interpreter
+        return interpreter
+
+    pipeline = ClassificationPipeline(model_dir=model_dir, interpreter_factory=interpreter_factory)
+
+    result = pipeline.classify(
+        ClassificationRequest(image_source=str(image_path), confidence_threshold=0.65)
+    )
+
+    assert result.predicted_item == "aluminum-can"
+    assert result.llm_fallback_used is False
+    assert interpreter_holder["interpreter"].model_path.endswith("model_unquant.tflite")
+    assert interpreter_holder["interpreter"].num_threads == 4
 
 
 def test_classification_pipeline_quantizes_int8_inputs_from_manifest_normalization(tmp_path: Path) -> None:
@@ -271,9 +328,9 @@ def test_classification_pipeline_uses_rules_threshold_for_low_confidence_fallbac
         ClassificationRequest(image_source=str(image_path), confidence_threshold=0.65)
     )
 
-    assert result.predicted_item == "fallback-item"
+    assert result.predicted_item == "none"
     assert result.llm_fallback_used is True
-    assert result.confidence == 0.75
+    assert result.confidence == 0.0
 
 
 def test_classification_pipeline_fails_when_required_assets_are_missing(tmp_path: Path) -> None:
@@ -286,7 +343,7 @@ def test_classification_pipeline_fails_when_required_assets_are_missing(tmp_path
 
 def test_runtime_uses_image_source_provider_when_no_explicit_image_source() -> None:
     transport = MemoryEspTransport()
-    provider = StaticImageSourceProvider("demo://apple-core")
+    provider = StaticImageSourceProvider("demo://pickled-radish")
     runtime = StationRuntime(
         load_runtime_settings(),
         monotonic_clock=iter([0.0, 0.1, 0.2]).__next__,
@@ -298,5 +355,5 @@ def test_runtime_uses_image_source_provider_when_no_explicit_image_source() -> N
     waiting_snapshot, _ = runtime.start_session()
 
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
-    assert waiting_snapshot.predicted_item == "apple-core"
+    assert waiting_snapshot.predicted_item == "pickled-radish"
     assert provider.calls == 1

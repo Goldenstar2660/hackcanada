@@ -20,10 +20,10 @@ class StubClassifier:
 
     def classify(self, request: object) -> ClassificationResult:
         del request
-        if self.calls >= len(self._results):
-            raise AssertionError("classifier was called more times than expected")
-
-        result = self._results[self.calls]
+        if not self._results:
+            raise AssertionError("classifier was called without configured results")
+        index = min(self.calls, len(self._results) - 1)
+        result = self._results[index]
         self.calls += 1
         return result
 
@@ -53,7 +53,7 @@ def test_runtime_starts_session_without_waiting_for_presence_frames() -> None:
         monotonic_clock=iter([0.0, 0.1, 0.2]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
-        image_source_provider=StaticImageSourceProvider("demo://plastic-bottle"),
+        image_source_provider=StaticImageSourceProvider("demo://aluminum-can"),
     )
 
     transport.queue_incoming("health uptime_ms=42 sensor=1 indicator=1 active_zone=off")
@@ -81,11 +81,11 @@ def test_runtime_starts_even_when_presence_frames_show_no_hand() -> None:
         monotonic_clock=iter([5.0, 5.1, 5.2]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
-        image_source_provider=StaticImageSourceProvider("demo://plastic-bottle"),
+        image_source_provider=StaticImageSourceProvider("demo://aluminum-can"),
     )
     runtime.classifier = RecordingClassifier(
         ClassificationResult(
-            predicted_item="plastic-bottle",
+            predicted_item="aluminum-can",
             confidence=0.97,
             llm_fallback_used=False,
         )
@@ -99,12 +99,37 @@ def test_runtime_starts_even_when_presence_frames_show_no_hand() -> None:
     assert runtime.classifier.last_request is not None
 
 
+def test_runtime_stays_idle_when_classifier_reports_none() -> None:
+    transport = MemoryEspTransport()
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=iter([6.0, 6.1]).__next__,
+        esp_client=EspClient("serial://test", transport=transport),
+        publication_client=PublicationAdapter("test-project"),
+        image_source_provider=StaticImageSourceProvider("demo://background"),
+    )
+    runtime.classifier = RecordingClassifier(
+        ClassificationResult(
+            predicted_item="none",
+            confidence=0.0,
+            llm_fallback_used=True,
+        )
+    )
+
+    snapshot, status = runtime.start_session(image_source="camera://uncertain")
+
+    assert snapshot.phase == SessionPhase.IDLE
+    assert status.phase == "idle"
+    assert status.to_payload()["currentDetectedItem"] is None
+    assert runtime.esp_client.last_command is None
+
+
 def test_session_tracks_configured_timing_windows() -> None:
     session = SessionStateMachine()
 
     identifying_snapshot = session.begin_identification(10.0)
     assert identifying_snapshot.phase == SessionPhase.IDENTIFYING
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 10.1)
+    session.set_guidance("aluminum-can", "recycle", 0.97, False, 10.1)
     session.begin_waiting_for_disposal(10.2)
 
     assert session.is_disposal_wait_expired(22.19) is False
@@ -118,7 +143,7 @@ def test_session_tracks_configured_timing_windows() -> None:
 def test_session_records_drop_on_hand_disappearance() -> None:
     session = SessionStateMachine()
     session.begin_identification(0.0)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.1)
+    session.set_guidance("aluminum-can", "recycle", 0.97, False, 0.1)
     session.begin_waiting_for_disposal(0.2)
 
     session.track_hand(zone="left", hand_present=True, now_monotonic=1.0)
@@ -143,7 +168,7 @@ def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
     )
     runtime.classifier = StubClassifier(
         ClassificationResult(
-            predicted_item="plastic-bottle",
+            predicted_item="aluminum-can",
             confidence=0.97,
             llm_fallback_used=False,
         )
@@ -156,7 +181,7 @@ def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
     )
 
     assert runtime.classifier.calls == 1
-    assert snapshot.predicted_item == "plastic-bottle"
+    assert snapshot.predicted_item == "aluminum-can"
     assert snapshot.correct_disposal_method == "recycle"
     assert drop_snapshot.actual_disposal_zone == "left"
     assert drop_snapshot.phase == SessionPhase.EMIT_RESULT
@@ -164,7 +189,7 @@ def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
     assert drop_snapshot.total_correct_sorts == 1
     assert event is not None
     assert event.payload_version == "device.v1"
-    assert event.predicted_item == "plastic-bottle"
+    assert event.predicted_item == "aluminum-can"
     assert event.actual_disposal_zone == "left"
     assert event.success is True
     assert event.attempt_result == "success"
@@ -174,7 +199,7 @@ def test_event_creation_marks_failed_drop_when_zone_maps_to_wrong_method() -> No
     preset = load_rules_preset("demo-canada-ottawa", "1.0.0")
     session = SessionStateMachine()
     session.begin_identification(0.0)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.1)
+    session.set_guidance("aluminum-can", "recycle", 0.97, False, 0.1)
     session.begin_waiting_for_disposal(0.2)
     session.track_hand(zone="middle", hand_present=True, now_monotonic=1.0)
     snapshot = session.track_hand(zone="middle", hand_present=False, now_monotonic=1.1)

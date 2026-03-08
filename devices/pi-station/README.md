@@ -69,8 +69,18 @@ devices/pi-station/
 Install dependencies with `uv`:
 
 ```bash
+uv venv --python 3.11 .venv
+source /home/handwash/Projects/hackcanada/devices/pi-station/.venv/bin/activate
 uv sync
 ```
+
+Use a project-local Python `3.11` or `3.12` environment for this repo.
+
+Important setup notes:
+
+* do **not** use Python `3.13` for `devices/pi-station`; the current `mediapipe` and `tflite-runtime` wheels used here are limited to Python `3.11`/`3.12`
+* if you already have another workspace virtualenv active, deactivate it first so `uv` does not target the wrong environment
+* this project intentionally pins `numpy<2` because the current prebuilt Raspberry Pi `tflite-runtime` path used by this repo is not compatible with NumPy `2.x`
 
 ## LCD wiring
 
@@ -104,11 +114,85 @@ Run the smoke tests:
 uv run pytest
 ```
 
-Run the placeholder station entry point:
+Run the live station runtime:
 
 ```bash
 uv run binsight-station
 ```
+
+`binsight-station` is the long-running live runtime entrypoint. It stays up until `Ctrl+C`, prints a compact newline status log about every 0.5 seconds, and now also starts an always-on local browser preview at:
+
+```text
+http://127.0.0.1:8765/
+```
+
+The preview page shows the latest camera frame that the runtime actually captured for classification or hand tracking.
+
+## Always-on browser camera preview
+
+When `uv run binsight-station` starts on the Pi, it automatically starts a small local preview server on port `8765`. There is no extra config toggle.
+
+Important limitation: the Raspberry Pi can start the preview server automatically, but it cannot reliably force a browser window to open on your Windows desktop through SSH. The one thing you still do on Windows is open the forwarded preview URL.
+
+Because the current runtime uses still captures instead of a persistent video stream, the preview behaves like fast-updating snapshots rather than perfectly smooth video.
+
+### Step-by-step: VS Code Remote SSH on Windows
+
+1. Open the repo on the Raspberry Pi through **VS Code Remote SSH**.
+2. Open a terminal in `devices/pi-station/`.
+3. Start the station runtime:
+
+   ```bash
+   uv run binsight-station
+   ```
+
+4. Wait for the terminal to print a line like:
+
+   ```text
+   binsight camera preview: http://127.0.0.1:8765/
+   ```
+
+5. In VS Code, open the **Ports** panel.
+6. If port `8765` is not already visible, forward it manually.
+7. Open the forwarded port in your local browser.
+8. Leave `binsight-station` running. As the Pi captures frames, the browser page updates automatically.
+9. When you are done, press `Ctrl+C` in the terminal to stop both the runtime and the preview server.
+
+### Step-by-step: Windows Terminal or PowerShell SSH
+
+1. Open **Windows Terminal** or **PowerShell** on your Windows PC.
+2. Connect to the Pi with local port forwarding:
+
+   ```bash
+   ssh -L 8765:127.0.0.1:8765 <your-pi-user>@<your-pi-host>
+   ```
+
+3. On the Pi shell, change into the station project directory:
+
+   ```bash
+   cd /home/handwash/Projects/hackcanada/devices/pi-station
+   ```
+
+4. Start the station runtime:
+
+   ```bash
+   uv run binsight-station
+   ```
+
+5. On your Windows machine, open this address in any browser:
+
+   ```text
+   http://127.0.0.1:8765/
+   ```
+
+6. Keep the SSH session open while you use the preview.
+7. Press `Ctrl+C` in the Pi terminal when you want to stop the station and the preview server.
+
+### Troubleshooting
+
+* If the page says it is waiting for the first frame, the station may not have captured its first image yet.
+* If the browser does not connect, make sure port `8765` is forwarded from the Pi to Windows.
+* If startup fails immediately with a port-binding error, another process is already using port `8765` on the Pi.
 
 ## Real-time component simulation
 
@@ -129,7 +213,7 @@ This local harness simulates a live detection flow and verifies that:
 Useful options:
 
 ```bash
-uv run binsight-realtime-sim --item plastic-bottle --disposal-zone left --output-json simulation-result.json
+uv run binsight-realtime-sim --item aluminum-can --disposal-zone left --output-json simulation-result.json
 ```
 
 Use `--no-reset` if you want the run to stop right after the disposal event is published instead of waiting for the runtime to return to `idle`.
@@ -141,7 +225,7 @@ This harness is meant for **local component/integration rehearsal**. It does not
 If your goal is to **fake only the ML/CV detection** while still using the **real ESP**, the **real backend**, and the **real dashboard**, use:
 
 ```bash
-uv run binsight-live-demo --item plastic-bottle
+uv run binsight-live-demo --item aluminum-can
 ```
 
 This command:
@@ -160,10 +244,16 @@ This command:
 Useful examples:
 
 ```bash
-uv run binsight-live-demo --item plastic-bottle --zone left
-uv run binsight-live-demo --item banana-peel --zone middle --guidance-hold-seconds 3 --hand-seconds 1.5
-uv run binsight-live-demo --item plastic-bottle --no-reset
+uv run binsight-live-demo --item aluminum-can --zone left
+uv run binsight-live-demo --item pickled-radish --zone middle --guidance-hold-seconds 3 --hand-seconds 1.5
+uv run binsight-live-demo --item aluminum-can --no-reset
 ```
+
+The current detectable item set is intentionally limited to:
+
+* `aluminum-can`
+* `granola-bar`
+* `pickled-radish`
 
 `--guidance-hold-seconds` controls how long the LED stays on before the simulated hand enters the drop zone.
 
@@ -174,7 +264,7 @@ uv run binsight-live-demo --item plastic-bottle --no-reset
 To run a believable multi-step sequence such as **recycle correct -> garbage wrong -> compost correct**, use:
 
 ```bash
-uv run binsight-live-sequence --steps "plastic-bottle:left,coffee-cup:left,banana-peel:middle"
+uv run binsight-live-sequence --steps "aluminum-can:left,granola-bar:left,pickled-radish:middle"
 ```
 
 This executes each step in order using the same station runtime, so counters accumulate naturally across the sequence.
@@ -187,8 +277,8 @@ Step format:
 Examples:
 
 ```bash
-uv run binsight-live-sequence --steps "plastic-bottle,coffee-cup:left,banana-peel"
-uv run binsight-live-sequence --steps "plastic-bottle:left,coffee-cup:left,banana-peel:middle" --guidance-hold-seconds 2 --hand-seconds 1 --inter-step-seconds 1
+uv run binsight-live-sequence --steps "aluminum-can,granola-bar:left,pickled-radish"
+uv run binsight-live-sequence --steps "aluminum-can:left,granola-bar:left,pickled-radish:middle" --guidance-hold-seconds 2 --hand-seconds 1 --inter-step-seconds 1
 ```
 
 Recommended prerequisites before running it:
@@ -200,28 +290,44 @@ Recommended prerequisites before running it:
 * `BINSIGHT_DEVICE_ID` and `BINSIGHT_DEVICE_SHARED_SECRET` are set so the backend accepts the device publication
 
 This is the command to use when you want to say: **“pretend the model just detected an item, and now drive the real system.”**
+
 ## Model asset layout
 
-The Pi runtime now expects the item-classifier assets in `devices/pi-station/models/item_classifier/` by default. You can override that location with `ITEM_CLASSIFIER_MODEL_DIR` in `devices/pi-station/.env`.
+The Pi runtime now uses these model directories by default:
 
-Place these files in that directory before running the live station with real inference:
+* `devices/pi-station/models/item_classification/` for item identification
+
+You can override item-identification assets with `ITEM_CLASSIFIER_MODEL_DIR` in `devices/pi-station/.env`.
+
+Hand presence and hand-zone tracking now come from MediaPipe Hands through the Pi camera. ESP remains responsible for LED guidance, acknowledgements, reset, and health status only. The current integration uses the existing still-image capture seam rather than a streaming camera pipeline, which keeps the runtime change small but is not yet the most performance-optimized option.
+
+Install notes:
+
+* local Windows development uses the regular `mediapipe` dependency path
+* Raspberry Pi 5 on Linux `aarch64` is pinned to `mediapipe==0.10.14` in this repo because newer upstream wheels are not consistently published for that platform
+
+The item-classification directory can now be either a strict manifest-based bundle or a lighter checked-in bundle. The runtime looks for these model filenames in order: `model.tflite`, `model_unquant.tflite`, `model_quant.tflite`.
+
+Supported item-classification layout:
 
 ```text
-devices/pi-station/models/item_classifier/
-├── model.tflite
-├── manifest.json
+devices/pi-station/models/item_classification/
+├── model.tflite | model_unquant.tflite | model_quant.tflite
 ├── labels.txt
-└── aliases.json
+├── aliases.json              # optional when labels need remapping
+└── manifest.json             # optional when defaults are sufficient
 ```
 
 Asset responsibilities:
 
-* `model.tflite`: quantized TensorFlow Lite classifier
-* `manifest.json`: preprocessing and runtime metadata such as layout, normalization, resize method, and thread count
+* `model.tflite | model_unquant.tflite | model_quant.tflite`: TensorFlow Lite image classifier
 * `labels.txt`: ordered output labels matching the model outputs
-* `aliases.json`: optional mapping from model labels to rules-preset item ids such as `plastic-bottle`
+* `aliases.json`: optional mapping from model labels to rules-preset item ids such as `aluminum-can`
+* `manifest.json`: optional preprocessing and runtime metadata such as layout, normalization, resize method, and thread count
 
-The runtime inspects TensorFlow Lite tensor metadata at startup, then combines it with `manifest.json` so compatible model swaps do not require code changes.
+If `manifest.json` is omitted, the runtime uses defaults: RGB input, bilinear resize, automatic input-layout detection, automatic output-activation handling, and `numThreads=4`.
+
+The checked-in `item_classification` model needs label remapping because its raw labels do not match the demo rules preset item ids directly. That mapping lives in `devices/pi-station/models/item_classification/aliases.json`.
 
 Example manifest:
 
@@ -289,12 +395,12 @@ If the Pi camera CLI is unavailable or the camera is not enabled, the command ex
 
 For the rehearsal, copy `devices/pi-station/.env.example` to `.env`, keep the station and device credentials aligned with the backend configuration, run `uv run pytest`, then run `uv run binsight-station`.
 
-On the current Phase 5 entrypoint, the runtime loads the station configuration, polls the ESP health endpoint once, immediately starts an item-identification session, attempts to publish the current live status, prints a one-line station summary, and exits.
+On the current Phase 5 entrypoint, the runtime stays alive as the real station process. It continuously cycles through idle -> identification -> guidance -> waiting-for-disposal -> result -> reset until you stop it with `Ctrl+C`.
 
-The validated local startup output on 2026-03-07 was:
+The terminal status log is intentionally short so it fits on one line in a small terminal, for example:
 
 ```text
-station=demo-station-001 phase=idle item=None disposal=None
+[station] wait   item=aluminum-can@0.97  tgt=recycle   over=left@0.88 hands=1
 ```
 
 Keep `STATION_ID`, `BINSIGHT_DEVICE_ID`, and `BINSIGHT_DEVICE_SHARED_SECRET` aligned with the backend `BINSIGHT_DEVICE_CREDENTIALS_JSON` entry for the same station before attempting a live Firebase rehearsal.
@@ -308,15 +414,19 @@ The minimum Phase 1 configuration set is:
 * `STATION_ID`: Station document identifier used in local runtime state and device ingress payloads
 * `RULES_PRESET_ID`: Active rules preset id, currently `demo-canada-ottawa`
 * `RULES_PRESET_VERSION`: Active rules preset version, currently `1.0.0`
-* `ITEM_CLASSIFIER_MODEL_DIR`: model asset directory, relative to `devices/pi-station/` by default
+* `ITEM_CLASSIFIER_MODEL_DIR`: item-classification model asset directory, relative to `devices/pi-station/` by default
+* `HAND_ABSENCE_FRAME_THRESHOLD`: number of consecutive no-hand detections required before a drop is emitted
+* `HAND_MIN_DETECTION_CONFIDENCE`: MediaPipe hand-detection confidence threshold
+* `HAND_MIN_TRACKING_CONFIDENCE`: MediaPipe tracking confidence threshold
+* `HAND_MAX_NUM_HANDS`: maximum hands to track, default `1` for the demo station
 * `ESP_ENDPOINT`: ESP8266 base URL on the shared network, for example `http://192.168.4.1`
 * `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`: Firebase project id for the demo environment. The runtime prefers `FIREBASE_PROJECT_ID` when both are set, but it accepts the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` fallback for repo-local config.
 * `BINSIGHT_DEVICE_ID`: Device id that will be used for authenticated backend publication
 * `BINSIGHT_DEVICE_SHARED_SECRET`: Shared secret paired with the device id for backend ingress
 * `DISPOSAL_TIMEOUT_SECONDS`: Wait window for disposal before the runtime resets
 * `RESET_COOLDOWN_SECONDS`: Cooldown window before the station returns to idle after reset
-* `CAMERA_CAPTURE_WIDTH`: captured image width for item identification
-* `CAMERA_CAPTURE_HEIGHT`: captured image height for item identification
+* `CAMERA_CAPTURE_WIDTH`: captured image width for item identification and MediaPipe hand tracking
+* `CAMERA_CAPTURE_HEIGHT`: captured image height for item identification and MediaPipe hand tracking
 * `CAMERA_CAPTURE_FORMAT`: image format passed to the Pi camera CLI, typically `jpg`
 * `CAMERA_CAPTURE_ROTATION_DEGREES`: rotation applied during capture, usually `180` for the current mounted camera orientation
 
@@ -326,7 +436,8 @@ TensorFlow Lite runtime notes:
 
 * The Pi package now depends on `numpy`, `Pillow`, and `tflite-runtime` for supported Linux Python versions.
 * The runtime prefers `tflite_runtime.interpreter` and falls back to `tensorflow.lite.Interpreter` when TensorFlow is already available.
-* The current development environment in this repository uses Python 3.13. TensorFlow Lite wheels may lag new Python releases, so Pi deployments should stay on a supported Python version when provisioning the runtime.
+* The supported Python range for this project is currently `3.11` to `3.12`.
+* The repo pins `numpy<2` because the currently used prebuilt `tflite-runtime` wheel path can fail at runtime with NumPy `2.x` on Raspberry Pi Linux.
 
 The Pi-to-ESP transport is fixed to local HTTP plus JSON over Wi-Fi. Set `ESP_ENDPOINT` to the ESP8266 base URL on the shared network.
 

@@ -45,7 +45,7 @@ def test_live_demo_injects_fake_detection_and_uses_hand_present_then_disappearan
 
     result = run_live_demo(
         runtime,
-        predicted_item="plastic bottle",
+        predicted_item="aluminum can",
         guidance_hold_seconds=0.0,
         hand_present_seconds=0.0,
         result_hold_seconds=0.0,
@@ -55,7 +55,7 @@ def test_live_demo_injects_fake_detection_and_uses_hand_present_then_disappearan
     assert transport.sent_frames[0] == "health?"
     assert transport.sent_frames[1] == "indicator:left"
     assert transport.sent_frames[-1] == "indicator:off"
-    assert result.predicted_item == "plastic-bottle"
+    assert result.predicted_item == "aluminum-can"
     assert result.guidance_zone == "left"
     assert result.actual_disposal_zone == "left"
     assert result.event is not None
@@ -64,7 +64,7 @@ def test_live_demo_injects_fake_detection_and_uses_hand_present_then_disappearan
     assert result.live_status_count_delta >= 5
     assert result.published_event_count == 1
     assert any(status["current_hand_zone"] == "left" for status in publication_client.published_live_statuses)
-    assert publication_client.published_events[-1]["predicted_item"] == "plastic-bottle"
+    assert publication_client.published_events[-1]["predicted_item"] == "aluminum-can"
     assert publication_client.published_events[-1]["actual_disposal_zone"] == "left"
     assert publication_client.published_live_statuses[-1]["phase"] == "idle"
     assert result.station_total_attempts == 1
@@ -78,18 +78,18 @@ def test_live_sequence_runs_mixed_correct_and_incorrect_steps() -> None:
     sequence_result = run_live_sequence(
         runtime,
         (
-            LiveDemoStep("plastic-bottle", "left", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
-            LiveDemoStep("coffee-cup", "left", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
-            LiveDemoStep("banana-peel", "middle", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
+            LiveDemoStep("aluminum-can", "left", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
+            LiveDemoStep("granola-bar", "left", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
+            LiveDemoStep("pickled-radish", "middle", guidance_hold_seconds=0.0, hand_present_seconds=0.0, result_hold_seconds=0.0),
         ),
         inter_step_seconds=0.0,
     )
 
     assert [step.event.success for step in sequence_result.steps if step.event is not None] == [True, False, True]
     assert [event["predicted_item"] for event in publication_client.published_events] == [
-        "plastic-bottle",
-        "coffee-cup",
-        "banana-peel",
+        "aluminum-can",
+        "granola-bar",
+        "pickled-radish",
     ]
     assert [event["actual_disposal_zone"] for event in publication_client.published_events] == [
         "left",

@@ -17,7 +17,8 @@ from .esp_client import (
     BACKEND_STATION_ID_HEADER,
     BACKEND_TIMESTAMP_HEADER,
 )
-from .main import DeterministicHandTracker, RuntimeSettings, StationRuntime
+from .hand_tracking import HandTrackingObservation
+from .main import RuntimeSettings, StationRuntime
 from .session import SessionPhase
 
 
@@ -70,7 +71,7 @@ class RecordedIngressRequest:
 
 @dataclass(slots=True)
 class RealtimeSimulationScenario:
-    predicted_item: str = "plastic-bottle"
+    predicted_item: str = "aluminum-can"
     disposal_zone: str = "left"
     station_id: str = "demo-station-001"
     device_id: str = "pi-sim-001"
@@ -114,6 +115,26 @@ class StaticClassifier:
         self.calls += 1
         self.requests.append(request)
         return self._result
+
+
+class SimulatedHandTracker:
+    def __init__(self, zone: str) -> None:
+        self._zone = zone
+        self._hand_present = False
+
+    def set_hand_present(self, hand_present: bool) -> None:
+        self._hand_present = hand_present
+
+    def observe(self, *, snapshot: object) -> HandTrackingObservation | None:
+        resolved_snapshot = snapshot
+        if self._hand_present:
+            return HandTrackingObservation(zone=self._zone, hand_present=True)
+        if getattr(resolved_snapshot, "hand_present", False):
+            return HandTrackingObservation(zone=None, hand_present=False)
+        return None
+
+    def close(self) -> None:
+        return None
 
 
 class SimulatedEspController:
@@ -413,7 +434,7 @@ class SimulatedBackendIngressServer:
     def _create_event_id(self, body: dict[str, Any]) -> str:
         station_id = str(body.get("station_id", self.station_id))
         timestamp = str(body.get("timestamp", ""))
-        predicted_item = str(body.get("predicted_item", "unknown-item"))
+        predicted_item = str(body.get("predicted_item", "pickled-radish"))
         return f"{station_id}_{timestamp}_{_normalize_item_token(predicted_item)}"
 
 
@@ -506,8 +527,9 @@ def run_realtime_simulation(
         )
         runtime = StationRuntime(
             settings,
-            hand_tracking_input=DeterministicHandTracker((resolved_scenario.disposal_zone,)),
+            hand_tracking_input=SimulatedHandTracker(resolved_scenario.disposal_zone),
         )
+        simulated_hand_tracker = runtime.hand_tracking_input
         classifier = StaticClassifier(
             ClassificationResult(
                 predicted_item=resolved_scenario.predicted_item,
@@ -517,7 +539,6 @@ def run_realtime_simulation(
         )
         runtime.classifier = classifier
 
-        esp_server.set_presence(hand_present=True, stable=True)
         started_at = monotonic()
         guidance_seen_at: float | None = None
         hand_release_applied = False
@@ -535,17 +556,18 @@ def run_realtime_simulation(
                 now = monotonic()
                 if guidance_seen_at is None and esp_server.signal_history:
                     guidance_seen_at = now
+                    simulated_hand_tracker.set_hand_present(True)
 
                 if (
                     guidance_seen_at is not None
                     and not hand_release_applied
                     and now - guidance_seen_at >= resolved_scenario.hand_hold_seconds
                 ):
-                    esp_server.set_presence(hand_present=False, stable=False)
+                    simulated_hand_tracker.set_hand_present(False)
                     hand_release_applied = True
 
                 if runtime.last_event is not None and reset_started_at is None and resolved_scenario.perform_reset:
-                    runtime.begin_reset()
+                    runtime.begin_reset(clear_guidance=True)
                     reset_started_at = monotonic()
 
                 if reset_started_at is not None and runtime.session.snapshot.phase is SessionPhase.RESETTING:
@@ -662,7 +684,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
             "and fake backend ingress server."
         )
     )
-    parser.add_argument("--item", default="plastic-bottle", help="Predicted item to simulate.")
+    parser.add_argument("--item", default="aluminum-can", help="Predicted item to simulate.")
     parser.add_argument(
         "--disposal-zone",
         choices=("left", "middle", "right"),

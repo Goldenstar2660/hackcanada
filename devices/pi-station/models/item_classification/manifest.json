@@ -1,0 +1,11 @@
+{
+  "labelsFile": "labels.txt",
+  "aliasesFile": "aliases.json",
+  "inputLayout": "auto",
+  "colorSpace": "RGB",
+  "resizeMethod": "bilinear",
+  "normalizeMean": [127.5],
+  "normalizeStd": [127.5],
+  "outputActivation": "auto",
+  "numThreads": 4
+}
