@@ -155,10 +155,9 @@ devices/pi-station/config/training_capture.json
 
 How it works:
 
-* Press `Enter` once to capture one image
-* Press `Enter` again to capture one more image
+* The tool captures images automatically at `intervalSeconds`
 * Press `Ctrl+C` to quit
-* The config is reloaded every time you press `Enter`
+* It prints periodic timing stats so you can see effective photos/sec and whether the requested cadence is being missed
 
 Default output layout:
 
@@ -170,15 +169,17 @@ Important config fields:
 
 * `label`: class name for the images, such as `engaged`, `paper`, or `plastic`
 * `outputDir`: base folder for saved images
-* `intervalSeconds`: retained in config for compatibility, but ignored in manual one-photo-per-Enter mode
+* `intervalSeconds`: requested capture cadence in seconds, such as `0.1` for 10 captures/sec
 * `width` / `height`: capture resolution
 * `imageFormat`: output format, typically `jpg` or `png`
 * `jpegQuality`: JPEG quality when saving `.jpg`
-* `maxPhotosPerRun`: retained in config for compatibility, but ignored in manual one-photo-per-Enter mode
+* `maxPhotosPerRun`: optional automatic stop after N saved images; `0` means unlimited
 * `flip180`: rotate the saved image 180 degrees if your camera is mounted upside down
-* `swapRedBlue`: retained for compatibility with the original script, but ignored by the current CLI-camera implementation
+* `swapRedBlue`: swap red/blue channels before saving when needed for compatibility with older data-collection workflows
 
-This implementation uses the Raspberry Pi camera CLI (`rpicam-still`, or `libcamera-still` on older images), so it does **not** require installing `picamera2` or Pillow through `uv` just to run the capture command.
+This implementation now prefers a **persistent MJPEG camera stream** using Raspberry Pi camera CLI video tools (`rpicam-vid`, or `libcamera-vid` on older images) so it can get much closer to high-rate intervals like `0.1s`. It falls back to one-shot still captures with `rpicam-still` / `libcamera-still` only when the persistent backend is unavailable.
+
+If the tool falls back to one-shot still capture mode, very short intervals may not be achievable because each photo has to pay process startup and teardown cost. The runtime logs a warning when that slower fallback is being used.
 
 If the Pi camera CLI is unavailable or the camera is not enabled, the command exits with a clear error message so you can fix the Pi camera setup first.
 
