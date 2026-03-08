@@ -11,6 +11,7 @@
     "firebase:deploy:functions": "node scripts/firebase-cli.mjs deploy --config firebase.json --only functions:backend-functions",
     "lint": "node scripts/pnpm-cli.mjs -r run lint",
     "test": "node scripts/pnpm-cli.mjs -r --if-present run test",
+    "web:build": "node scripts/pnpm-cli.mjs --filter @binsight/web run build",
     "web:dev": "node scripts/pnpm-cli.mjs --filter @binsight/web run dev"
   },
   "devDependencies": {
