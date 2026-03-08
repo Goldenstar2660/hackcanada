@@ -1,4 +1,4 @@
-import type { AnalyticsSummary } from "@binsight/contracts";
+import type { AnalyticsInsightsResponse, AnalyticsSummary } from "@binsight/contracts";
 
 import type { DashboardPageLoadContext } from "../app/types.js";
 
@@ -8,25 +8,31 @@ import { matchesStationFilters } from "../lib/query/dashboard-query.js";
 
 export interface AnalyticsPageModel {
   readonly summary: AnalyticsSummary;
+  readonly insights: AnalyticsInsightsResponse;
   readonly availableFilters: Awaited<ReturnType<typeof loadAnalyticsPage>>["availableFilters"];
   readonly availableStations: Awaited<ReturnType<typeof loadAnalyticsPage>>["availableStations"];
 }
 
 export async function loadAnalyticsPage(context: DashboardPageLoadContext): Promise<{
   summary: AnalyticsSummary;
+  insights: AnalyticsInsightsResponse;
   availableFilters: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["filters"];
   availableStations: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["stations"];
 }> {
-  const [directory, summary] = await Promise.all([
+  const analyticsRequestOptions = {
+    groupBy: ["buildingId"] as const,
+    timeBucket: "day" as const
+  };
+
+  const [directory, summary, insights] = await Promise.all([
     context.providers.api.getStationDirectory(),
-    context.providers.api.getAnalytics(context.filters, {
-      groupBy: ["buildingId"],
-      timeBucket: "day"
-    })
+    context.providers.api.getAnalytics(context.filters, analyticsRequestOptions),
+    context.providers.api.getAnalyticsInsights(context.filters, analyticsRequestOptions)
   ]);
 
   return {
     summary,
+    insights,
     availableFilters: directory.filters,
     availableStations: directory.stations
   };
@@ -131,20 +137,28 @@ export function AnalyticsPage(props: {
       <section className="dashboard-analytics-insights-shell" aria-label="AI insights placeholders">
         <div className="dashboard-analytics-insights-header">
           <p className="dashboard-page-kicker">AI-powered insights</p>
-          <h3 className="dashboard-card-title">Placeholder insight cards</h3>
+          <h3 className="dashboard-card-title">
+            {props.model.insights.status === "ready" ? "Generated insight cards" : "Insight placeholders"}
+          </h3>
         </div>
         <div className="dashboard-analytics-insights-grid">
-          <article className="dashboard-analytics-insight-card dashboard-analytics-insight-card--primary">
-            <p className="dashboard-analytics-insight-copy">
-              AI insight summaries will appear here once the analytics narration service is wired to reviewed production prompts and approved result formatting.
-            </p>
-          </article>
-          <article className="dashboard-analytics-insight-card">
-            <p className="dashboard-analytics-insight-copy dashboard-analytics-insight-copy--muted">
-              Comparative recommendations, anomaly flags, and location-level actions remain placeholders until the later AI insights implementation phase ships.
-            </p>
-          </article>
+          {props.model.insights.cards.map((card) => (
+            <article
+              key={card.id}
+              className={`dashboard-analytics-insight-card${card.emphasis === "primary" ? " dashboard-analytics-insight-card--primary" : ""}`}
+            >
+              <p className="dashboard-field-label dashboard-analytics-insight-label">{card.title}</p>
+              <p className={`dashboard-analytics-insight-copy${card.emphasis === "primary" ? "" : " dashboard-analytics-insight-copy--muted"}`}>
+                {card.body}
+              </p>
+            </article>
+          ))}
         </div>
+        {props.model.insights.status === "placeholder" && props.model.insights.fallbackReason ? (
+          <p className="dashboard-status dashboard-status--empty dashboard-analytics-insight-status">
+            AI insight fallback active: {props.model.insights.fallbackReason}
+          </p>
+        ) : null}
       </section>
 
       <article className="dashboard-card">
