@@ -22,7 +22,7 @@ from .session import SessionPhase, SessionSnapshot, SessionStateMachine, Session
 
 
 DEFAULT_DEMO_CLASSIFICATION_SOURCE = "demo://plastic-bottle"
-DEFAULT_LOOP_INTERVAL_SECONDS = 0.5
+DEFAULT_LOOP_INTERVAL_SECONDS = 0.1
 DEFAULT_STATUS_INTERVAL_SECONDS = 0.5
 
 @dataclass(slots=True)
@@ -234,6 +234,8 @@ class StationRuntime:
         updated_snapshot = self.observe_hand(
             zone=observation.zone,
             hand_present=observation.hand_present,
+            hand_count=observation.hand_count,
+            hand_confidence=observation.confidence,
         )
         if updated_snapshot.phase is not SessionPhase.EMIT_RESULT:
             return updated_snapshot, False
@@ -346,8 +348,21 @@ class StationRuntime:
 
         return snapshot, self._publish_runtime_status(snapshot, latest_event=self.last_event)
 
-    def observe_hand(self, zone: str | None, hand_present: bool) -> SessionSnapshot:
-        return self.session.track_hand(zone=zone, hand_present=hand_present, now_monotonic=self._now())
+    def observe_hand(
+        self,
+        zone: str | None,
+        hand_present: bool,
+        hand_count: int | None = None,
+        hand_confidence: float | None = None,
+    ) -> SessionSnapshot:
+        resolved_hand_count = hand_count if hand_count is not None else (1 if hand_present else 0)
+        return self.session.track_hand(
+            zone=zone,
+            hand_present=hand_present,
+            hand_count=resolved_hand_count,
+            hand_confidence=hand_confidence,
+            now_monotonic=self._now(),
+        )
 
     def emit_result(self) -> DisposalEvent | None:
         snapshot = self.session.snapshot
@@ -438,52 +453,42 @@ def _phase_token(phase: SessionPhase) -> str:
     return mapping.get(phase, phase.value)
 
 
-def _health_token(status: str) -> str:
-    mapping = {
-        "online": "on",
-        "degraded": "deg",
-        "offline": "off",
-    }
-    return mapping.get(status, _compact_token(status, max_length=3))
-
-
-def _hand_token(snapshot: SessionSnapshot) -> str:
-    if not snapshot.hand_present:
+def _format_confidence(value: float | None) -> str:
+    if value is None:
         return "-"
-    return _compact_token(snapshot.latest_hand_zone or "yes", max_length=6)
+    return f"{value:.2f}"
+
+
+def _format_model_output(label: str | None, confidence: float | None, *, max_length: int) -> str:
+    resolved_label = _compact_token(label, max_length=max_length)
+    if label is None or label.strip() == "":
+        return resolved_label
+    if confidence is None:
+        return resolved_label
+    return f"{resolved_label}@{_format_confidence(confidence)}"
 
 
 def _format_status_line(
     snapshot: SessionSnapshot,
     *,
-    device_health_status: str,
-    cloud_sync_status: str,
+    station_prefix: str = "[station]",
 ) -> str:
     phase = _phase_token(snapshot.phase)
-    item = _compact_token(snapshot.predicted_item, max_length=18)
+    item = _format_model_output(snapshot.predicted_item, snapshot.model_confidence, max_length=18)
     target = _compact_token(snapshot.correct_disposal_method, max_length=10)
-    hand = _hand_token(snapshot)
-    esp = _health_token(device_health_status)
-    cloud = _health_token(cloud_sync_status)
+    over = _format_model_output(snapshot.latest_hand_zone, snapshot.hand_confidence, max_length=8)
     return (
-        f"phase={phase:<6} item={item:<18} target={target:<10} "
-        f"hand={hand:<6} esp={esp:<3} cloud={cloud:<3}"
+        f"{station_prefix} {phase:<6} item={item:<24} tgt={target:<10} "
+        f"over={over:<13} hands={snapshot.hand_count}"
     ).rstrip()
 
 
 def _format_runtime_status_line(runtime: StationRuntime) -> str:
-    return _format_status_line(
-        runtime.session.snapshot,
-        device_health_status=runtime.esp_client.device_health_status,
-        cloud_sync_status=runtime.publication_client.cloud_sync_status,
-    )
+    return _format_status_line(runtime.session.snapshot)
 
 
-def _write_status_line(message: str, previous_width: int) -> int:
-    padded_message = message.ljust(previous_width)
-    sys.stdout.write(f"\r{padded_message}")
-    sys.stdout.flush()
-    return max(previous_width, len(message))
+def _write_status_line(message: str) -> None:
+    print(message, flush=True)
 
 
 def _run_runtime_loop_iteration(runtime: StationRuntime) -> SessionSnapshot:
@@ -520,20 +525,16 @@ def run_forever(
     sleep_fn: Callable[[float], None] = sleep,
 ) -> int:
     last_status_at: float | None = None
-    status_width = 0
 
     try:
         while True:
             _run_runtime_loop_iteration(runtime)
             now = monotonic_clock()
             if last_status_at is None or now - last_status_at >= status_interval_seconds:
-                status_width = _write_status_line(_format_runtime_status_line(runtime), status_width)
+                _write_status_line(_format_runtime_status_line(runtime))
                 last_status_at = now
             sleep_fn(loop_interval_seconds)
     except KeyboardInterrupt:
-        if status_width:
-            sys.stdout.write("\n")
-            sys.stdout.flush()
         print("binsight-station stopped")
         return 0
 

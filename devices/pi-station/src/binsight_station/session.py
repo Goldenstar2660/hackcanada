@@ -28,6 +28,8 @@ class SessionSnapshot:
     llm_fallback_used: bool = False
     latest_hand_zone: str | None = None
     hand_present: bool = False
+    hand_count: int = 0
+    hand_confidence: float | None = None
     actual_disposal_zone: str | None = None
     latest_result_success: bool | None = None
     total_attempts: int = 0
@@ -109,6 +111,8 @@ class SessionStateMachine:
         zone: str | None,
         hand_present: bool,
         now_monotonic: float,
+        hand_count: int = 0,
+        hand_confidence: float | None = None,
     ) -> SessionSnapshot:
         if self._snapshot.phase is not SessionPhase.WAITING_FOR_DISPOSAL:
             raise ValueError("hand tracking is only available while waiting for disposal")
@@ -126,6 +130,8 @@ class SessionStateMachine:
             phase=phase,
             latest_hand_zone=zone or self._snapshot.latest_hand_zone,
             hand_present=hand_present,
+            hand_count=max(0, hand_count),
+            hand_confidence=hand_confidence,
             actual_disposal_zone=actual_disposal_zone,
             phase_started_at_monotonic=now_monotonic,
         )
@@ -151,6 +157,8 @@ class SessionStateMachine:
             self._snapshot,
             phase=SessionPhase.RESETTING,
             hand_present=False,
+            hand_count=0,
+            hand_confidence=None,
             phase_started_at_monotonic=now_monotonic,
             reset_ready_at_monotonic=now_monotonic + self._timing.reset_cooldown_seconds,
         )

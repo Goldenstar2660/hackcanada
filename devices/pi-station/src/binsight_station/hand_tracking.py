@@ -17,6 +17,8 @@ from .session import SessionSnapshot
 class HandTrackingObservation:
     zone: str | None
     hand_present: bool
+    hand_count: int = 0
+    confidence: float | None = None
 
 
 class HandTrackingInput(Protocol):
@@ -30,6 +32,8 @@ class HandLandmarkObservation:
     hand_present: bool
     zone: str | None = None
     normalized_x: float | None = None
+    hand_count: int = 0
+    confidence: float | None = None
 
 
 class HandLandmarkDetector(Protocol):
@@ -55,13 +59,13 @@ class DeterministicHandTracker:
             self._active_zone = self._zones[0]
             if len(self._zones) > 1:
                 self._zones.rotate(-1)
-            return HandTrackingObservation(zone=self._active_zone, hand_present=True)
+            return HandTrackingObservation(zone=self._active_zone, hand_present=True, hand_count=1)
 
         if self._active_zone is None:
             return None
 
         self._active_zone = None
-        return HandTrackingObservation(zone=None, hand_present=False)
+        return HandTrackingObservation(zone=None, hand_present=False, hand_count=0)
 
     def close(self) -> None:
         return None
@@ -99,7 +103,12 @@ class MediaPipeHandsTracker:
             self._consecutive_absent_frames = 0
             resolved_zone = _require_hand_zone(detection.zone)
             self._last_visible_zone = resolved_zone
-            return HandTrackingObservation(zone=resolved_zone, hand_present=True)
+            return HandTrackingObservation(
+                zone=resolved_zone,
+                hand_present=True,
+                hand_count=detection.hand_count,
+                confidence=detection.confidence,
+            )
 
         if not snapshot.hand_present:
             self._consecutive_absent_frames = 0
@@ -111,11 +120,13 @@ class MediaPipeHandsTracker:
             return HandTrackingObservation(
                 zone=self._last_visible_zone or snapshot.latest_hand_zone,
                 hand_present=True,
+                hand_count=detection.hand_count,
+                confidence=detection.confidence,
             )
 
         self._consecutive_absent_frames = 0
         self._last_visible_zone = None
-        return HandTrackingObservation(zone=None, hand_present=False)
+        return HandTrackingObservation(zone=None, hand_present=False, hand_count=0)
 
     def close(self) -> None:
         self._detector.close()
@@ -141,15 +152,23 @@ class MediaPipeHandLandmarkDetector:
 
         result = hands.process(rgb_pixels)
         if not result.multi_hand_landmarks:
-            return HandLandmarkObservation(hand_present=False)
+            return HandLandmarkObservation(hand_present=False, hand_count=0)
 
         primary_landmarks = result.multi_hand_landmarks[0]
         xs = [float(landmark.x) for landmark in primary_landmarks.landmark]
         normalized_x = min(max(sum(xs) / len(xs), 0.0), 1.0)
+        hand_count = len(result.multi_hand_landmarks)
+        confidence = None
+        if getattr(result, "multi_handedness", None):
+            handedness = result.multi_handedness[0]
+            if handedness.classification:
+                confidence = float(handedness.classification[0].score)
         return HandLandmarkObservation(
             hand_present=True,
             zone=_zone_for_normalized_x(normalized_x),
             normalized_x=normalized_x,
+            hand_count=hand_count,
+            confidence=confidence,
         )
 
     def close(self) -> None:

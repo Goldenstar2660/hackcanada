@@ -114,11 +114,13 @@ Run the smoke tests:
 uv run pytest
 ```
 
-Run the placeholder station entry point:
+Run the live station runtime:
 
 ```bash
 uv run binsight-station
 ```
+
+`binsight-station` is the long-running live runtime entrypoint. It stays up until `Ctrl+C` and prints a compact newline status log about every 0.5 seconds.
 
 ## Real-time component simulation
 
@@ -315,12 +317,12 @@ If the Pi camera CLI is unavailable or the camera is not enabled, the command ex
 
 For the rehearsal, copy `devices/pi-station/.env.example` to `.env`, keep the station and device credentials aligned with the backend configuration, run `uv run pytest`, then run `uv run binsight-station`.
 
-On the current Phase 5 entrypoint, the runtime loads the station configuration, polls the ESP health endpoint once, immediately starts an item-identification session, attempts to publish the current live status, prints a one-line station summary, and exits.
+On the current Phase 5 entrypoint, the runtime stays alive as the real station process. It continuously cycles through idle -> identification -> guidance -> waiting-for-disposal -> result -> reset until you stop it with `Ctrl+C`.
 
-The validated local startup output on 2026-03-07 was:
+The terminal status log is intentionally short so it fits on one line in a small terminal, for example:
 
 ```text
-station=demo-station-001 phase=idle item=None disposal=None
+[station] wait   item=plastic-bottle@0.97  tgt=recycle   over=left@0.88 hands=1
 ```
 
 Keep `STATION_ID`, `BINSIGHT_DEVICE_ID`, and `BINSIGHT_DEVICE_SHARED_SECRET` aligned with the backend `BINSIGHT_DEVICE_CREDENTIALS_JSON` entry for the same station before attempting a live Firebase rehearsal.

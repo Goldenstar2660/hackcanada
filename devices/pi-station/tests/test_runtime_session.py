@@ -322,18 +322,34 @@ def test_runtime_uses_mediapipe_hand_tracking_without_esp_presence_frames() -> N
 def test_format_status_line_keeps_runtime_heartbeat_compact() -> None:
     snapshot = SessionStateMachine().snapshot
 
-    line = _format_status_line(
-        snapshot,
-        device_health_status="online",
-        cloud_sync_status="degraded",
+    line = _format_status_line(snapshot)
+
+    assert "[station] idle" in line
+    assert "item=-" in line
+    assert "tgt=-" in line
+    assert "over=-" in line
+    assert "hands=0" in line
+
+
+def test_format_status_line_includes_model_outputs_and_confidence() -> None:
+    session = SessionStateMachine()
+    session.begin_identification(0.0)
+    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.1)
+    session.begin_waiting_for_disposal(0.2)
+    snapshot = session.track_hand(
+        zone="left",
+        hand_present=True,
+        hand_count=1,
+        hand_confidence=0.88,
+        now_monotonic=0.3,
     )
 
-    assert "phase=idle" in line
-    assert "item=-" in line
-    assert "target=-" in line
-    assert "hand=-" in line
-    assert "esp=on" in line
-    assert "cloud=deg" in line
+    line = _format_status_line(snapshot)
+
+    assert "item=plastic-bottle@0.97" in line
+    assert "tgt=recycle" in line
+    assert "over=left@0.88" in line
+    assert "hands=1" in line
 
 
 def test_runtime_loop_iteration_starts_session_from_idle() -> None:
