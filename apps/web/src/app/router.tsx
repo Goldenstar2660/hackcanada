@@ -6,6 +6,7 @@ import type {
   DashboardRouteMatch
 } from "./types.js";
 
+import { DashboardPage, loadDashboardPage } from "../pages/dashboard.js";
 import { AnalyticsPage, loadAnalyticsPage } from "../pages/analytics.js";
 import { EventHistoryPage, loadEventHistoryPage } from "../pages/event-history.js";
 import { LandingPage } from "../pages/landing.js";
@@ -29,6 +30,15 @@ const dashboardRouteMap = {
     path: "/login",
     access: "public",
     showInNavigation: false
+  },
+  dashboard: {
+    id: "dashboard",
+    label: "Dashboard",
+    description: "Primary operator dashboard aligned to the Stitch dashboard hero and live summary metrics.",
+    path: "/dashboard",
+    access: "protected",
+    navigationLabel: "Dashboard",
+    showInNavigation: true
   },
   analytics: {
     id: "analytics",
@@ -82,7 +92,7 @@ interface DashboardRoutePattern {
 
 export const dashboardRoutes = Object.values(dashboardRouteMap) as readonly DashboardRouteDefinition[];
 
-export const DEFAULT_DASHBOARD_PATH = "/analytics";
+export const DEFAULT_DASHBOARD_PATH = "/dashboard";
 
 const dashboardRoutePatterns = [
   {
@@ -92,6 +102,10 @@ const dashboardRoutePatterns = [
   {
     path: "/login",
     routeId: "login"
+  },
+  {
+    path: "/dashboard",
+    routeId: "dashboard"
   },
   {
     path: "/analytics",
@@ -236,10 +250,20 @@ export async function renderDashboardRoute(context: DashboardPageLoadContext): P
             <article className="dashboard-card">
               <p className="dashboard-page-kicker">Public route</p>
               <h2 className="dashboard-card-title">Login remains outside the protected operator shell.</h2>
-              <p className="dashboard-subtitle">Signed-in sessions are redirected to analytics instead of rendering the login route inside the operator shell.</p>
+              <p className="dashboard-subtitle">Signed-in sessions are redirected to the dashboard instead of rendering the login route inside the operator shell.</p>
             </article>
           </section>
         )
+      };
+    }
+
+    case "dashboard": {
+      const model = await loadDashboardPage(context);
+      return {
+        title: "Dashboard",
+        description: "Operator dashboard aligned to the Stitch dashboard surface while wiring live analytics summary and active station counts where production data already exists.",
+        shell: "standalone",
+        body: <DashboardPage model={model} context={context} />
       };
     }
 

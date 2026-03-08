@@ -1,7 +1,7 @@
 const landingNavigation = [
   {
     label: "Dashboard",
-    status: "deferred"
+    href: "/dashboard"
   },
   {
     label: "Analytics",
@@ -89,7 +89,7 @@ export function LandingPage(): JSX.Element {
                 System Login
               </a>
               <p className="dashboard-public-brand-note">
-                Dashboard and System destinations remain deferred until supported designs and public-safe routing are approved.
+                System destinations remain deferred until supported designs and public-safe routing are approved.
               </p>
             </div>
           </aside>

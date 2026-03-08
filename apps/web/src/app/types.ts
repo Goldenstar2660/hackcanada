@@ -32,11 +32,14 @@ export type DashboardRouteAccess = "public" | "protected";
 export type DashboardRouteId =
   | "landing"
   | "login"
+  | "dashboard"
   | "analytics"
   | "devices"
   | "device-detail"
   | "live-monitoring"
   | "event-history";
+
+export type DashboardPageShell = "app" | "standalone";
 
 export interface DashboardProviderRegistry extends DashboardAppDependencies {
   readonly now: () => Date;
@@ -69,4 +72,5 @@ export interface DashboardPageRenderResult {
   readonly title: string;
   readonly description: string;
   readonly body: JSX.Element;
+  readonly shell?: DashboardPageShell;
 }

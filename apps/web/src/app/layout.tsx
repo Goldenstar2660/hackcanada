@@ -19,7 +19,7 @@ export function DashboardLayout(props: DashboardLayoutProps): JSX.Element {
   return (
     <div data-surface="binsight-dashboard" className="dashboard-shell dashboard-shell--app">
       <header className="dashboard-auth-header dashboard-app-header">
-        <a href="/" className="dashboard-brand dashboard-brand-link" aria-label="Binsight home">
+        <a href="/dashboard" className="dashboard-brand dashboard-brand-link" aria-label="Binsight dashboard home">
           <span className="dashboard-brand-mark" aria-hidden="true">DS</span>
           <span className="dashboard-brand-wordmark">BiNSIGHT</span>
         </a>
@@ -55,7 +55,7 @@ export function DashboardLayout(props: DashboardLayoutProps): JSX.Element {
               <span className="dashboard-chip dashboard-chip--active">
                 {isSecondaryRoute ? "Secondary route" : "Primary route"}
               </span>
-              <span className="dashboard-chip">Visible IA: Analytics and Devices</span>
+              <span className="dashboard-chip">Visible IA: Dashboard, Analytics, and Devices</span>
               {isSecondaryRoute ? <span className="dashboard-chip dashboard-chip--warning">Deep link retained for migration safety</span> : null}
               {isCompatibilityPath ? <span className="dashboard-chip">Compatibility path {props.currentRoute.requestedPath}</span> : null}
             </div>
@@ -66,8 +66,8 @@ export function DashboardLayout(props: DashboardLayoutProps): JSX.Element {
       </main>
 
       <footer className="dashboard-auth-footer dashboard-app-footer">
-        <span className="dashboard-auth-footer-copy">Visible IA: landing, login, analytics, devices, and device details.</span>
-        <span className="dashboard-auth-footer-action">Dashboard and system routes stay deferred until supported designs exist.</span>
+        <span className="dashboard-auth-footer-copy">Visible IA: landing, login, dashboard, analytics, devices, and device details.</span>
+        <span className="dashboard-auth-footer-action">System routes stay deferred until supported designs exist.</span>
       </footer>
     </div>
   );

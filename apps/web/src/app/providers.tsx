@@ -41,7 +41,8 @@ export interface DashboardBrowserApplicationProps {
 
 const publicShellNavigation = [
   {
-    label: "Dashboard"
+    label: "Dashboard",
+    href: "/dashboard"
   },
   {
     label: "Analytics",
@@ -52,7 +53,7 @@ const publicShellNavigation = [
     href: "/devices"
   },
   {
-    label: "Settings"
+    label: "System"
   }
 ] as const;
 
@@ -108,19 +109,24 @@ export async function renderDashboardApplication(
     filters
   };
   const page = await renderDashboardRoute(context);
+  const element = page.shell === "standalone"
+    ? page.body
+    : (
+      <DashboardLayout
+        currentRoute={match}
+        navigationRoutes={getNavigationRoutes()}
+        title={page.title}
+        description={page.description}
+      >
+        {page.body}
+      </DashboardLayout>
+    );
 
   return {
     context,
     element: (
       <DashboardProviders>
-        <DashboardLayout
-          currentRoute={match}
-          navigationRoutes={getNavigationRoutes()}
-          title={page.title}
-          description={page.description}
-        >
-          {page.body}
-        </DashboardLayout>
+        {element}
       </DashboardProviders>
     )
   };
@@ -492,6 +498,7 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
 
   const hasVisiblePage = Boolean(pageState.result);
   const showTransitionIndicator = pageState.status === "loading" && hasVisiblePage;
+  const showOperatorChrome = currentRoute.route.id !== "dashboard";
 
   return (
     <div
@@ -548,22 +555,24 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
         navigate(search.length > 0 ? `${url.pathname}?${search}` : url.pathname);
       }}
     >
-      <div className="dashboard-operator-bar">
-        <div>
-          <strong>Operator session</strong>
-          <span className="dashboard-operator-meta">{authState.user?.email ?? authState.user?.uid}</span>
+      {showOperatorChrome ? (
+        <div className="dashboard-operator-bar">
+          <div>
+            <strong>Operator session</strong>
+            <span className="dashboard-operator-meta">{authState.user?.email ?? authState.user?.uid}</span>
+          </div>
+          <button
+            type="button"
+            className="dashboard-button dashboard-button--ghost"
+            onClick={() => {
+              void signOut(props.services.auth);
+            }}
+          >
+            Sign out
+          </button>
         </div>
-        <button
-          type="button"
-          className="dashboard-button dashboard-button--ghost"
-          onClick={() => {
-            void signOut(props.services.auth);
-          }}
-        >
-          Sign out
-        </button>
-      </div>
-      {showTransitionIndicator ? (
+      ) : null}
+      {showTransitionIndicator && showOperatorChrome ? (
         <p className="dashboard-status" aria-live="polite">
           Loading next dashboard view...
         </p>
