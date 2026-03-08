@@ -25,9 +25,9 @@
     }
   ],
   "zoneMapping": {
-    "left": "recycle",
+    "right": "recycle",
     "middle": "compost",
-    "right": "garbage"
+    "left": "garbage"
   },
   "lowConfidenceThreshold": 0.95
 }
