@@ -73,7 +73,7 @@ def load_runtime_settings() -> RuntimeSettings:
         binsight_device_shared_secret=_optional_env("BINSIGHT_DEVICE_SHARED_SECRET"),
         publication_timeout_seconds=float(os.getenv("BINSIGHT_PUBLICATION_TIMEOUT_SECONDS", "5.0")),
         disposal_timeout_seconds=float(os.getenv("DISPOSAL_TIMEOUT_SECONDS", "12.0")),
-        reset_cooldown_seconds=float(os.getenv("RESET_COOLDOWN_SECONDS", "1.5")),
+        reset_cooldown_seconds=float(os.getenv("RESET_COOLDOWN_SECONDS", "0.0")),
         camera_capture_width=int(os.getenv("CAMERA_CAPTURE_WIDTH", "640")),
         camera_capture_height=int(os.getenv("CAMERA_CAPTURE_HEIGHT", "480")),
         camera_capture_format=os.getenv("CAMERA_CAPTURE_FORMAT", "jpg").strip().lower() or "jpg",
@@ -382,8 +382,9 @@ class StationRuntime:
         self._publish_runtime_status(result_snapshot, latest_event=event)
         return event
 
-    def begin_reset(self) -> SessionSnapshot:
-        self.esp_client.clear_guidance()
+    def begin_reset(self, *, clear_guidance: bool = False) -> SessionSnapshot:
+        if clear_guidance:
+            self.esp_client.clear_guidance()
         snapshot = self.session.begin_resetting(self._now())
         self.lcd_client.render_reset(snapshot.total_attempts, snapshot.total_correct_sorts)
         self._publish_runtime_status(snapshot, latest_event=self.last_event)
@@ -522,17 +523,30 @@ def _run_runtime_loop_iteration(runtime: StationRuntime) -> SessionSnapshot:
 
     if snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL:
         runtime.sync_from_esp()
+        if runtime.session.snapshot.phase is SessionPhase.EMIT_RESULT:
+            runtime.begin_reset()
+            if runtime.session.is_reset_ready(runtime._now()):
+                runtime.complete_reset()
+                runtime.start_session()
+            return runtime.session.snapshot
         if runtime.session.is_disposal_wait_expired(runtime._now()):
             runtime.begin_reset()
+            if runtime.session.is_reset_ready(runtime._now()):
+                runtime.complete_reset()
+                runtime.start_session()
         return runtime.session.snapshot
 
     if snapshot.phase is SessionPhase.EMIT_RESULT:
         runtime.begin_reset()
+        if runtime.session.is_reset_ready(runtime._now()):
+            runtime.complete_reset()
+            runtime.start_session()
         return runtime.session.snapshot
 
     if snapshot.phase is SessionPhase.RESETTING:
         if runtime.session.is_reset_ready(runtime._now()):
             runtime.complete_reset()
+            runtime.start_session()
         return runtime.session.snapshot
 
     return snapshot

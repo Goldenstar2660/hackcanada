@@ -171,7 +171,7 @@ def run_live_demo(
 
     final_snapshot: SessionSnapshot = runtime.session.snapshot
     if reset_after_result:
-        final_snapshot = runtime.begin_reset()
+        final_snapshot = runtime.begin_reset(clear_guidance=True)
         cooldown = runtime.settings.reset_cooldown_seconds
         _sleep_if_needed(cooldown)
         final_snapshot = runtime.complete_reset()

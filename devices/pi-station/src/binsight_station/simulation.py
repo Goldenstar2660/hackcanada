@@ -567,7 +567,7 @@ def run_realtime_simulation(
                     hand_release_applied = True
 
                 if runtime.last_event is not None and reset_started_at is None and resolved_scenario.perform_reset:
-                    runtime.begin_reset()
+                    runtime.begin_reset(clear_guidance=True)
                     reset_started_at = monotonic()
 
                 if reset_started_at is not None and runtime.session.snapshot.phase is SessionPhase.RESETTING:

@@ -362,11 +362,12 @@ def test_runtime_loop_iteration_starts_session_from_idle() -> None:
 
 
 def test_runtime_loop_iteration_resets_after_disposal_timeout() -> None:
-    clock = iter([0.0, 0.1, 0.2, 20.0, 20.1]).__next__
+    transport = MemoryEspTransport()
+    clock = iter([0.0, 0.1, 0.2, 20.0, 20.1, 20.2, 20.3, 20.4, 20.5, 20.6]).__next__
     runtime = StationRuntime(
         load_runtime_settings(),
         monotonic_clock=clock,
-        esp_client=EspClient("serial://test", transport=MemoryEspTransport()),
+        esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
         image_source_provider=StaticImageSourceProvider("demo://aluminum-can"),
         hand_tracking_input=NoopHandTrackingInput(),
@@ -375,4 +376,47 @@ def test_runtime_loop_iteration_resets_after_disposal_timeout() -> None:
     _run_runtime_loop_iteration(runtime)
     snapshot = _run_runtime_loop_iteration(runtime)
 
-    assert snapshot.phase is SessionPhase.RESETTING
+    assert snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+    assert snapshot.predicted_item == "aluminum-can"
+    assert "indicator:off" not in transport.sent_frames
+
+
+def test_runtime_loop_iteration_restarts_immediately_after_result_without_clearing_guidance() -> None:
+    transport = MemoryEspTransport()
+    runtime = _build_runtime(
+        0.0,
+        0.1,
+        0.2,
+        1.0,
+        1.1,
+        1.2,
+        1.3,
+        1.4,
+        1.5,
+        1.6,
+        1.7,
+        transport=transport,
+    )
+    runtime.classifier = StubClassifier(
+        ClassificationResult(
+            predicted_item="aluminum-can",
+            confidence=0.97,
+            llm_fallback_used=False,
+        ),
+        ClassificationResult(
+            predicted_item="pickled-radish",
+            confidence=0.98,
+            llm_fallback_used=False,
+        ),
+    )
+
+    _run_runtime_loop_iteration(runtime)
+    runtime.observe_disposal(zone="left")
+
+    snapshot = _run_runtime_loop_iteration(runtime)
+
+    assert snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+    assert snapshot.predicted_item == "pickled-radish"
+    assert "indicator:off" not in transport.sent_frames
+    assert transport.sent_frames.count("indicator:left") == 1
+    assert transport.sent_frames.count("indicator:middle") == 1
