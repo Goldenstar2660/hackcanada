@@ -94,7 +94,7 @@ export function FilterControls(props: FilterControlsProps): JSX.Element {
               defaultValue={floorValues}
             >
               {props.availableFilters.floors.map((floor) => (
-                <option key={floor.id} value={floor.id}>
+                <option key={`${floor.buildingId}:${floor.id}`} value={floor.id}>
                   {floor.label}
                 </option>
               ))}

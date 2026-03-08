@@ -155,7 +155,7 @@ function asEnumValue<TValue extends string>(
 }
 
 function asOptionalArrayOfStrings(value: unknown, path: string): readonly string[] | undefined {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
 
@@ -459,7 +459,7 @@ export function assertAnalyticsQuery(value: unknown): asserts value is Analytics
     asEnumValue(metric, METRIC_KEYS, `analyticsQuery.metrics[${index}]`);
   });
 
-  if (record.groupBy !== undefined) {
+  if (record.groupBy !== undefined && record.groupBy !== null) {
     if (!Array.isArray(record.groupBy)) {
       fail("analyticsQuery.groupBy", "array");
     }
@@ -472,7 +472,7 @@ export function assertAnalyticsQuery(value: unknown): asserts value is Analytics
     asEnumValue(record.compareBy, ANALYTICS_GROUPING_DIMENSIONS, "analyticsQuery.compareBy");
   }
 
-  if (record.timeBucket !== undefined) {
+  if (record.timeBucket !== undefined && record.timeBucket !== null) {
     asEnumValue(record.timeBucket, ["hour", "day"], "analyticsQuery.timeBucket");
   }
 }
@@ -491,7 +491,7 @@ export function assertEventHistoryQuery(value: unknown): asserts value is EventH
   asOptionalArrayOfStrings(record.signageVariants, "eventHistoryQuery.signageVariants");
   asOptionalArrayOfStrings(record.layoutVariants, "eventHistoryQuery.layoutVariants");
 
-  if (record.attemptResults !== undefined) {
+  if (record.attemptResults !== undefined && record.attemptResults !== null) {
     if (!Array.isArray(record.attemptResults)) {
       fail("eventHistoryQuery.attemptResults", "array");
     }
@@ -501,7 +501,7 @@ export function assertEventHistoryQuery(value: unknown): asserts value is EventH
     });
   }
 
-  if (record.pageSize !== undefined) {
+  if (record.pageSize !== undefined && record.pageSize !== null) {
     asInteger(record.pageSize, "eventHistoryQuery.pageSize", 1, 500);
   }
 
