@@ -16,6 +16,7 @@ from .events import DisposalEvent, create_disposal_event
 from .hand_tracking import DeterministicHandTracker, HandTrackingInput, MediaPipeHandsTracker
 from .lcd_client import LcdClient
 from .live_status import DeviceHealth, LiveStatus, LiveStatusPublisher
+from .preview import CameraPreviewServer, PreviewingImageSourceProvider
 from .publishers import PublicationAdapter, PublicationError
 from .rules import RulesPreset, load_rules_preset
 from .session import SessionPhase, SessionSnapshot, SessionStateMachine, SessionTimingConfig
@@ -105,6 +106,8 @@ def _normalize_demo_predicted_item(predicted_item: str) -> str:
     if not normalized:
         raise ValueError("predicted_item is required")
     return normalized
+
+
 def create_publication_adapter(settings: RuntimeSettings) -> PublicationAdapter:
     if not settings.binsight_device_id or not settings.binsight_device_shared_secret:
         return PublicationAdapter(settings.firebase_project_id)
@@ -148,14 +151,7 @@ class StationRuntime:
         self.lcd_client = lcd_client or LcdClient()
         self.live_status_publisher = LiveStatusPublisher()
         self.publication_client = publication_client or create_publication_adapter(settings)
-        self.image_source_provider = image_source_provider or PiCameraImageSourceProvider(
-            CameraCaptureSettings(
-                width=settings.camera_capture_width,
-                height=settings.camera_capture_height,
-                image_format=settings.camera_capture_format,
-                rotation_degrees=settings.camera_capture_rotation_degrees,
-            )
-        )
+        self.image_source_provider = image_source_provider or _build_default_image_source_provider(settings)
         self.hand_tracking_input = hand_tracking_input or _build_default_hand_tracking_input(
             settings,
             image_source_provider=self.image_source_provider,
@@ -432,6 +428,32 @@ def _build_default_hand_tracking_input(
     )
 
 
+def _build_default_image_source_provider(settings: RuntimeSettings) -> ImageSourceProvider:
+    return PiCameraImageSourceProvider(
+        CameraCaptureSettings(
+            width=settings.camera_capture_width,
+            height=settings.camera_capture_height,
+            image_format=settings.camera_capture_format,
+            rotation_degrees=settings.camera_capture_rotation_degrees,
+        )
+    )
+
+
+def _build_runtime_with_preview(settings: RuntimeSettings) -> tuple[StationRuntime, CameraPreviewServer]:
+    preview_server = CameraPreviewServer()
+    preview_server.start()
+    image_source_provider = PreviewingImageSourceProvider(
+        _build_default_image_source_provider(settings),
+        preview_server.frame_store,
+    )
+    try:
+        runtime = StationRuntime(settings, image_source_provider=image_source_provider)
+    except Exception:
+        preview_server.close()
+        raise
+    return runtime, preview_server
+
+
 def _compact_token(value: str | None, *, max_length: int) -> str:
     resolved = (value or "-").strip() or "-"
     if len(resolved) <= max_length:
@@ -540,11 +562,13 @@ def run_forever(
 
 
 def main() -> int:
-    runtime = StationRuntime(load_runtime_settings())
+    runtime, preview_server = _build_runtime_with_preview(load_runtime_settings())
+    print(f"binsight camera preview: {preview_server.url}", flush=True)
     try:
         return run_forever(runtime)
     finally:
         runtime.close()
+        preview_server.close()
 
 
 if __name__ == "__main__":

@@ -120,7 +120,79 @@ Run the live station runtime:
 uv run binsight-station
 ```
 
-`binsight-station` is the long-running live runtime entrypoint. It stays up until `Ctrl+C` and prints a compact newline status log about every 0.5 seconds.
+`binsight-station` is the long-running live runtime entrypoint. It stays up until `Ctrl+C`, prints a compact newline status log about every 0.5 seconds, and now also starts an always-on local browser preview at:
+
+```text
+http://127.0.0.1:8765/
+```
+
+The preview page shows the latest camera frame that the runtime actually captured for classification or hand tracking.
+
+## Always-on browser camera preview
+
+When `uv run binsight-station` starts on the Pi, it automatically starts a small local preview server on port `8765`. There is no extra config toggle.
+
+Important limitation: the Raspberry Pi can start the preview server automatically, but it cannot reliably force a browser window to open on your Windows desktop through SSH. The one thing you still do on Windows is open the forwarded preview URL.
+
+Because the current runtime uses still captures instead of a persistent video stream, the preview behaves like fast-updating snapshots rather than perfectly smooth video.
+
+### Step-by-step: VS Code Remote SSH on Windows
+
+1. Open the repo on the Raspberry Pi through **VS Code Remote SSH**.
+2. Open a terminal in `devices/pi-station/`.
+3. Start the station runtime:
+
+   ```bash
+   uv run binsight-station
+   ```
+
+4. Wait for the terminal to print a line like:
+
+   ```text
+   binsight camera preview: http://127.0.0.1:8765/
+   ```
+
+5. In VS Code, open the **Ports** panel.
+6. If port `8765` is not already visible, forward it manually.
+7. Open the forwarded port in your local browser.
+8. Leave `binsight-station` running. As the Pi captures frames, the browser page updates automatically.
+9. When you are done, press `Ctrl+C` in the terminal to stop both the runtime and the preview server.
+
+### Step-by-step: Windows Terminal or PowerShell SSH
+
+1. Open **Windows Terminal** or **PowerShell** on your Windows PC.
+2. Connect to the Pi with local port forwarding:
+
+   ```bash
+   ssh -L 8765:127.0.0.1:8765 <your-pi-user>@<your-pi-host>
+   ```
+
+3. On the Pi shell, change into the station project directory:
+
+   ```bash
+   cd /home/handwash/Projects/hackcanada/devices/pi-station
+   ```
+
+4. Start the station runtime:
+
+   ```bash
+   uv run binsight-station
+   ```
+
+5. On your Windows machine, open this address in any browser:
+
+   ```text
+   http://127.0.0.1:8765/
+   ```
+
+6. Keep the SSH session open while you use the preview.
+7. Press `Ctrl+C` in the Pi terminal when you want to stop the station and the preview server.
+
+### Troubleshooting
+
+* If the page says it is waiting for the first frame, the station may not have captured its first image yet.
+* If the browser does not connect, make sure port `8765` is forwarded from the Pi to Windows.
+* If startup fails immediately with a port-binding error, another process is already using port `8765` on the Pi.
 
 ## Real-time component simulation
 
