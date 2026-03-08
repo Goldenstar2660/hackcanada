@@ -10,7 +10,12 @@ from binsight_station.hand_tracking import (
     HandLandmarkObservation,
     MediaPipeHandsTracker,
 )
-from binsight_station.main import StationRuntime, load_runtime_settings
+from binsight_station.main import (
+    StationRuntime,
+    _format_status_line,
+    _run_runtime_loop_iteration,
+    load_runtime_settings,
+)
 from binsight_station.publishers import PublicationAdapter
 from binsight_station.session import SessionPhase, SessionStateMachine
 
@@ -49,6 +54,15 @@ class SequencedHandDetector:
 
     def close(self) -> None:
         self.closed = True
+
+
+class NoopHandTrackingInput:
+    def observe(self, *, snapshot: object) -> None:
+        del snapshot
+        return None
+
+    def close(self) -> None:
+        return None
 
 
 def _sequence_clock(*values: float) -> Iterator[float]:
@@ -303,3 +317,46 @@ def test_runtime_uses_mediapipe_hand_tracking_without_esp_presence_frames() -> N
     assert result_status.to_payload()["latestEvent"]["actualDisposalZone"] == "middle"
     runtime.close()
     assert detector.closed is True
+
+
+def test_format_status_line_keeps_runtime_heartbeat_compact() -> None:
+    snapshot = SessionStateMachine().snapshot
+
+    line = _format_status_line(
+        snapshot,
+        device_health_status="online",
+        cloud_sync_status="degraded",
+    )
+
+    assert "phase=idle" in line
+    assert "item=-" in line
+    assert "target=-" in line
+    assert "hand=-" in line
+    assert "esp=on" in line
+    assert "cloud=deg" in line
+
+
+def test_runtime_loop_iteration_starts_session_from_idle() -> None:
+    runtime = _build_runtime(0.0, 0.1, 0.2)
+
+    snapshot = _run_runtime_loop_iteration(runtime)
+
+    assert snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+    assert snapshot.predicted_item == "plastic-bottle"
+
+
+def test_runtime_loop_iteration_resets_after_disposal_timeout() -> None:
+    clock = iter([0.0, 0.1, 0.2, 20.0, 20.1]).__next__
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=clock,
+        esp_client=EspClient("serial://test", transport=MemoryEspTransport()),
+        publication_client=PublicationAdapter("test-project"),
+        image_source_provider=StaticImageSourceProvider("demo://plastic-bottle"),
+        hand_tracking_input=NoopHandTrackingInput(),
+    )
+
+    _run_runtime_loop_iteration(runtime)
+    snapshot = _run_runtime_loop_iteration(runtime)
+
+    assert snapshot.phase is SessionPhase.RESETTING

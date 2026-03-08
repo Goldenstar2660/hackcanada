@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from time import monotonic
+from time import monotonic, sleep
 from typing import Callable
 
 from dotenv import load_dotenv
@@ -21,6 +22,8 @@ from .session import SessionPhase, SessionSnapshot, SessionStateMachine, Session
 
 
 DEFAULT_DEMO_CLASSIFICATION_SOURCE = "demo://plastic-bottle"
+DEFAULT_LOOP_INTERVAL_SECONDS = 0.5
+DEFAULT_STATUS_INTERVAL_SECONDS = 0.5
 
 @dataclass(slots=True)
 class RuntimeSettings:
@@ -414,15 +417,131 @@ def _build_default_hand_tracking_input(
     )
 
 
+def _compact_token(value: str | None, *, max_length: int) -> str:
+    resolved = (value or "-").strip() or "-"
+    if len(resolved) <= max_length:
+        return resolved
+    if max_length <= 3:
+        return resolved[:max_length]
+    return f"{resolved[: max_length - 3]}..."
+
+
+def _phase_token(phase: SessionPhase) -> str:
+    mapping = {
+        SessionPhase.IDLE: "idle",
+        SessionPhase.IDENTIFYING: "detect",
+        SessionPhase.GUIDING: "guide",
+        SessionPhase.WAITING_FOR_DISPOSAL: "wait",
+        SessionPhase.EMIT_RESULT: "result",
+        SessionPhase.RESETTING: "reset",
+    }
+    return mapping.get(phase, phase.value)
+
+
+def _health_token(status: str) -> str:
+    mapping = {
+        "online": "on",
+        "degraded": "deg",
+        "offline": "off",
+    }
+    return mapping.get(status, _compact_token(status, max_length=3))
+
+
+def _hand_token(snapshot: SessionSnapshot) -> str:
+    if not snapshot.hand_present:
+        return "-"
+    return _compact_token(snapshot.latest_hand_zone or "yes", max_length=6)
+
+
+def _format_status_line(
+    snapshot: SessionSnapshot,
+    *,
+    device_health_status: str,
+    cloud_sync_status: str,
+) -> str:
+    phase = _phase_token(snapshot.phase)
+    item = _compact_token(snapshot.predicted_item, max_length=18)
+    target = _compact_token(snapshot.correct_disposal_method, max_length=10)
+    hand = _hand_token(snapshot)
+    esp = _health_token(device_health_status)
+    cloud = _health_token(cloud_sync_status)
+    return (
+        f"phase={phase:<6} item={item:<18} target={target:<10} "
+        f"hand={hand:<6} esp={esp:<3} cloud={cloud:<3}"
+    ).rstrip()
+
+
+def _format_runtime_status_line(runtime: StationRuntime) -> str:
+    return _format_status_line(
+        runtime.session.snapshot,
+        device_health_status=runtime.esp_client.device_health_status,
+        cloud_sync_status=runtime.publication_client.cloud_sync_status,
+    )
+
+
+def _write_status_line(message: str, previous_width: int) -> int:
+    padded_message = message.ljust(previous_width)
+    sys.stdout.write(f"\r{padded_message}")
+    sys.stdout.flush()
+    return max(previous_width, len(message))
+
+
+def _run_runtime_loop_iteration(runtime: StationRuntime) -> SessionSnapshot:
+    snapshot = runtime.session.snapshot
+
+    if snapshot.phase is SessionPhase.IDLE:
+        runtime.start_session()
+        return runtime.session.snapshot
+
+    if snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL:
+        runtime.sync_from_esp()
+        if runtime.session.is_disposal_wait_expired(runtime._now()):
+            runtime.begin_reset()
+        return runtime.session.snapshot
+
+    if snapshot.phase is SessionPhase.EMIT_RESULT:
+        runtime.begin_reset()
+        return runtime.session.snapshot
+
+    if snapshot.phase is SessionPhase.RESETTING:
+        if runtime.session.is_reset_ready(runtime._now()):
+            runtime.complete_reset()
+        return runtime.session.snapshot
+
+    return snapshot
+
+
+def run_forever(
+    runtime: StationRuntime,
+    *,
+    loop_interval_seconds: float = DEFAULT_LOOP_INTERVAL_SECONDS,
+    status_interval_seconds: float = DEFAULT_STATUS_INTERVAL_SECONDS,
+    monotonic_clock: Callable[[], float] = monotonic,
+    sleep_fn: Callable[[float], None] = sleep,
+) -> int:
+    last_status_at: float | None = None
+    status_width = 0
+
+    try:
+        while True:
+            _run_runtime_loop_iteration(runtime)
+            now = monotonic_clock()
+            if last_status_at is None or now - last_status_at >= status_interval_seconds:
+                status_width = _write_status_line(_format_runtime_status_line(runtime), status_width)
+                last_status_at = now
+            sleep_fn(loop_interval_seconds)
+    except KeyboardInterrupt:
+        if status_width:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+        print("binsight-station stopped")
+        return 0
+
+
 def main() -> int:
     runtime = StationRuntime(load_runtime_settings())
     try:
-        snapshot, status = runtime.start_session()
-        print(
-            f"station={status.station_id} phase={status.phase} item={snapshot.predicted_item} "
-            f"disposal={snapshot.correct_disposal_method}"
-        )
-        return 0
+        return run_forever(runtime)
     finally:
         runtime.close()
 

@@ -69,8 +69,18 @@ devices/pi-station/
 Install dependencies with `uv`:
 
 ```bash
+uv venv --python 3.11 .venv
+source /home/handwash/Projects/hackcanada/devices/pi-station/.venv/bin/activate
 uv sync
 ```
+
+Use a project-local Python `3.11` or `3.12` environment for this repo.
+
+Important setup notes:
+
+* do **not** use Python `3.13` for `devices/pi-station`; the current `mediapipe` and `tflite-runtime` wheels used here are limited to Python `3.11`/`3.12`
+* if you already have another workspace virtualenv active, deactivate it first so `uv` does not target the wrong environment
+* this project intentionally pins `numpy<2` because the current prebuilt Raspberry Pi `tflite-runtime` path used by this repo is not compatible with NumPy `2.x`
 
 ## LCD wiring
 
@@ -346,7 +356,8 @@ TensorFlow Lite runtime notes:
 
 * The Pi package now depends on `numpy`, `Pillow`, and `tflite-runtime` for supported Linux Python versions.
 * The runtime prefers `tflite_runtime.interpreter` and falls back to `tensorflow.lite.Interpreter` when TensorFlow is already available.
-* The current development environment in this repository uses Python 3.13. TensorFlow Lite wheels may lag new Python releases, so Pi deployments should stay on a supported Python version when provisioning the runtime.
+* The supported Python range for this project is currently `3.11` to `3.12`.
+* The repo pins `numpy<2` because the currently used prebuilt `tflite-runtime` wheel path can fail at runtime with NumPy `2.x` on Raspberry Pi Linux.
 
 The Pi-to-ESP transport is fixed to local HTTP plus JSON over Wi-Fi. Set `ESP_ENDPOINT` to the ESP8266 base URL on the shared network.
 
