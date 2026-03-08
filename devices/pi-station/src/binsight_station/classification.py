@@ -65,6 +65,12 @@ class LocalPrediction:
 
 InterpreterFactory = Callable[[Path, int], Any]
 
+_COMMON_MODEL_FILENAMES = (
+    "model.tflite",
+    "model_unquant.tflite",
+    "model_quant.tflite",
+)
+
 
 class ClassificationPipeline:
     """Owns local inference and optional fallback selection."""
@@ -165,19 +171,13 @@ class _TFLiteRuntime:
 
 def _load_model_assets(model_dir: Path) -> ModelAssets:
     manifest_path = model_dir / "manifest.json"
-    model_path = model_dir / "model.tflite"
-    if not manifest_path.exists():
-        raise FileNotFoundError(f"TensorFlow Lite manifest was not found at {manifest_path}")
-    if not model_path.exists():
-        raise FileNotFoundError(f"TensorFlow Lite model was not found at {model_path}")
-
-    manifest = _load_manifest(manifest_path)
+    has_manifest = manifest_path.exists()
+    manifest = _load_manifest(manifest_path) if has_manifest else ModelManifest()
+    model_path = _resolve_model_path(model_dir)
     labels_path = model_dir / manifest.labels_file
     if not labels_path.exists():
         raise FileNotFoundError(f"model labels were not found at {labels_path}")
-    aliases_path = model_dir / manifest.aliases_file if manifest.aliases_file is not None else None
-    if aliases_path is not None and not aliases_path.exists():
-        raise FileNotFoundError(f"model aliases were not found at {aliases_path}")
+    aliases_path = _resolve_aliases_path(model_dir, manifest, has_manifest=has_manifest)
 
     return ModelAssets(
         model_dir=model_dir,
@@ -187,6 +187,35 @@ def _load_model_assets(model_dir: Path) -> ModelAssets:
         aliases_path=aliases_path,
         manifest=manifest,
     )
+
+
+def _resolve_model_path(model_dir: Path) -> Path:
+    for filename in _COMMON_MODEL_FILENAMES:
+        candidate = model_dir / filename
+        if candidate.exists():
+            return candidate
+
+    tried_filenames = ", ".join(_COMMON_MODEL_FILENAMES)
+    raise FileNotFoundError(
+        f"TensorFlow Lite model was not found in {model_dir}. Tried: {tried_filenames}"
+    )
+
+
+def _resolve_aliases_path(
+    model_dir: Path,
+    manifest: ModelManifest,
+    *,
+    has_manifest: bool,
+) -> Path | None:
+    if manifest.aliases_file is None:
+        return None
+
+    aliases_path = model_dir / manifest.aliases_file
+    if aliases_path.exists():
+        return aliases_path
+    if has_manifest:
+        raise FileNotFoundError(f"model aliases were not found at {aliases_path}")
+    return None
 
 
 def _load_manifest(manifest_path: Path) -> ModelManifest:

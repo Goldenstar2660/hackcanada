@@ -63,6 +63,40 @@ class DeterministicHandTracker:
         return HandTrackingObservation(zone=None, hand_present=False)
 
 
+class CameraBackedHandTracker:
+    def __init__(
+        self,
+        *,
+        model_dir: Path,
+        image_source_provider: ImageSourceProvider,
+        classifier: ClassificationPipeline | None = None,
+    ) -> None:
+        self._image_source_provider = image_source_provider
+        self._classifier = classifier or ClassificationPipeline(model_dir=model_dir)
+
+    def observe(self, *, hand_present: bool, snapshot: SessionSnapshot) -> HandTrackingObservation | None:
+        if not hand_present:
+            if not snapshot.hand_present:
+                return None
+            return HandTrackingObservation(zone=None, hand_present=False)
+
+        captured_image = self._image_source_provider.capture_image_source()
+        try:
+            prediction = self._classifier.classify(
+                ClassificationRequest(
+                    image_source=captured_image.image_source,
+                    confidence_threshold=0.0,
+                )
+            )
+        finally:
+            captured_image.cleanup()
+
+        return HandTrackingObservation(
+            zone=_require_hand_zone(prediction.predicted_item),
+            hand_present=True,
+        )
+
+
 @dataclass(slots=True)
 class RuntimeSettings:
     station_id: str
@@ -82,22 +116,30 @@ class RuntimeSettings:
     camera_capture_height: int = 480
     camera_capture_format: str = "jpg"
     camera_capture_rotation_degrees: int = 180
+    hand_location_model_dir: Path | None = None
 
 
 def load_runtime_settings() -> RuntimeSettings:
     project_root = Path(__file__).resolve().parents[2]
     load_dotenv(project_root / ".env")
     firebase_project_id = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("BINSIGHT_FIREBASE_PROJECT_ID") or "binsight-demo"
-    model_dir = os.getenv("ITEM_CLASSIFIER_MODEL_DIR")
-    resolved_model_dir = Path(model_dir) if model_dir else project_root / "models" / "item_classifier"
-    if not resolved_model_dir.is_absolute():
-        resolved_model_dir = project_root / resolved_model_dir
+    resolved_item_model_dir = _resolve_model_dir(
+        project_root,
+        env_name="ITEM_CLASSIFIER_MODEL_DIR",
+        default_relative_path=Path("models") / "item_classification",
+    )
+    resolved_hand_location_model_dir = _resolve_model_dir(
+        project_root,
+        env_name="HAND_LOCATION_MODEL_DIR",
+        default_relative_path=Path("models") / "hand_location",
+    )
 
     return RuntimeSettings(
         station_id=os.getenv("STATION_ID", "demo-station-001"),
         rules_preset_id=os.getenv("RULES_PRESET_ID", "demo-canada-ottawa"),
         rules_preset_version=os.getenv("RULES_PRESET_VERSION", "1.0.0"),
-        item_classifier_model_dir=resolved_model_dir.resolve(),
+        item_classifier_model_dir=resolved_item_model_dir,
+        hand_location_model_dir=resolved_hand_location_model_dir,
         esp_endpoint=os.getenv("ESP_ENDPOINT", "http://192.168.4.1"),
         firebase_project_id=firebase_project_id,
         firebase_functions_region=os.getenv("FIREBASE_FUNCTIONS_REGION", "us-central1"),
@@ -122,11 +164,26 @@ def _optional_env(name: str) -> str | None:
     return stripped or None
 
 
+def _resolve_model_dir(project_root: Path, *, env_name: str, default_relative_path: Path) -> Path:
+    configured_path = _optional_env(env_name)
+    resolved_path = Path(configured_path) if configured_path is not None else project_root / default_relative_path
+    if not resolved_path.is_absolute():
+        resolved_path = project_root / resolved_path
+    return resolved_path.resolve()
+
+
 def _normalize_demo_predicted_item(predicted_item: str) -> str:
     normalized = predicted_item.strip().replace("_", "-").replace(" ", "-").lower()
     if not normalized:
         raise ValueError("predicted_item is required")
     return normalized
+
+
+def _require_hand_zone(predicted_zone: str) -> str:
+    normalized_zone = predicted_zone.strip().lower()
+    if normalized_zone not in {"left", "middle", "right"}:
+        raise ValueError(f"hand-location model returned unsupported zone: {predicted_zone}")
+    return normalized_zone
 
 
 def create_publication_adapter(settings: RuntimeSettings) -> PublicationAdapter:
@@ -172,7 +229,6 @@ class StationRuntime:
         self.lcd_client = lcd_client or LcdClient()
         self.live_status_publisher = LiveStatusPublisher()
         self.publication_client = publication_client or create_publication_adapter(settings)
-        self.hand_tracking_input = hand_tracking_input or DeterministicHandTracker()
         self.image_source_provider = image_source_provider or PiCameraImageSourceProvider(
             CameraCaptureSettings(
                 width=settings.camera_capture_width,
@@ -180,6 +236,10 @@ class StationRuntime:
                 image_format=settings.camera_capture_format,
                 rotation_degrees=settings.camera_capture_rotation_degrees,
             )
+        )
+        self.hand_tracking_input = hand_tracking_input or _build_default_hand_tracking_input(
+            settings,
+            image_source_provider=self.image_source_provider,
         )
         self._monotonic_clock = monotonic if monotonic_clock is None else monotonic_clock
         self.last_event: DisposalEvent | None = None
@@ -442,6 +502,19 @@ class StationRuntime:
 
     def close(self) -> None:
         self.lcd_client.close()
+
+
+def _build_default_hand_tracking_input(
+    settings: RuntimeSettings,
+    *,
+    image_source_provider: ImageSourceProvider,
+) -> HandTrackingInput:
+    if settings.hand_location_model_dir is None:
+        return DeterministicHandTracker()
+    return CameraBackedHandTracker(
+        model_dir=settings.hand_location_model_dir,
+        image_source_provider=image_source_provider,
+    )
 
 
 def main() -> int:

@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from binsight_station.classification import ClassificationResult
 from binsight_station.camera_capture import CapturedImageSource
 from binsight_station.esp_client import EspClient, MemoryEspTransport
-from binsight_station.main import DeterministicHandTracker, StationRuntime, load_runtime_settings
+from binsight_station.main import CameraBackedHandTracker, DeterministicHandTracker, StationRuntime, load_runtime_settings
 from binsight_station.publishers import PublicationAdapter
 from binsight_station.session import SessionPhase, SessionStateMachine
 
@@ -24,8 +24,10 @@ class StubClassifier:
 class StaticImageSourceProvider:
     def __init__(self, image_source: str) -> None:
         self.image_source = image_source
+        self.calls = 0
 
     def capture_image_source(self) -> CapturedImageSource:
+        self.calls += 1
         return CapturedImageSource(self.image_source)
 
 
@@ -245,3 +247,53 @@ def test_runtime_uses_deterministic_hand_tracking_without_camera_feed() -> None:
     assert runtime.last_event.success is False
     assert result_status.to_payload()["cameraFeedActive"] is False
     assert result_status.to_payload()["latestEvent"]["actualDisposalZone"] == "right"
+
+
+def test_runtime_uses_camera_backed_hand_tracking_while_esp_controls_presence() -> None:
+    transport = MemoryEspTransport()
+    provider = StaticImageSourceProvider("camera://hand-zone")
+    clock = iter([40.0, 40.2, 40.4, 40.6, 40.8, 41.0]).__next__
+    runtime = StationRuntime(
+        load_runtime_settings(),
+        monotonic_clock=clock,
+        esp_client=EspClient("serial://test", transport=transport),
+        publication_client=PublicationAdapter("test-project"),
+        image_source_provider=provider,
+        hand_tracking_input=CameraBackedHandTracker(
+            model_dir=load_runtime_settings().item_classifier_model_dir,
+            image_source_provider=provider,
+            classifier=StubClassifier(
+                ClassificationResult(
+                    predicted_item="middle",
+                    confidence=0.92,
+                    llm_fallback_used=False,
+                )
+            ),
+        ),
+    )
+    runtime.classifier = StubClassifier(
+        ClassificationResult(
+            predicted_item="banana-peel",
+            confidence=0.97,
+            llm_fallback_used=False,
+        )
+    )
+
+    waiting_snapshot, _ = runtime.start_session(image_source="demo://banana-peel")
+    assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+    assert provider.calls == 0
+
+    _queue_stable_presence(transport, 1)
+    tracked_status = runtime.sync_from_esp()
+
+    assert provider.calls == 1
+    assert tracked_status.to_payload()["currentHandZone"] == "middle"
+
+    _queue_absent_presence(transport, 2)
+    result_status = runtime.sync_from_esp()
+
+    assert provider.calls == 1
+    assert runtime.last_event is not None
+    assert runtime.last_event.actual_disposal_zone == "middle"
+    assert runtime.last_event.success is True
+    assert result_status.to_payload()["latestEvent"]["actualDisposalZone"] == "middle"

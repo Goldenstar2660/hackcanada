@@ -200,28 +200,50 @@ Recommended prerequisites before running it:
 * `BINSIGHT_DEVICE_ID` and `BINSIGHT_DEVICE_SHARED_SECRET` are set so the backend accepts the device publication
 
 This is the command to use when you want to say: **“pretend the model just detected an item, and now drive the real system.”**
+
 ## Model asset layout
 
-The Pi runtime now expects the item-classifier assets in `devices/pi-station/models/item_classifier/` by default. You can override that location with `ITEM_CLASSIFIER_MODEL_DIR` in `devices/pi-station/.env`.
+The Pi runtime now uses these model directories by default:
 
-Place these files in that directory before running the live station with real inference:
+* `devices/pi-station/models/item_classification/` for item identification
+* `devices/pi-station/models/hand_location/` for hand-zone selection while a hand is present
+
+You can override those locations with `ITEM_CLASSIFIER_MODEL_DIR` and `HAND_LOCATION_MODEL_DIR` in `devices/pi-station/.env`.
+
+`hand_presence` is intentionally not wired yet because there is no checked-in model for it. The runtime still uses ESP presence frames as the authoritative `hand_present` signal and uses the `hand_location` model only to determine the latest zone before disappearance.
+
+The item-classification directory can now be either a strict manifest-based bundle or a lighter checked-in bundle. The runtime looks for these model filenames in order: `model.tflite`, `model_unquant.tflite`, `model_quant.tflite`.
+
+Supported item-classification layout:
 
 ```text
-devices/pi-station/models/item_classifier/
-├── model.tflite
-├── manifest.json
+devices/pi-station/models/item_classification/
+├── model.tflite | model_unquant.tflite | model_quant.tflite
 ├── labels.txt
-└── aliases.json
+├── aliases.json              # optional when labels need remapping
+└── manifest.json             # optional when defaults are sufficient
 ```
 
 Asset responsibilities:
 
-* `model.tflite`: quantized TensorFlow Lite classifier
-* `manifest.json`: preprocessing and runtime metadata such as layout, normalization, resize method, and thread count
+* `model.tflite | model_unquant.tflite | model_quant.tflite`: TensorFlow Lite image classifier
 * `labels.txt`: ordered output labels matching the model outputs
 * `aliases.json`: optional mapping from model labels to rules-preset item ids such as `plastic-bottle`
+* `manifest.json`: optional preprocessing and runtime metadata such as layout, normalization, resize method, and thread count
 
-The runtime inspects TensorFlow Lite tensor metadata at startup, then combines it with `manifest.json` so compatible model swaps do not require code changes.
+If `manifest.json` is omitted, the runtime uses defaults: RGB input, bilinear resize, automatic input-layout detection, automatic output-activation handling, and `numThreads=4`.
+
+The checked-in `item_classification` model needs label remapping because its raw labels do not match the demo rules preset item ids directly. That mapping lives in `devices/pi-station/models/item_classification/aliases.json`.
+
+Supported hand-location layout:
+
+```text
+devices/pi-station/models/hand_location/
+├── model.tflite
+└── labels.txt
+```
+
+The hand-location model is used only while ESP reports `hand_present=true`. When ESP reports disappearance, the runtime records the most recent camera-predicted zone as the actual disposal zone.
 
 Example manifest:
 
@@ -308,15 +330,16 @@ The minimum Phase 1 configuration set is:
 * `STATION_ID`: Station document identifier used in local runtime state and device ingress payloads
 * `RULES_PRESET_ID`: Active rules preset id, currently `demo-canada-ottawa`
 * `RULES_PRESET_VERSION`: Active rules preset version, currently `1.0.0`
-* `ITEM_CLASSIFIER_MODEL_DIR`: model asset directory, relative to `devices/pi-station/` by default
+* `ITEM_CLASSIFIER_MODEL_DIR`: item-classification model asset directory, relative to `devices/pi-station/` by default
+* `HAND_LOCATION_MODEL_DIR`: hand-location model asset directory, relative to `devices/pi-station/` by default
 * `ESP_ENDPOINT`: ESP8266 base URL on the shared network, for example `http://192.168.4.1`
 * `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`: Firebase project id for the demo environment. The runtime prefers `FIREBASE_PROJECT_ID` when both are set, but it accepts the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` fallback for repo-local config.
 * `BINSIGHT_DEVICE_ID`: Device id that will be used for authenticated backend publication
 * `BINSIGHT_DEVICE_SHARED_SECRET`: Shared secret paired with the device id for backend ingress
 * `DISPOSAL_TIMEOUT_SECONDS`: Wait window for disposal before the runtime resets
 * `RESET_COOLDOWN_SECONDS`: Cooldown window before the station returns to idle after reset
-* `CAMERA_CAPTURE_WIDTH`: captured image width for item identification
-* `CAMERA_CAPTURE_HEIGHT`: captured image height for item identification
+* `CAMERA_CAPTURE_WIDTH`: captured image width for item identification and hand-zone inference
+* `CAMERA_CAPTURE_HEIGHT`: captured image height for item identification and hand-zone inference
 * `CAMERA_CAPTURE_FORMAT`: image format passed to the Pi camera CLI, typically `jpg`
 * `CAMERA_CAPTURE_ROTATION_DEGREES`: rotation applied during capture, usually `180` for the current mounted camera orientation
 
