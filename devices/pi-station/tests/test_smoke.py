@@ -46,30 +46,20 @@ class StaticImageSourceProvider:
         return CapturedImageSource(self.image_source)
 
 
-def test_runtime_starts_session_from_stable_esp_presence_frames() -> None:
+def test_runtime_starts_session_without_waiting_for_presence_frames() -> None:
     transport = MemoryEspTransport()
     runtime = StationRuntime(
         load_runtime_settings(),
-        monotonic_clock=iter([0.0, 0.4, 0.5, 1.0]).__next__,
+        monotonic_clock=iter([0.0, 0.1, 0.2]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
         image_source_provider=StaticImageSourceProvider("demo://plastic-bottle"),
     )
 
-    transport.queue_incoming(
-        "health uptime_ms=42 sensor=1 indicator=1 active_zone=off",
-        "presence present=1 zone=off stable=1 seq=1",
-    )
-    arming_snapshot, arming_status = runtime.start_session()
-    transport.queue_incoming(
-        "health uptime_ms=43 sensor=1 indicator=1 active_zone=off",
-        "presence present=1 zone=off stable=1 seq=2",
-    )
+    transport.queue_incoming("health uptime_ms=42 sensor=1 indicator=1 active_zone=off")
     snapshot, status = runtime.start_session()
     expected_zone = runtime.rules.zone_for_disposal_method(snapshot.correct_disposal_method)
 
-    assert arming_snapshot.phase == SessionPhase.PRESENCE_ARMING
-    assert arming_status.phase == "detecting-person"
     assert snapshot.phase == SessionPhase.WAITING_FOR_DISPOSAL
     assert status.payload_version == "device.v1"
     assert status.station_id == runtime.settings.station_id
@@ -84,11 +74,11 @@ def test_runtime_starts_session_from_stable_esp_presence_frames() -> None:
     assert status.to_payload()["sessionState"] == "waiting-for-disposal"
 
 
-def test_runtime_cancels_presence_arming_when_stable_presence_drops() -> None:
+def test_runtime_starts_even_when_presence_frames_show_no_hand() -> None:
     transport = MemoryEspTransport()
     runtime = StationRuntime(
         load_runtime_settings(),
-        monotonic_clock=iter([5.0, 5.2]).__next__,
+        monotonic_clock=iter([5.0, 5.1, 5.2]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
         image_source_provider=StaticImageSourceProvider("demo://plastic-bottle"),
@@ -101,44 +91,35 @@ def test_runtime_cancels_presence_arming_when_stable_presence_drops() -> None:
         )
     )
 
-    transport.queue_incoming("presence present=1 zone=off stable=1 seq=1")
-    arming_snapshot, arming_status = runtime.start_session(image_source="camera://arming")
     transport.queue_incoming("presence present=0 zone=off stable=0 seq=2")
-    idle_snapshot, idle_status = runtime.start_session(image_source="camera://arming")
+    waiting_snapshot, waiting_status = runtime.start_session(image_source="camera://always-on")
 
-    assert arming_snapshot.phase == SessionPhase.PRESENCE_ARMING
-    assert arming_status.phase == "detecting-person"
-    assert idle_snapshot.phase == SessionPhase.IDLE
-    assert idle_status.phase == "idle"
-    assert runtime.classifier.last_request is None
+    assert waiting_snapshot.phase == SessionPhase.WAITING_FOR_DISPOSAL
+    assert waiting_status.phase == "waiting-for-disposal"
+    assert runtime.classifier.last_request is not None
 
 
 def test_session_tracks_configured_timing_windows() -> None:
     session = SessionStateMachine()
 
-    arming_snapshot = session.begin_presence_arming(10.0)
-    assert arming_snapshot.phase == SessionPhase.PRESENCE_ARMING
-    assert session.is_presence_confirmed(10.1) is False
-    assert session.is_presence_confirmed(10.35) is True
+    identifying_snapshot = session.begin_identification(10.0)
+    assert identifying_snapshot.phase == SessionPhase.IDENTIFYING
+    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 10.1)
+    session.begin_waiting_for_disposal(10.2)
 
-    session.begin_identification(10.35)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 11.0)
-    session.begin_waiting_for_disposal(11.0)
+    assert session.is_disposal_wait_expired(22.19) is False
+    assert session.is_disposal_wait_expired(22.2) is True
 
-    assert session.is_disposal_wait_expired(22.9) is False
-    assert session.is_disposal_wait_expired(23.0) is True
-
-    session.begin_resetting(23.0)
-    assert session.is_reset_ready(24.4) is False
-    assert session.is_reset_ready(24.5) is True
+    session.begin_resetting(22.2)
+    assert session.is_reset_ready(23.69) is False
+    assert session.is_reset_ready(23.7) is True
 
 
 def test_session_records_drop_on_hand_disappearance() -> None:
     session = SessionStateMachine()
-    session.begin_presence_arming(0.0)
-    session.begin_identification(0.35)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.5)
-    session.begin_waiting_for_disposal(0.5)
+    session.begin_identification(0.0)
+    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.1)
+    session.begin_waiting_for_disposal(0.2)
 
     session.track_hand(zone="left", hand_present=True, now_monotonic=1.0)
     snapshot = session.track_hand(zone="left", hand_present=False, now_monotonic=1.1)
@@ -156,7 +137,7 @@ def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
     transport = MemoryEspTransport()
     runtime = StationRuntime(
         load_runtime_settings(),
-        monotonic_clock=iter([0.0, 0.4, 0.5, 1.0, 1.1, 1.2]).__next__,
+        monotonic_clock=iter([0.0, 0.1, 0.2, 1.0, 1.1]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
     )
@@ -168,9 +149,6 @@ def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
         )
     )
 
-    transport.queue_incoming("presence present=1 zone=off stable=1 seq=1")
-    runtime.start_session(image_source="camera://first")
-    transport.queue_incoming("presence present=1 zone=off stable=1 seq=2")
     snapshot, _ = runtime.start_session(image_source="camera://first")
     drop_snapshot, event = runtime.observe_disposal(
         zone="left",
@@ -195,10 +173,9 @@ def test_runtime_preserves_original_guidance_for_successful_drop() -> None:
 def test_event_creation_marks_failed_drop_when_zone_maps_to_wrong_method() -> None:
     preset = load_rules_preset("demo-canada-ottawa", "1.0.0")
     session = SessionStateMachine()
-    session.begin_presence_arming(0.0)
-    session.begin_identification(0.35)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.5)
-    session.begin_waiting_for_disposal(0.5)
+    session.begin_identification(0.0)
+    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 0.1)
+    session.begin_waiting_for_disposal(0.2)
     session.track_hand(zone="middle", hand_present=True, now_monotonic=1.0)
     snapshot = session.track_hand(zone="middle", hand_present=False, now_monotonic=1.1)
 

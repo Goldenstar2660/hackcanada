@@ -258,7 +258,7 @@ If the Pi camera CLI is unavailable or the camera is not enabled, the command ex
 
 For the rehearsal, copy `devices/pi-station/.env.example` to `.env`, keep the station and device credentials aligned with the backend configuration, run `uv run pytest`, then run `uv run binsight-station`.
 
-On the current Phase 5 entrypoint, the runtime loads the station configuration, polls the ESP health endpoint once, attempts to publish the current live status, prints a one-line station summary, and exits.
+On the current Phase 5 entrypoint, the runtime loads the station configuration, polls the ESP health endpoint once, immediately starts an item-identification session, attempts to publish the current live status, prints a one-line station summary, and exits.
 
 The validated local startup output on 2026-03-07 was:
 
@@ -282,7 +282,6 @@ The minimum Phase 1 configuration set is:
 * `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`: Firebase project id for the demo environment. The runtime prefers `FIREBASE_PROJECT_ID` when both are set, but it accepts the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` fallback for repo-local config.
 * `BINSIGHT_DEVICE_ID`: Device id that will be used for authenticated backend publication
 * `BINSIGHT_DEVICE_SHARED_SECRET`: Shared secret paired with the device id for backend ingress
-* `PRESENCE_DEBOUNCE_SECONDS`: Stable presence window before identification starts
 * `DISPOSAL_TIMEOUT_SECONDS`: Wait window for disposal before the runtime resets
 * `RESET_COOLDOWN_SECONDS`: Cooldown window before the station returns to idle after reset
 * `CAMERA_CAPTURE_WIDTH`: captured image width for item identification

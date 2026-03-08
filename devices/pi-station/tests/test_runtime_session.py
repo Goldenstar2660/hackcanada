@@ -64,26 +64,22 @@ def _queue_absent_presence(transport: MemoryEspTransport, sequence: int) -> None
 def test_session_timeout_flow_resets_without_incrementing_counters() -> None:
     session = SessionStateMachine()
 
-    session.begin_presence_arming(10.0)
-    assert session.is_presence_confirmed(10.2) is False
-    assert session.is_presence_confirmed(10.35) is True
-
-    session.begin_identification(10.35)
-    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 10.5)
-    waiting_snapshot = session.begin_waiting_for_disposal(10.5)
+    session.begin_identification(10.0)
+    session.set_guidance("plastic-bottle", "recycle", 0.97, False, 10.1)
+    waiting_snapshot = session.begin_waiting_for_disposal(10.2)
 
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
-    assert session.is_disposal_wait_expired(22.49) is False
-    assert session.is_disposal_wait_expired(22.5) is True
+    assert session.is_disposal_wait_expired(22.19) is False
+    assert session.is_disposal_wait_expired(22.2) is True
 
-    resetting_snapshot = session.begin_resetting(22.5)
+    resetting_snapshot = session.begin_resetting(22.2)
     assert resetting_snapshot.phase is SessionPhase.RESETTING
     assert resetting_snapshot.total_attempts == 0
     assert resetting_snapshot.total_correct_sorts == 0
-    assert session.is_reset_ready(23.99) is False
-    assert session.is_reset_ready(24.0) is True
+    assert session.is_reset_ready(23.69) is False
+    assert session.is_reset_ready(23.7) is True
 
-    idle_snapshot = session.complete_reset(24.0)
+    idle_snapshot = session.complete_reset(23.7)
 
     assert idle_snapshot.phase is SessionPhase.IDLE
     assert idle_snapshot.total_attempts == 0
@@ -93,7 +89,7 @@ def test_session_timeout_flow_resets_without_incrementing_counters() -> None:
 
 def test_runtime_successful_disposal_preserves_station_counters_after_reset() -> None:
     transport = MemoryEspTransport()
-    runtime = _build_runtime(0.0, 0.4, 0.5, 1.0, 1.1, 1.2, 2.8, 4.4, transport=transport)
+    runtime = _build_runtime(0.0, 0.1, 0.2, 1.0, 1.1, 2.8, 4.4, transport=transport)
     runtime.classifier = StubClassifier(
         ClassificationResult(
             predicted_item="plastic-bottle",
@@ -102,16 +98,11 @@ def test_runtime_successful_disposal_preserves_station_counters_after_reset() ->
         )
     )
 
-    _queue_stable_presence(transport, 1)
-    arming_snapshot, arming_status = runtime.start_session(image_source="camera://success")
-    _queue_stable_presence(transport, 2)
     waiting_snapshot, waiting_status = runtime.start_session(image_source="camera://success")
     result_snapshot, event = runtime.observe_disposal(zone="left")
     resetting_snapshot = runtime.begin_reset()
     idle_snapshot = runtime.complete_reset()
 
-    assert arming_snapshot.phase is SessionPhase.PRESENCE_ARMING
-    assert arming_status.to_payload()["sessionState"] == "detecting-person"
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
     assert waiting_status.to_payload()["sessionState"] == "waiting-for-disposal"
     assert event is not None
@@ -137,7 +128,7 @@ def test_runtime_successful_disposal_preserves_station_counters_after_reset() ->
 
 def test_runtime_incorrect_disposal_keeps_failed_attempt_in_station_counter() -> None:
     transport = MemoryEspTransport()
-    runtime = _build_runtime(5.0, 5.4, 5.5, 6.0, 6.1, 6.2, 7.8, 9.4, transport=transport)
+    runtime = _build_runtime(5.0, 5.1, 5.2, 6.0, 6.1, 7.8, 9.4, transport=transport)
     runtime.classifier = StubClassifier(
         ClassificationResult(
             predicted_item="banana-peel",
@@ -146,9 +137,6 @@ def test_runtime_incorrect_disposal_keeps_failed_attempt_in_station_counter() ->
         )
     )
 
-    _queue_stable_presence(transport, 1)
-    runtime.start_session(image_source="camera://failure")
-    _queue_stable_presence(transport, 2)
     runtime.start_session(image_source="camera://failure")
     result_snapshot, event = runtime.observe_disposal(zone="right")
     runtime.begin_reset()
@@ -168,7 +156,7 @@ def test_runtime_incorrect_disposal_keeps_failed_attempt_in_station_counter() ->
 
 def test_runtime_fallback_classification_flow_marks_event_and_live_status() -> None:
     transport = MemoryEspTransport()
-    runtime = _build_runtime(9.0, 9.4, 9.5, 10.0, 10.1, 10.2, transport=transport)
+    runtime = _build_runtime(9.0, 9.1, 9.2, 10.0, 10.1, transport=transport)
     runtime.classifier = StubClassifier(
         ClassificationResult(
             predicted_item="banana-peel",
@@ -177,14 +165,9 @@ def test_runtime_fallback_classification_flow_marks_event_and_live_status() -> N
         )
     )
 
-    _queue_stable_presence(transport, 1)
-    arming_snapshot, arming_status = runtime.start_session(image_source="camera://fallback")
-    _queue_stable_presence(transport, 2)
     waiting_snapshot, waiting_status = runtime.start_session(image_source="camera://fallback")
     result_snapshot, event = runtime.observe_disposal(zone="middle")
 
-    assert arming_snapshot.phase is SessionPhase.PRESENCE_ARMING
-    assert arming_status.to_payload()["sessionState"] == "detecting-person"
     assert waiting_snapshot.predicted_item == "banana-peel"
     assert waiting_snapshot.correct_disposal_method == "compost"
     assert waiting_status.to_payload()["currentDetectedItem"] == "banana-peel"
@@ -204,9 +187,9 @@ def test_runtime_fallback_classification_flow_marks_event_and_live_status() -> N
     }
 
 
-def test_runtime_waits_for_stable_esp_presence_before_identification() -> None:
+def test_runtime_does_not_wait_for_stable_esp_presence_before_identification() -> None:
     transport = MemoryEspTransport()
-    runtime = _build_runtime(20.0, 20.2, 20.35, 20.5, 21.0, transport=transport)
+    runtime = _build_runtime(20.0, 20.1, 20.2, transport=transport)
     runtime.classifier = StubClassifier(
         ClassificationResult(
             predicted_item="plastic-bottle",
@@ -215,16 +198,7 @@ def test_runtime_waits_for_stable_esp_presence_before_identification() -> None:
         )
     )
 
-    _queue_stable_presence(transport, 1)
-    arming_snapshot, arming_status = runtime.start_session(image_source="camera://presence-gate")
-    _queue_stable_presence(transport, 2)
-    waiting_snapshot, waiting_status = runtime.start_session(image_source="camera://presence-gate")
-
-    assert arming_snapshot.phase is SessionPhase.PRESENCE_ARMING
-    assert arming_status.to_payload()["sessionState"] == "detecting-person"
-    assert runtime.classifier.calls == 0
-
-    _queue_stable_presence(transport, 3)
+    _queue_absent_presence(transport, 1)
     waiting_snapshot, waiting_status = runtime.start_session(image_source="camera://presence-gate")
 
     assert runtime.classifier.calls == 1
@@ -250,22 +224,20 @@ def test_runtime_uses_deterministic_hand_tracking_without_camera_feed() -> None:
         )
     )
 
-    _queue_stable_presence(transport, 1)
-    runtime.start_session(image_source="demo://plastic-bottle")
-    _queue_stable_presence(transport, 2)
     waiting_snapshot, waiting_status = runtime.start_session(image_source="demo://plastic-bottle")
 
-    assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
     assert waiting_snapshot.hand_present is False
     assert waiting_snapshot.latest_hand_zone is None
+    assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
+    assert waiting_status is not None
 
-    _queue_stable_presence(transport, 3)
+    _queue_stable_presence(transport, 1)
     tracked_status = runtime.sync_from_esp()
 
     assert waiting_status.to_payload()["cameraFeedActive"] is False
     assert tracked_status.to_payload()["currentHandZone"] == "right"
 
-    _queue_absent_presence(transport, 4)
+    _queue_absent_presence(transport, 2)
     result_status = runtime.sync_from_esp()
 
     assert runtime.last_event is not None

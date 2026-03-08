@@ -7,7 +7,6 @@ def test_realtime_simulation_happy_path_reaches_esp_and_backend_in_wall_clock_ti
     scenario = RealtimeSimulationScenario(
         predicted_item="plastic-bottle",
         disposal_zone="left",
-        presence_debounce_seconds=0.12,
         disposal_timeout_seconds=1.0,
         reset_cooldown_seconds=0.08,
         tick_interval_seconds=0.04,

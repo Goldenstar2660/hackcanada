@@ -289,18 +289,14 @@ def test_runtime_uses_image_source_provider_when_no_explicit_image_source() -> N
     provider = StaticImageSourceProvider("demo://apple-core")
     runtime = StationRuntime(
         load_runtime_settings(),
-        monotonic_clock=iter([0.0, 0.4, 0.5, 0.6]).__next__,
+        monotonic_clock=iter([0.0, 0.1, 0.2]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
         image_source_provider=provider,
     )
 
-    transport.queue_incoming("presence present=1 zone=off stable=1 seq=1")
-    arming_snapshot, _ = runtime.start_session()
-    transport.queue_incoming("presence present=1 zone=off stable=1 seq=2")
     waiting_snapshot, _ = runtime.start_session()
 
-    assert arming_snapshot.phase is SessionPhase.PRESENCE_ARMING
     assert waiting_snapshot.phase is SessionPhase.WAITING_FOR_DISPOSAL
     assert waiting_snapshot.predicted_item == "apple-core"
     assert provider.calls == 1
