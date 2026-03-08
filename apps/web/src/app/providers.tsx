@@ -6,10 +6,11 @@ import type { DashboardBrowserAuthState, DashboardBrowserServices } from "./type
 import type { DashboardFilterState } from "../lib/query/dashboard-query.js";
 
 import { DashboardLayout } from "./layout.js";
-import { getNavigationRoutes, matchDashboardRoute, renderDashboardRoute } from "./router.js";
+import { DEFAULT_DASHBOARD_PATH, getNavigationRoutes, isPublicDashboardRoute, matchDashboardRoute, renderDashboardRoute } from "./router.js";
 import { createDashboardApiClient } from "../lib/api/dashboard-api.js";
 import { createFirebaseCallableInvoker, createOperatorDashboardGateway } from "../lib/api/dashboard-gateway.js";
 import { createLiveMonitoringGateway } from "../lib/firebase/live-monitoring.js";
+import { LandingPage } from "../pages/landing.js";
 import {
   createAuthorizedLiveStatusClient,
   createFirestoreLiveStatusTransport,
@@ -38,13 +39,38 @@ export interface DashboardBrowserApplicationProps {
   readonly initialPath?: string;
 }
 
+const publicShellNavigation = [
+  {
+    label: "Dashboard"
+  },
+  {
+    label: "Analytics",
+    href: "/analytics"
+  },
+  {
+    label: "Devices",
+    href: "/devices"
+  },
+  {
+    label: "Settings"
+  }
+] as const;
+
 function splitRoutePath(inputPath: string): { pathname: string; searchParams: URLSearchParams } {
   const [pathname, search = ""] = inputPath.split("?", 2);
 
   return {
-    pathname: pathname || "/stations",
+    pathname: pathname || "/",
     searchParams: new URLSearchParams(search)
   };
+}
+
+function resolveRoutePath(inputPath: string): string {
+  const route = splitRoutePath(normalizeRoutePath(inputPath));
+  const match = matchDashboardRoute(route.pathname);
+  const search = route.searchParams.toString();
+
+  return search.length > 0 ? `${match.path}?${search}` : match.path;
 }
 
 export function createDashboardProviderRegistry(dependencies: DashboardAppDependencies): DashboardProviderRegistry {
@@ -63,7 +89,7 @@ export async function renderDashboardApplication(
   request: DashboardAppRenderRequest = {}
 ): Promise<DashboardAppRenderResult> {
   const providers = createDashboardProviderRegistry(dependencies);
-  const route = splitRoutePath(request.path ?? "/stations");
+  const route = splitRoutePath(request.path ?? "/");
   const match = matchDashboardRoute(route.pathname);
   const queryFilters = parseDashboardFilters(route.searchParams, providers.now());
   const filters = normalizeDashboardFilters(
@@ -110,7 +136,7 @@ function createInitialAuthState(): DashboardBrowserAuthState {
 
 function normalizeRoutePath(input: string): string {
   if (!input) {
-    return "/stations";
+    return "/";
   }
 
   return input.startsWith("/") ? input : `/${input}`;
@@ -145,6 +171,7 @@ function serializeFormToSearchParams(form: HTMLFormElement): URLSearchParams {
 function DashboardStandaloneShell(props: {
   readonly children: JSX.Element;
   readonly footerAction?: JSX.Element;
+  readonly mainClassName?: string;
 }): JSX.Element {
   return (
     <section className="dashboard-shell dashboard-shell--standalone dashboard-auth-shell">
@@ -153,26 +180,35 @@ function DashboardStandaloneShell(props: {
           <span className="dashboard-brand-mark" aria-hidden="true">DS</span>
           <span className="dashboard-brand-wordmark">BiNSIGHT</span>
         </div>
-        <nav className="dashboard-auth-nav" aria-label="Dashboard sections preview">
-          <span>Dashboard</span>
-          <span>Analytics</span>
-          <span>Devices</span>
-          <span>Settings</span>
+        <nav className="dashboard-auth-nav" aria-label="Route preview">
+          {publicShellNavigation.map((item) => "href" in item ? (
+            <a key={item.label} href={item.href} className="dashboard-top-nav-link">
+              {item.label}
+            </a>
+          ) : (
+            <span key={item.label} className="dashboard-top-nav-link dashboard-top-nav-link--muted" aria-disabled="true">
+              {item.label}
+            </span>
+          ))}
         </nav>
-        <div className="dashboard-auth-actions" aria-hidden="true">
+        <div className="dashboard-auth-actions">
           <span className="dashboard-auth-icon-button">Alerts</span>
           <span className="dashboard-auth-avatar">OP</span>
         </div>
       </header>
 
-      <main className="dashboard-auth-main">{props.children}</main>
+      <main className={`dashboard-auth-main${props.mainClassName ? ` ${props.mainClassName}` : ""}`}>{props.children}</main>
 
       <footer className="dashboard-auth-footer">
-        <p className="dashboard-auth-footer-copy">2026 Binsight operator systems</p>
+        <p className="dashboard-auth-footer-copy">© 2026 Binsight data systems</p>
         {props.footerAction ?? <span className="dashboard-auth-footer-action">Firebase Auth email access only</span>}
       </footer>
     </section>
   );
+}
+
+function DashboardLandingState(): JSX.Element {
+  return <LandingPage />;
 }
 
 function DashboardLoadingState(): JSX.Element {
@@ -203,6 +239,7 @@ function DashboardLoginState(props: {
   readonly onSubmit: (email: string, password: string) => Promise<void>;
   readonly busy: boolean;
   readonly error: string | null;
+  readonly requestedPath: string;
 }): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -210,13 +247,18 @@ function DashboardLoginState(props: {
 
   return (
     <DashboardStandaloneShell
-      footerAction={<span className="dashboard-auth-footer-action">Social sign-in is unavailable in this demo build</span>}
+      mainClassName="dashboard-auth-main--login"
+      footerAction={
+        <span className="dashboard-auth-footer-action">
+          {props.requestedPath !== "/login" ? `Requested route: ${props.requestedPath}` : "Operator authorization hardening remains a release gate"}
+        </span>
+      }
     >
-      <article className="dashboard-card dashboard-card--auth dashboard-auth-card">
+      <article className="dashboard-card dashboard-card--auth dashboard-auth-card dashboard-auth-card--login">
         <div className="dashboard-auth-card-header">
           <p className="dashboard-auth-kicker">Operator access</p>
           <h1 className="dashboard-card-title dashboard-auth-title">Login to BiNSIGHT</h1>
-          <p className="dashboard-subtitle dashboard-auth-copy">Access the waste-sorting dashboard with a Firebase Auth email and password account.</p>
+          <p className="dashboard-subtitle dashboard-auth-copy">Access your waste-sorting dashboard with the current Firebase Auth email and password flow.</p>
         </div>
 
         {props.error ? <p className="dashboard-status dashboard-status--warning">{props.error}</p> : null}
@@ -244,7 +286,7 @@ function DashboardLoginState(props: {
           <label className="dashboard-field">
             <span className="dashboard-auth-password-row">
               <span className="dashboard-field-label">Password</span>
-              <span className="dashboard-auth-inline-link" aria-disabled="true">Reset unavailable</span>
+              <span className="dashboard-auth-inline-link" aria-disabled="true">Forgot unavailable</span>
             </span>
             <span className="dashboard-auth-password-input">
               <input
@@ -253,7 +295,7 @@ function DashboardLoginState(props: {
                 onChange={(event) => setPassword(event.currentTarget.value)}
                 className="dashboard-input"
                 autoComplete="current-password"
-                placeholder="Enter your password"
+                placeholder="••••••••"
                 required={true}
               />
               <button
@@ -279,17 +321,18 @@ function DashboardLoginState(props: {
         <div className="dashboard-auth-social-grid" aria-label="Unavailable social sign-in providers">
           <button type="button" className="dashboard-auth-social-button" disabled={true} aria-disabled="true">
             <span className="dashboard-auth-social-badge">G</span>
-            <span>Google unavailable</span>
+            <span>Google</span>
           </button>
           <button type="button" className="dashboard-auth-social-button" disabled={true} aria-disabled="true">
             <span className="dashboard-auth-social-badge">GH</span>
-            <span>GitHub unavailable</span>
+            <span>GitHub</span>
           </button>
         </div>
 
-        <p className="dashboard-auth-footnote">
-          Need access? Contact the demo operator admin to provision an email-password account.
-        </p>
+        <div className="dashboard-auth-request-access">
+          <p className="dashboard-auth-footnote">Do not have an account?</p>
+          <span className="dashboard-auth-inline-link" aria-disabled="true">Request access unavailable</span>
+        </div>
       </article>
     </DashboardStandaloneShell>
   );
@@ -300,8 +343,9 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
   const [pageState, setPageState] = useState<BrowserPageState>({ status: "loading" });
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [currentPath, setCurrentPath] = useState(() => normalizeRoutePath(props.initialPath ?? `${window.location.pathname}${window.location.search}`));
+  const [currentPath, setCurrentPath] = useState(() => resolveRoutePath(props.initialPath ?? `${window.location.pathname}${window.location.search}`));
   const deferredPath = useDeferredValue(currentPath);
+  const currentRoute = matchDashboardRoute(splitRoutePath(deferredPath).pathname);
 
   const dependencies = useMemo<DashboardAppDependencies | null>(() => {
     if (!authState.session) {
@@ -351,13 +395,30 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
   useEffect(() => {
     const handlePopState = () => {
       startTransition(() => {
-        setCurrentPath(normalizeRoutePath(`${window.location.pathname}${window.location.search}`));
+        setCurrentPath(resolveRoutePath(`${window.location.pathname}${window.location.search}`));
       });
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  useEffect(() => {
+    const browserPath = `${window.location.pathname}${window.location.search}`;
+    if (browserPath !== currentPath) {
+      window.history.replaceState(null, "", currentPath);
+    }
+  }, [currentPath]);
+
+  useEffect(() => {
+    if (authState.status !== "signed-in") {
+      return;
+    }
+
+    if (isPublicDashboardRoute(currentRoute)) {
+      navigate(DEFAULT_DASHBOARD_PATH, true);
+    }
+  }, [authState.status, currentRoute]);
 
   useEffect(() => {
     if (!dependencies) {
@@ -389,7 +450,7 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
   }, [deferredPath, dependencies]);
 
   const navigate = (nextPath: string, replace = false) => {
-    const normalizedPath = normalizeRoutePath(nextPath);
+    const normalizedPath = resolveRoutePath(nextPath);
     if (replace) {
       window.history.replaceState(null, "", normalizedPath);
     } else {
@@ -405,10 +466,15 @@ export function DashboardBrowserApplication(props: DashboardBrowserApplicationPr
   }
 
   if (authState.status === "signed-out") {
+    if (currentRoute.route.id === "landing") {
+      return <DashboardLandingState />;
+    }
+
     return (
       <DashboardLoginState
         busy={loginBusy}
         error={loginError}
+        requestedPath={currentPath}
         onSubmit={async (email, password) => {
           setLoginBusy(true);
           setLoginError(null);

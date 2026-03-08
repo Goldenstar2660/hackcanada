@@ -3,6 +3,8 @@ description: Load for all work on this smart waste-sorting station project so th
 applyTo: '**'
 ---
 
+This rule does not apply for the stitch UI refactor.
+
 # Source of Truth
 
 The authoritative source of truth for this project is:

@@ -65,6 +65,27 @@ export function EventHistoryPage(props: {
         </div>
       </article>
 
+      <article className="dashboard-card dashboard-secondary-route-card">
+        <div className="dashboard-row dashboard-row--baseline">
+          <div>
+            <p className="dashboard-page-kicker">Secondary route</p>
+            <h3 className="dashboard-card-title">Detailed scan review stays available as a deep link</h3>
+            <p className="dashboard-subtitle">
+              Device details and analytics remain the visible IA, while this route preserves the backend-filtered audit view for operators who need more than the primary mockup pages expose.
+            </p>
+          </div>
+          <div className="dashboard-page-actions dashboard-secondary-route-actions">
+            <a href="/analytics" className="dashboard-button dashboard-button--ghost">Return to analytics</a>
+            <button type="button" className="dashboard-button" disabled={true}>Cursor paging deferred</button>
+          </div>
+        </div>
+        <div className="dashboard-chip-row">
+          <span className="dashboard-chip dashboard-chip--active">Compatibility deep link retained</span>
+          <span className="dashboard-chip">Recent-scan styling aligned to device details</span>
+          <span className="dashboard-chip dashboard-chip--warning">No standalone mockup exists for history</span>
+        </div>
+      </article>
+
       <FilterControls
         actionPath={props.context.match.path}
         filters={props.context.filters}

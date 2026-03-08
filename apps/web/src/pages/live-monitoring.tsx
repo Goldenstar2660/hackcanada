@@ -97,14 +97,17 @@ export function LiveMonitoringPage(props: {
         availableStations={props.model.availableStations}
         stationCount={1}
       />
+      <p className="dashboard-note">
+        This secondary route preserves the dedicated Firestore subscription behavior for operators who need continuous realtime monitoring beyond the primary device-details surface.
+      </p>
       {subscriptionError ? <p className="dashboard-status dashboard-status--warning">Live subscription issue: {subscriptionError}</p> : null}
-      {!props.model.station ? <p className="dashboard-status dashboard-status--empty">No station directory entry matched this route.</p> : null}
+      {!props.model.station ? <p className="dashboard-status dashboard-status--empty">No device directory entry matched this route.</p> : null}
       {props.model.station && !snapshot.status ? (
-        <p className="dashboard-status dashboard-status--empty">No live status document has arrived for this station yet.</p>
+        <p className="dashboard-status dashboard-status--empty">No live status document has arrived for this device yet.</p>
       ) : null}
       {snapshot.stale ? (
         <p className="dashboard-status dashboard-status--warning">
-          Live status is stale. The latest station update is older than one minute.
+          Live status is stale. The latest device update is older than one minute.
         </p>
       ) : null}
       <LiveStationPanel station={props.model.station} snapshot={snapshot} realtimeEnabled={props.model.realtime !== null} />

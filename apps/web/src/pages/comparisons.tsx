@@ -9,6 +9,11 @@ export interface ComparisonsPageModel {
   readonly availableStations: Awaited<ReturnType<typeof loadComparisonsPage>>["availableStations"];
 }
 
+export interface ComparisonsCompatibilitySectionProps {
+  readonly analyses: ComparisonsPageModel["analyses"];
+  readonly requestedPath?: string;
+}
+
 export async function loadComparisonsPage(context: DashboardPageLoadContext): Promise<{
   analyses: Awaited<ReturnType<typeof context.providers.api.getComparisons>>;
   availableFilters: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["filters"];
@@ -34,46 +39,33 @@ function formatCount(value: number): string {
   return value.toLocaleString();
 }
 
-export function ComparisonsPage(props: {
-  readonly model: ComparisonsPageModel;
-  readonly context: DashboardPageLoadContext;
-}): JSX.Element {
-  const visibleStationCount = props.model.availableStations.filter((station) => matchesStationFilters(station, props.context.filters)).length;
+export function ComparisonsCompatibilitySection(props: ComparisonsCompatibilitySectionProps): JSX.Element {
+  const requestedPath = props.requestedPath ?? "/analytics";
+  const compatibilityEntry = requestedPath === "/comparisons";
 
   return (
-    <section className="dashboard-section-stack">
-      <article className="dashboard-card dashboard-page-hero">
-        <p className="dashboard-page-kicker">Comparison matrix</p>
-        <div className="dashboard-row dashboard-row--baseline">
-          <div>
-            <h2 className="dashboard-page-title">Comparisons</h2>
-            <p className="dashboard-page-copy">
-              Grouped experiment views for buildings, locations, signage, layout, before-and-after changes, and A/B cohorts, all powered by the existing comparison scenarios.
-            </p>
-          </div>
-          <div className="dashboard-chip-row">
-            <span className="dashboard-chip dashboard-chip--active">{props.model.analyses.length} scenarios</span>
-            <span className="dashboard-chip">{visibleStationCount} stations in scope</span>
-            <span className="dashboard-chip dashboard-chip--warning">Manual export and AI narration remain deferred</span>
-          </div>
+    <section className="dashboard-comparison-layout">
+      <article className="dashboard-card dashboard-comparison-controls">
+        <p className="dashboard-page-kicker">Comparison tool</p>
+        <h3 className="dashboard-card-title">Scenario comparisons now live under Analytics</h3>
+        <p className="dashboard-subtitle">
+          Grouped experiment reads for buildings, locations, signage, layout, before-and-after changes, and A/B cohorts stay intact, but the visible IA keeps them inside the Analytics route instead of as a competing page.
+        </p>
+        <div className="dashboard-chip-row">
+          <span className="dashboard-chip dashboard-chip--active">{props.analyses.length} comparison scenarios</span>
+          <span className="dashboard-chip">Primary route: /analytics</span>
+          {compatibilityEntry ? <span className="dashboard-chip dashboard-chip--warning">Compatibility path: /comparisons</span> : null}
+          <span className="dashboard-chip dashboard-chip--warning">Export and AI narration remain future development</span>
         </div>
       </article>
 
-      <FilterControls
-        actionPath={props.context.match.path}
-        filters={props.context.filters}
-        availableFilters={props.model.availableFilters}
-        availableStations={props.model.availableStations}
-        stationCount={visibleStationCount}
-      />
-
-      <section className="dashboard-grid dashboard-grid--cards" aria-label="Comparison scenarios">
-        {props.model.analyses.map((analysis) => {
+      <div className="dashboard-comparison-scenario-grid" aria-label="Comparison scenarios">
+        {props.analyses.map((analysis) => {
           const groupedResults = analysis.summary.groupedResults ?? [];
           const maxScore = Math.max(...groupedResults.map((group) => group.metrics.participationComplianceScore * 100), 1);
 
           return (
-            <article key={analysis.scenario.id} className="dashboard-card dashboard-comparison-card">
+            <article key={analysis.scenario.id} className="dashboard-card dashboard-comparison-card dashboard-comparison-scenario-card">
               <div className="dashboard-row dashboard-row--baseline">
                 <div>
                   <p className="dashboard-page-kicker">{analysis.scenario.id}</p>
@@ -124,7 +116,45 @@ export function ComparisonsPage(props: {
             </article>
           );
         })}
-      </section>
+      </div>
+    </section>
+  );
+}
+
+export function ComparisonsPage(props: {
+  readonly model: ComparisonsPageModel;
+  readonly context: DashboardPageLoadContext;
+}): JSX.Element {
+  const visibleStationCount = props.model.availableStations.filter((station) => matchesStationFilters(station, props.context.filters)).length;
+
+  return (
+    <section className="dashboard-section-stack">
+      <article className="dashboard-card dashboard-page-hero">
+        <p className="dashboard-page-kicker">Compatibility route</p>
+        <div className="dashboard-row dashboard-row--baseline">
+          <div>
+            <h2 className="dashboard-page-title">Comparisons redirect into analytics</h2>
+            <p className="dashboard-page-copy">
+              This legacy surface is preserved only to reduce migration risk. The supported grouped-comparison seams now belong to the Analytics page instead of a separate visible information architecture branch.
+            </p>
+          </div>
+          <div className="dashboard-chip-row">
+            <span className="dashboard-chip dashboard-chip--active">Compatibility only</span>
+            <span className="dashboard-chip">{visibleStationCount} stations in scope</span>
+            <span className="dashboard-chip">Primary destination /analytics</span>
+          </div>
+        </div>
+      </article>
+
+      <FilterControls
+        actionPath={props.context.match.path}
+        filters={props.context.filters}
+        availableFilters={props.model.availableFilters}
+        availableStations={props.model.availableStations}
+        stationCount={visibleStationCount}
+      />
+
+      <ComparisonsCompatibilitySection analyses={props.model.analyses} requestedPath={props.context.match.requestedPath} />
     </section>
   );
 }

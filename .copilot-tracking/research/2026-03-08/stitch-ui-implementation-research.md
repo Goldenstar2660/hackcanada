@@ -1,7 +1,7 @@
 <!-- markdownlint-disable-file -->
 ---
 title: Stitch UI Implementation Research
-description: Research handoff for replacing the current web UI with Stitch-designed pages while aligning to the product spec and existing application capabilities
+description: Research handoff for redesigning the web UI to match the Stitch mockups under spec/ui as closely as possible while wiring only currently supported capabilities
 author: GitHub Copilot
 ms.date: 2026-03-08
 ms.topic: overview
@@ -11,264 +11,266 @@ keywords:
   - binsight
   - research
   - implementation
-estimated_reading_time: 12
+estimated_reading_time: 14
 ---
 
 ## Task Research: Stitch UI Implementation
 
-Research the work needed to replace the current web UI with the Stitch-designed pages under `spec/ui`, using `spec/binsight-spec.md` as the product source of truth and the current codebase as the implementation baseline.
-
-The evidence shows that the current application structure already matches the product spec more closely than the Stitch exports do. The strongest path is to keep the existing `apps/web` route table, provider setup, data loaders, and contract boundaries, then translate the Stitch pages into those existing application seams instead of rebuilding the shell around the exported HTML.
+The user explicitly overrides the earlier repo instruction for this task: `spec/ui` is the new source of truth for the visible web UI. For this handoff, the Stitch mockups now govern page layout, navigation language, and interaction shape. The current frontend, backend, and contract layers still govern what can be wired immediately. Anything shown in the mockups that is not backed by the present application seams is marked as future development rather than improvised.
 
 ## Task Implementation Requests
 
-* Replace the current application UI with the Stitch-designed pages from `spec/ui`
-* Reuse existing routes, data flows, components, and behaviors where they already support the required pages
-* Identify what can be wired immediately versus what needs backend, contract, or product follow-up
-* Recommend one implementation approach for integrating the Stitch designs into the existing app
+* Redesign the current web UI to match the Stitch mockups under `spec/ui` as closely as possible
+* Integrate features that already exist in `apps/web`, `services/backend-functions`, and `packages/contracts`
+* Preserve working auth, routing, data-loading, and live-data seams where they help deliver the mockups faster
+* Mark mockup features that cannot be immediately hooked up as future development items
 
 ## Scope and Success Criteria
 
-* Scope: Research the current web application, the product spec, and the Stitch page assets; map designed pages to current routes and data capabilities; evaluate implementation approaches for introducing the new UI
-* Assumptions: The primary implementation target is the web app under `apps/web`; Stitch files in `spec/ui` are authoritative for visual and interaction design only; product behavior remains constrained by `spec/binsight-spec.md`
+* Scope: Research the Stitch mockups as the primary UI authority, compare them to the existing web app and backend capabilities, recommend the safest implementation approach, and produce a page-by-page integration matrix
+* Assumptions:
+  * `spec/ui` is authoritative for the visible web experience in this task
+  * The existing repo is still authoritative for current technical capabilities and constraints
+  * Unsupported mockup actions should be deferred and labeled explicitly, not faked
 * Success Criteria:
-  * Each relevant Stitch page is mapped to an existing or proposed app route or feature area
-  * The research distinguishes between immediately wireable UI behavior and blocked integrations
-  * The document recommends a specific implementation strategy grounded in current repo patterns
-  * The handoff includes concrete file references, identified gaps, and next implementation steps
+  * Every Stitch mockup is mapped to a real route or an explicit future-development decision
+  * The research distinguishes immediate integrations from blocked features with supporting evidence
+  * The selected implementation approach preserves working seams where that reduces risk without visibly diverging from the mockups
+  * The handoff gives implementation planning enough detail to execute without redoing the research pass
 
 ## Outline
 
-1. Inspect the product spec and demo scope in `spec/binsight-spec.md`
-2. Inspect the Stitch UI artifacts in `spec/ui`
-3. Inspect the current web app routing, page structure, data access, and shared UI patterns
-4. Compare designed pages against current capabilities and identify deltas
-5. Evaluate implementation strategies and select one recommended approach
+1. Audit the Stitch mockups in `spec/ui` as the primary UI source
+2. Audit the current `apps/web` shell, routing, and reusable page seams
+3. Audit backend and contract support for each mockup surface
+4. Map mockup pages to current and proposed routes
+5. Identify what can ship now and what must be future development
+6. Select one implementation strategy
 
 ## Potential Next Research
 
-* Verify seeded demo data against the selected page set
-  * Reasoning: implementation success depends on whether current stations, live-status docs, and analytics rollups exist for the redesigned surfaces
-  * Reference: `services/backend-functions/src/firestore`, `apps/web/README.md`
+* Confirm whether the duplicated `dashboard` mockup is a bad export or an intentional placeholder
+  * Reasoning: the mockup set includes a navigation label for dashboard, but the exported page duplicates the landing page and is not a usable authenticated dashboard design
+  * Reference: `../../../spec/ui/dashboard/code.html#L167-L197`, `../../../spec/ui/landing%20page/code.html#L167-L197`
 
-* Decide the styling translation strategy before implementation starts
-  * Reasoning: the Stitch exports are Tailwind CDN HTML, while the web app currently uses local CSS primitives
-  * Reference: `../../../spec/ui/devices/code.html#L6-L16`, `../../../apps/web/package.json#L12-L23`, `../../../apps/web/src/app/dashboard.css#L1-L361`
+* Verify whether `Settings` or `System` is intended to be a real route in this phase
+  * Reasoning: the mockup navigation names it, but there is no supporting screen or backend capability in the current app
+  * Reference: `../../../spec/ui/devices/code.html#L55-L57`, `../../../apps/web/src/app/router.tsx#L15-L63`
 
 ## Research Executed
 
 ### File Analysis
 
-* Product source of truth
-  * `../../../spec/binsight-spec.md#L9-L16` defines the demo scope as one tabletop station, one camera view, three disposal zones, LED guidance, LCD live feedback, and a dashboard
-  * `../../../spec/binsight-spec.md#L20-L58` defines the core live workflow from item detection through event creation
-  * `../../../spec/binsight-spec.md#L96-L112` defines required dashboard capabilities, including station browsing, event history, analytics, comparisons, filters, and a dedicated live monitoring page
+* Primary UI sources
+  * `../../../spec/ui/landing%20page/code.html#L157-L197` defines a public landing page with navigation, a hero statement, a `System Login` call to action, and brand-level stats
+  * `../../../spec/ui/login/code.html#L77-L131` defines the sign-in experience with email/password, social sign-in affordances, and access-request copy
+  * `../../../spec/ui/analytics/code.html#L64-L260` defines the analytics overview page with KPI cards, comparisons, trends, export, and AI insight blocks
+  * `../../../spec/ui/devices/code.html#L73-L214` defines the directory page with active-device counts, health summary, filters, cards, and device registration calls to action
+  * `../../../spec/ui/device%20details/code.html#L112-L297` defines the drill-down page with live visualization, recent scans, AI summary, and scan-analysis details
+  * `../../../spec/ui/dashboard/code.html#L167-L197` duplicates the landing page and is not a distinct dashboard source
 
-* Stitch UI assets
-  * `../../../spec/ui/landing%20page/code.html#L157-L197` is a marketing-style landing page, not an operator surface
-  * `../../../spec/ui/login/code.html#L77-L131` is a plausible sign-in page for the operator dashboard
-  * `../../../spec/ui/analytics/code.html#L64-L260` covers KPI cards, comparisons, and trends, with some unsupported actions such as export and AI-generated insights
-  * `../../../spec/ui/devices/code.html#L73-L214` is the closest match for the stations directory route, though the taxonomy is generic device inventory rather than station operations
-  * `../../../spec/ui/device%20details/code.html#L112-L297` is the closest match for station detail plus live monitoring, though it mixes history, diagnostics, and operator-triggered actions in a way that conflicts with the spec
-  * `../../../spec/ui/dashboard/code.html#L167-L197` duplicates the landing-page treatment and is not a usable dashboard source
+* Current app seams that remain reusable under a mockup-first redesign
+  * `../../../apps/web/src/main.tsx#L22-L54` boots Firebase Auth, Functions, and Firestore, then mounts a single browser application shell
+  * `../../../apps/web/src/app/providers.tsx#L219-L321` owns auth gating, route state, API gateway construction, and live-data gateway construction
+  * `../../../apps/web/src/app/providers.tsx#L353-L403` intercepts same-origin links and `GET` forms, which matters when converting mockup navigation and filter controls
+  * `../../../apps/web/src/app/router.tsx#L15-L63` defines the current route set: `/stations`, `/stations/:stationId`, `/stations/:stationId/live`, `/history`, `/analytics`, and `/comparisons`
+  * `../../../apps/web/src/pages/stations.tsx#L14-L30`, `../../../apps/web/src/pages/station-detail.tsx#L14-L96`, `../../../apps/web/src/pages/live-monitoring.tsx#L38-L110`, `../../../apps/web/src/pages/event-history.tsx#L14-L42`, `../../../apps/web/src/pages/analytics.tsx#L14-L45`, and `../../../apps/web/src/pages/comparisons.tsx#L12-L40` show the current thin-page pattern over reusable feature modules
 
-* Frontend architecture
-  * `../../../apps/web/src/main.tsx#L22-L54` boots Firebase app services and mounts the custom browser shell
-  * `../../../apps/web/src/app/providers.tsx#L219-L321` owns auth gating, route state, backend gateway creation, and live Firestore gateway creation
-  * `../../../apps/web/src/app/providers.tsx#L353-L403` intercepts same-origin anchor clicks and `GET` form submissions, which constrains how Stitch interactions can be translated safely
-  * `../../../apps/web/src/app/router.tsx#L15-L63` defines the current route map: `/stations`, `/stations/:stationId`, `/stations/:stationId/live`, `/history`, `/analytics`, and `/comparisons`
-  * `../../../apps/web/src/pages/stations.tsx#L14-L30`, `../../../apps/web/src/pages/station-detail.tsx#L14-L96`, `../../../apps/web/src/pages/live-monitoring.tsx#L38-L110`, `../../../apps/web/src/pages/event-history.tsx#L14-L42`, `../../../apps/web/src/pages/analytics.tsx#L14-L45`, and `../../../apps/web/src/pages/comparisons.tsx#L12-L40` show a thin-page pattern over reusable feature panels
-
-* Backend and contracts
-  * `../../../services/backend-functions/src/runtime/firebase-runtime.ts#L36-L79` exports current deployable handlers for event ingress, live-status ingress, camera-frame ingress, analytics summary, event history, station directory, and analytics materialization
-  * `../../../packages/contracts/src/index.ts#L67-L77` defines `LiveStationStatus`, including `currentDetectedItem`, `currentDisposalMethod`, `latestEvent`, and `cameraFeed`
-  * `../../../packages/contracts/src/index.ts#L114-L125` defines `StationMetadata`, including building, floor, location, signage, layout, and active rules preset
+* Backend and contract evidence for immediate hookups
+  * `../../../services/backend-functions/src/runtime/firebase-runtime.ts#L36-L79` exports the current deployable handlers for event ingress, live-status ingress, camera-frame ingress, analytics summary, event history, station directory, and analytics materialization
+  * `../../../packages/contracts/src/index.ts#L67-L77` defines `LiveStationStatus`, including current session and latest-event fields used by live drill-downs
+  * `../../../packages/contracts/src/index.ts#L114-L125` defines `StationMetadata`, used by station or device detail and directory pages
   * `../../../packages/contracts/src/index.ts#L159-L278` defines analytics queries, analytics summaries, event history, and station directory responses
-  * `../../../apps/web/src/lib/api/dashboard-api.ts#L9-L35` and `../../../apps/web/src/lib/api/dashboard-gateway.ts#L91-L119` show the current callable API surface consumed by the web app
+  * `../../../apps/web/src/lib/api/dashboard-api.ts#L9-L35` and `../../../apps/web/src/lib/api/dashboard-gateway.ts#L91-L119` show the current callable API surface used by the web app
   * `../../../apps/web/src/lib/firebase/live-status.ts#L7-L118` and `../../../apps/web/src/lib/firebase/live-monitoring.ts#L41-L140` show that single-station live monitoring is already wired through Firestore
+
+* Supporting subagent audits
+  * `../subagents/2026-03-08/ui-source-of-truth-audit-research.md` reframed route and information-architecture decisions around the mockups rather than the original sidebar-first app
+  * `../subagents/2026-03-08/stitch-feature-hookup-matrix-research.md` produced the feature-by-feature hookup matrix used below
+  * `../subagents/2026-03-08/spec-and-stitch-audit-research.md` and `../subagents/2026-03-08/frontend-baseline-audit-research.md` remain valid supporting evidence for the page inventory and current shell structure
 
 ### Code Search Results
 
-* Route implementation aligns to the spec-required operator surfaces through the current route table in `../../../apps/web/src/app/router.tsx#L15-L63`
-* No meaningful `@binsight/analytics` usage was found in the web package, which confirms that `packages/contracts` is the real UI contract boundary today
-* No local mock-data layer was found in `apps/web/src`, which means the Stitch redesign should target current gateway outputs rather than new mock-only shapes
+* The current app has no public landing-page route and no `/login` route. Authentication is handled inside the signed-out provider state in `../../../apps/web/src/app/providers.tsx#L323-L350`
+* The current app has dedicated `/history`, `/comparisons`, and `/stations/:stationId/live` routes, but those destinations are not first-class pages in the Stitch mockup set. Evidence: `../../../apps/web/src/app/router.tsx#L15-L63`
+* No verified frontend implementation exists for Google or GitHub sign-in, device registration, settings mutation, export generation, or AI-generated insights in the current app surface. Supporting evidence: `../subagents/2026-03-08/stitch-feature-hookup-matrix-research.md`
 
 ### External Research
 
-* No external research required at this stage; repository sources are primary
+* No external research required. Repository sources and generated mockups are sufficient for this task.
 
 ### Project Conventions
 
-* Standards referenced: `spec/binsight-spec.md`, repository markdown guidance, repository memory facts
-* Instructions followed: source-of-truth instructions, markdown instructions, writing style instructions, task researcher mode instructions
+* Standards referenced: user override for `spec/ui`, current repo architecture, repo memory facts for frontend validation
+* Instructions followed: source-of-truth instruction with explicit user override, markdown instructions, writing-style instructions, task researcher mode instructions
 
 ## Key Discoveries
 
-### Project Structure
+### Visible IA Must Shift to the Mockups
 
-The product spec is explicit about the operator workflow, and the existing application already reflects that operator-first structure. The spec requires station browsing, station metadata, event history, analytics, comparisons, filters, and live monitoring at `../../../spec/binsight-spec.md#L96-L112`. The current app exposes those same concerns through stable routes in `../../../apps/web/src/app/router.tsx#L15-L63`.
+Treating `spec/ui` as the UI source of truth changes the visible information architecture. The mockup-backed primary pages are landing, login, analytics, devices, and device details. The current app's stations-first sidebar and top-level History, Comparisons, and Live View destinations do not match that visible model.
 
-The current web app is not a generic website shell. It is a custom-routed React dashboard whose providers own auth, navigation, callable APIs, and live Firestore subscriptions in `../../../apps/web/src/app/providers.tsx#L219-L403`. Replacing that shell wholesale would duplicate critical behavior, not just visuals.
+The current shell is still technically valuable, but it should become an implementation substrate rather than a UX authority. The route table, auth bootstrap, callable APIs, Firestore subscriptions, and thin-page composition model can remain under the hood while the visible nav, labels, and page hierarchy change to match the mockups.
 
-The frontend is also deliberately split into thin page wrappers and reusable feature modules. That separation makes route-body replacement practical without reworking the data layer or route semantics.
+### The Mockup Set Is Incomplete But Still Usable
 
-### Implementation Patterns
+The mockup set is strong enough to drive the redesign, but it does not provide a complete one-to-one screen inventory for the current product surface.
 
-Three implementation patterns are already in place and should be preserved during the redesign:
+* `dashboard` is not a real dashboard design. It duplicates the landing page.
+* There is no standalone history page.
+* There is no standalone comparisons page.
+* There is no standalone live-monitoring page.
+* `Settings` or `System` appears in navigation language, but there is no corresponding mockup screen.
 
-* Thin page wrappers call into reusable data and presentation seams. Evidence: `../../../apps/web/src/pages/stations.tsx#L14-L30`, `../../../apps/web/src/pages/analytics.tsx#L14-L45`, `../../../apps/web/src/pages/comparisons.tsx#L12-L40`
-* Filters are part of the routing contract, not a local widget concern. Evidence: `../../../apps/web/src/lib/query/dashboard-query.ts#L123-L278` and `../../../apps/web/src/features/filters/filter-controls.tsx#L28-L192`
-* Live monitoring is the only real-time surface and is built around Firestore subscription behavior plus stale-state handling. Evidence: `../../../apps/web/src/pages/live-monitoring.tsx#L38-L110` and `../../../apps/web/src/lib/firebase/live-monitoring.ts#L41-L140`
+The practical consequence is that the redesign should follow the mockups closely for the pages that exist, then absorb current history, comparisons, and live functionality into the nearest mockup-aligned destinations or secondary routes.
 
-The current styling system is class-based and centralized in `../../../apps/web/src/app/dashboard.css#L1-L361`. The Stitch exports are static Tailwind CDN pages. That makes direct copy-paste adoption a poor fit unless the team first chooses to add Tailwind as a supported build dependency.
+### The Strongest Reuse Still Sits Below the Page Layer
 
-### Complete Examples
+The safest implementation seam remains the current page and provider boundaries.
 
-```text
-Current route map
+* The signed-out login state can be redesigned into the Stitch login page without changing the underlying Firebase auth flow in `../../../apps/web/src/app/providers.tsx#L323-L350`
+* The stations directory can be relabeled and reworked into the Devices mockup while keeping current station-directory reads and filters
+* Station detail, live monitoring, and recent event history can be composed into the Device Details mockup using existing station metadata, live status, and event-history reads
+* Analytics and comparisons can be visually merged behind the Analytics mockup while keeping current analytics and comparison loaders
 
-/stations                -> station directory
-/stations/:stationId     -> station detail
-/stations/:stationId/live -> live monitoring
-/history                 -> disposal event history
-/analytics               -> analytics overview
-/comparisons             -> grouped comparisons
-```
+## Mockup-First Route Mapping
 
-### API and Schema Documentation
+| Mockup page | Recommended visible route | Current reusable route or seam | Decision |
+| --- | --- | --- | --- |
+| Landing page | `/` | None today | Add a new public route or public shell that mirrors the mockup closely |
+| Login | `/login` or signed-out shell entry | `../../../apps/web/src/app/providers.tsx#L323-L350` | Keep current auth logic, replace UI with the mockup |
+| Analytics | `/analytics` | `../../../apps/web/src/pages/analytics.tsx#L14-L45` and `../../../apps/web/src/pages/comparisons.tsx#L12-L40` | Make analytics the visible home for summary plus comparisons |
+| Devices | `/devices` | `../../../apps/web/src/pages/stations.tsx#L14-L30` | Rename Stations to Devices in the visible UI and preserve the data seam |
+| Device details | `/devices/:deviceId` | `../../../apps/web/src/pages/station-detail.tsx#L14-L96` plus `../../../apps/web/src/pages/live-monitoring.tsx#L38-L110` | Compose the detail route from metadata, live state, and recent events |
+| Dashboard | `/dashboard` only if product insists | None trustworthy in mockups | Do not treat the current export as authoritative |
+| Settings or System | Future route only | None today | Do not create unless scope is clarified |
 
-The current shared contracts already cover the highest-value stitched pages:
+### Compatibility Routing
 
-* Station directory and station metadata: `../../../packages/contracts/src/index.ts#L114-L125` and `../../../packages/contracts/src/index.ts#L274-L278`
-* Live station monitoring: `../../../packages/contracts/src/index.ts#L67-L77`
-* Analytics queries and summaries: `../../../packages/contracts/src/index.ts#L159-L227`
-* Event history: `../../../packages/contracts/src/index.ts#L228-L254`
+The research supports keeping legacy compatibility routes during implementation even if the visible IA changes.
 
-The backend runtime already exposes the callable and ingestion handlers needed for those surfaces in `../../../services/backend-functions/src/runtime/firebase-runtime.ts#L36-L79`.
+* `/stations` should redirect to `/devices`
+* `/stations/:stationId` should redirect to `/devices/:deviceId`
+* `/comparisons` can redirect to `/analytics` with comparison state preserved if practical
+* `/history` and `/devices/:deviceId/live` can remain deep-linkable secondary routes if they simplify migration or preserve demos
 
-The largest contract-level gaps for the Stitch pages are not in analytics or station detail. They are in device registration, fleet-wide live aggregation, export/report generation, camera-image delivery, and AI-generated narrative insights.
+## Immediate Integration vs Future Development
 
-### Configuration Examples
+### Page-by-Page Hookup Matrix
 
-```text
-Current web runtime dependencies
-
-Firebase Auth      -> operator sign-in gating
-Firebase Functions -> getStationDirectory, getEventHistory, getAnalyticsSummary
-Firestore          -> stationLiveStatus/{stationId} live subscriptions
-Contracts package  -> canonical request and response shapes
-```
-
-### Route-to-Stitch Mapping
-
-| Product surface | Current route or module | Stitch source | Implementation fit | Notes |
+| Mockup page | Features shown in UI | Immediate integration status | Supporting evidence | Future development items |
 | --- | --- | --- | --- | --- |
-| Operator sign-in | Signed-out state in `../../../apps/web/src/app/providers.tsx#L323-L350` | `../../../spec/ui/login/code.html#L77-L131` | Strong | Email/password login can be wired now. Social buttons are not backed by audited provider flows. |
-| Station directory | `../../../apps/web/src/pages/stations.tsx#L14-L30` | `../../../spec/ui/devices/code.html#L73-L214` | Strong | Rename device-centric copy to station-centric copy. Keep links pointing to existing station routes. |
-| Station detail | `../../../apps/web/src/pages/station-detail.tsx#L14-L96` | `../../../spec/ui/device%20details/code.html#L138-L297` | Partial | Good fit for metadata, recent events, and diagnostics. Avoid operator-triggered `New Scan` behavior because it conflicts with always-on detection in `../../../spec/binsight-spec.md#L20-L23`. |
-| Live monitoring | `../../../apps/web/src/pages/live-monitoring.tsx#L38-L110` | `../../../spec/ui/device%20details/code.html#L112-L138` | Partial | The Stitch asset lacks some required live fields from `../../../spec/binsight-spec.md#L107-L112`, but the current contract already exposes them. |
-| Analytics overview | `../../../apps/web/src/pages/analytics.tsx#L14-L45` | `../../../spec/ui/analytics/code.html#L64-L260` | Strong | KPI cards, comparisons, and trends can be wired now. Export and AI insight features remain blocked. |
-| Comparisons | `../../../apps/web/src/pages/comparisons.tsx#L12-L40` | `../../../spec/ui/analytics/code.html#L108-L171` | Strong | Existing grouped-comparison behavior fits the visual direction. |
-| Event history | `../../../apps/web/src/pages/event-history.tsx#L14-L42` | `../../../spec/ui/device%20details/code.html#L138-L252` | Partial | No dedicated Stitch history page exists. Reuse the recent-scans visual language for the `/history` route. |
-| Landing page | No current operator-app route | `../../../spec/ui/landing%20page/code.html#L157-L197` | Weak | This is optional and may not belong in `apps/web`, which is currently an operator dashboard package. |
-| Dashboard page | No valid source | `../../../spec/ui/dashboard/code.html#L167-L197` | Invalid | The exported dashboard is a duplicate landing page and should not drive implementation. |
+| Landing page | Brand hero, nav, public CTA, headline stats | Partial | No current public route, but it is mostly static UI and can be added without backend dependency. Mockup source: `../../../spec/ui/landing%20page/code.html#L157-L197` | Public routing strategy, real dashboard destination, and meaningful stat sourcing if the footer metrics must be live |
+| Login | Email/password sign-in, social buttons, access request | Partial | Email/password is already wired through Firebase Auth in `../../../apps/web/src/app/providers.tsx#L337-L343`; mockup source: `../../../spec/ui/login/code.html#L77-L131` | Google and GitHub provider flows, request-access workflow, operator-authorization hardening |
+| Analytics | KPI cards, comparisons, trend charts, live badge | Strong | Analytics callable API and comparison assembly already exist in `../../../apps/web/src/lib/api/dashboard-api.ts#L9-L35`, `../../../apps/web/src/lib/query/dashboard-query.ts#L180-L278`, and `../../../packages/contracts/src/index.ts#L159-L227` | Export reports, AI-generated insights, any additional public-safe dashboard variant |
+| Devices | Active-device count, status cards, location metadata, details links | Strong | Station directory and filter facets already exist in `../../../services/backend-functions/src/analytics/query-service.ts#L228-L257` and `../../../packages/contracts/src/index.ts#L274-L278`; mockup source: `../../../spec/ui/devices/code.html#L73-L214` | Device registration flow, settings mutations, richer fleet-wide live aggregation if the grid must show more than current directory data |
+| Device details | Live visualization, recent scans, scan drill-down, AI summary | Partial | Station metadata, event history, and live monitoring already exist across `../../../apps/web/src/pages/station-detail.tsx#L14-L96`, `../../../apps/web/src/pages/live-monitoring.tsx#L38-L110`, and `../../../apps/web/src/pages/event-history.tsx#L14-L42` | Device map or network visualization, manual `New Scan`, richer scan-analysis modal data, AI summary generation, camera frame rendering |
+| Dashboard | Distinct dashboard page | Weak | The export is a duplicate of the landing page in `../../../spec/ui/dashboard/code.html#L167-L197` | Correct dashboard mockup or explicit scope decision |
+| Settings or System | Nav destination only | None | No current route, no mockup page, no backend support | Full feature definition, page mockup, route design, and backing APIs |
 
-### Wireable Now vs Blocked
+### Immediate-Ship Feature Set
 
-| Area | Can wire now | Blocked or incomplete |
-| --- | --- | --- |
-| Login | Email/password sign-in shell | Social Google or GitHub buttons from Stitch are not backed by verified frontend flows |
-| Stations list | Station cards, location metadata, basic status, deep links | Device registration, settings, and add-device flows |
-| Station detail | Metadata, nearby comparisons, recent event summaries, rules preset display | Camera map and richer network visualization lack a complete product definition |
-| Live monitoring | Current session state, detected item, disposal method, latest event, stale handling | Rich camera rendering and fleet-wide live aggregation |
-| Analytics | KPI summaries, grouped comparisons, trends, filterable analytics | Export report generation and AI-generated insight text |
-| History | Event list or recent scans styled from Stitch patterns | Pagination may need backend correction because cursor behavior appears inconsistent |
+The highest-confidence redesign scope is:
+
+* Public landing page shell if the team wants it in `apps/web`
+* Stitch login visuals backed by the current email/password auth flow
+* Devices page backed by current station directory and filter data
+* Device details page backed by station metadata, live status, and recent event history
+* Analytics page backed by current analytics summaries and grouped comparisons
+
+### Future Development Backlog Required by the Mockups
+
+The following mockup features should be explicitly labeled as future development in planning and implementation:
+
+* Social login buttons for Google and GitHub
+* Request-access flow
+* Device registration and add-device actions
+* Device settings mutations
+* Manual `New Scan` operator action
+* Device map or live network visualization
+* Export report generation
+* AI-generated insight blocks and AI summaries
+* Rich scan-analysis modal with technical breakdown beyond current contracts
+* Stable camera-frame rendering in the UI
+* A real Dashboard page if one is still required
+* A real Settings or System page
 
 ## Technical Scenarios
 
-### Replacing the Existing Web UI with Stitch Pages
+### Mockup-First Redesign on Top of the Existing App Seams
 
-The correct technical scenario is not a full UI rebuild. It is an operator-dashboard redesign that preserves existing app seams while translating the Stitch pages into the current route and contract structure.
+The selected scenario is a mockup-first redesign that changes the visible page model to match the Stitch assets while keeping the current auth, routing engine, data gateways, and live subscriptions wherever they still serve the target UI.
 
 **Requirements:**
 
-* Align every implemented page to product behavior in `spec/binsight-spec.md`
-* Preserve existing routing and app behaviors where possible
-* Avoid inventing backend behavior that does not exist in contracts or services
+* Match the visible UI to `spec/ui` as closely as practical
+* Hook up real features immediately where backend and contracts already support them
+* Mark unsupported features as future development instead of inventing placeholder behavior
+* Avoid rewriting working auth and data infrastructure without evidence that the mockups require it
 
 **Preferred Approach:**
 
-* Keep the existing routes, providers, gateway contracts, and live Firestore subscriptions, then replace route bodies incrementally with Stitch-derived React implementations that preserve current links, query keys, and data-loading seams
+* Rebuild the visible route set and page bodies around landing, login, analytics, devices, and device details; keep the existing provider shell, API gateways, live gateway, and thin-page data seams; preserve compatibility redirects for current routes during migration
 
 ```text
 Recommended implementation sequence
 
-1. Replace the signed-out login surface with the Stitch login design
-2. Replace the stations directory with the Stitch devices visual language, renamed for stations
-3. Redesign station detail and live monitoring together using the device-details source
-4. Redesign analytics and comparisons using the analytics source
-5. Rework event history using the recent-scans pattern because there is no dedicated Stitch history page
-6. Defer optional landing page and invalid dashboard export until product scope is clarified
+1. Introduce a mockup-aligned public entry and login flow
+2. Rename the visible station directory surface to Devices and redesign that route first
+3. Merge station detail, live status, and recent-history concepts into a Device Details redesign
+4. Fold comparisons visually into Analytics and redesign that route
+5. Keep legacy routes as redirects or secondary deep links until the migration is complete
+6. Track all unsupported mockup features as explicit future-development work
 ```
 
 **Implementation Details:**
 
-This approach is recommended because it preserves the parts of the system that already encode product behavior correctly.
+This approach fits the user's instruction best because it treats the mockups as the visible truth without throwing away the working application seams that already provide live auth, contract-backed reads, and real-time updates.
 
-The route map already matches the spec-required surfaces better than the Stitch files do. Evidence: `../../../spec/binsight-spec.md#L96-L112` versus `../../../apps/web/src/app/router.tsx#L15-L63`. The current providers also carry critical behavior for auth, client creation, navigation interception, and route-backed filters in `../../../apps/web/src/app/providers.tsx#L219-L403`. Replacing that shell would add churn in exactly the areas where the current implementation is already correct.
+The current app shell should not remain the visible source of truth. Its sidebar labels and route emphasis do not match the mockups. At the same time, replacing the provider shell wholesale would recreate the most failure-prone parts of the system: auth gating, history interception, callable gateway construction, and Firestore live subscriptions in `../../../apps/web/src/app/providers.tsx#L219-L403`.
 
-The best migration seam is the thin page layer. Each current route can keep its loader and data dependencies while receiving new JSX, new CSS, or translated design tokens behind stable URLs. That preserves deep links, keeps current query semantics, and avoids introducing duplicate data-fetch logic.
+The lowest-risk compromise is to keep those underlying seams and replace what the user actually wants changed: visible page composition, route names, navigation language, and page layouts.
 
-The design translation should treat the Stitch files as visual references, not canonical HTML to embed. The exports are static Tailwind CDN pages, while the current app uses its own CSS system and has no Tailwind dependency in `../../../apps/web/package.json#L12-L23`. A direct import path would either force a design-system fork or require adding Tailwind and refactoring the entire shell. That is unnecessary for the goal of replacing the visible UI.
+The page-level mapping supports that directly:
 
-The first implementation wave should cover only pages with strong contract support now:
-
-* Login shell
-* Stations directory
-* Station detail and live monitoring
-* Analytics and comparisons
-* Event history restyled from the recent-scans pattern
-
-The following items should be tracked as explicit follow-up work, not improvised in the UI:
-
-* Device registration and settings mutations
-* Fleet-wide live status aggregation for the stations list
-* Export report generation
-* AI-generated insight text
-* Camera image delivery contract
-* Social login providers if those buttons must be real
-* Event-history pagination correction if the current cursor mismatch is confirmed in implementation
+* Landing and login become new first-class visible entry points
+* Devices replaces Stations in the visible IA
+* Device Details absorbs the strongest parts of current station detail, live monitoring, and recent-event history
+* Analytics absorbs comparisons visually because the mockups already present both concerns together
+* History and live routes become secondary implementation details unless a later mockup adds them back as top-level destinations
 
 ```text
 Files most likely to change first during implementation
 
-apps/web/src/app/providers.tsx                # signed-out screen
-apps/web/src/pages/stations.tsx              # stations visual redesign
-apps/web/src/pages/station-detail.tsx        # station detail redesign
-apps/web/src/pages/live-monitoring.tsx       # live monitoring redesign
-apps/web/src/pages/analytics.tsx             # analytics redesign
-apps/web/src/pages/comparisons.tsx           # comparisons redesign
-apps/web/src/pages/event-history.tsx         # history redesign
-apps/web/src/app/dashboard.css               # existing design system extension or replacement
+apps/web/src/app/router.tsx
+apps/web/src/app/layout.tsx
+apps/web/src/app/providers.tsx
+apps/web/src/pages/stations.tsx
+apps/web/src/pages/station-detail.tsx
+apps/web/src/pages/live-monitoring.tsx
+apps/web/src/pages/analytics.tsx
+apps/web/src/pages/comparisons.tsx
+apps/web/src/pages/event-history.tsx
+apps/web/src/app/dashboard.css
 ```
 
 #### Considered Alternatives
 
-1. Full shell-and-route rewrite from Stitch pages
+1. Preserve the current visible IA and only restyle the existing pages
 
-   Rejected because the current shell in `../../../apps/web/src/app/providers.tsx#L219-L403` owns behavior that is easy to break and expensive to reproduce: auth gating, route state, query-backed forms, same-origin anchor interception, and live backend dependency setup. It also solves the wrong problem because the current route taxonomy already matches the product spec.
+   Rejected because it conflicts with the user's explicit direction to treat `spec/ui` as the new source of truth. Keeping Stations, History, Comparisons, and Live View as the visible top-level model would preserve the current app, not the mockups.
 
-2. Keep existing routes and data loaders, then replace page bodies incrementally
+2. Use the mockups as the visible source of truth while preserving current providers, gateways, and reusable data seams underneath
 
-   Selected because it preserves the operator workflow that already aligns with the spec, keeps the current contracts and routes stable, and limits design work to the visible surfaces. This is the lowest-risk path that still satisfies the user goal of replacing the current UI with the Stitch-designed pages.
+   Selected because it matches the requested redesign closely, preserves the working technical core, and gives the cleanest path to immediate feature integration plus explicit future-development labeling.
 
-3. Embed Stitch pages as static prototypes alongside the current app
+3. Rebuild the app from raw Stitch HTML and a new shell
 
-   Rejected because it does not actually replace the current UI, would create a second drifting surface, and would fail the requirement to hook the pages up to current data and behaviors wherever possible.
+   Rejected because the mockups are static Tailwind CDN exports, they do not cover the full current product surface, and a full shell rewrite would recreate auth and data behavior that already works.
 
 ## Recommended Next Steps
 
-1. Start planning from this document with the incremental page-body replacement strategy
-2. Decide whether to translate Stitch visuals into the existing CSS system or to adopt Tailwind intentionally before implementation begins
-3. Treat the Stitch dashboard export as invalid and use the devices, device-details, analytics, and login assets as the real design sources
-4. Track blocked features as explicit product or backend work items instead of inventing placeholder UI behavior
+1. Start implementation planning from the mockup-first route mapping in this document
+2. Treat the `dashboard` export as unusable until a corrected mockup or explicit product decision exists
+3. Include a future-development section in the implementation plan for every blocked mockup feature listed above
+4. Preserve compatibility redirects during rollout so current demo links and internal paths do not break

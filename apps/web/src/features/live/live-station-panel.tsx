@@ -48,7 +48,7 @@ export function LiveStationPanel(props: LiveStationPanelProps): JSX.Element {
             </p>
           </div>
           <div className="dashboard-page-actions">
-            <a href={`/stations/${props.snapshot.stationId}`} className="dashboard-button dashboard-button--ghost">Station detail</a>
+            <a href={`/devices/${props.snapshot.stationId}`} className="dashboard-button dashboard-button--ghost">Device details</a>
           </div>
         </div>
         <div className="dashboard-chip-row">

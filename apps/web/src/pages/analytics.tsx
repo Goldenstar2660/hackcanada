@@ -4,29 +4,34 @@ import type { DashboardPageLoadContext } from "../app/types.js";
 
 import { createAnalyticsDisplayModel } from "../features/analytics/chart-adapters.js";
 import { FilterControls } from "../features/filters/filter-controls.js";
+import { ComparisonsCompatibilitySection } from "./comparisons.js";
 import { matchesStationFilters } from "../lib/query/dashboard-query.js";
 
 export interface AnalyticsPageModel {
   readonly summary: AnalyticsSummary;
+  readonly comparisonAnalyses: Awaited<ReturnType<typeof loadAnalyticsPage>>["comparisonAnalyses"];
   readonly availableFilters: Awaited<ReturnType<typeof loadAnalyticsPage>>["availableFilters"];
   readonly availableStations: Awaited<ReturnType<typeof loadAnalyticsPage>>["availableStations"];
 }
 
 export async function loadAnalyticsPage(context: DashboardPageLoadContext): Promise<{
   summary: AnalyticsSummary;
+  comparisonAnalyses: Awaited<ReturnType<typeof context.providers.api.getComparisons>>;
   availableFilters: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["filters"];
   availableStations: Awaited<ReturnType<typeof context.providers.api.getStationDirectory>>["stations"];
 }> {
-  const [directory, summary] = await Promise.all([
+  const [directory, summary, comparisonAnalyses] = await Promise.all([
     context.providers.api.getStationDirectory(),
     context.providers.api.getAnalytics(context.filters, {
       groupBy: ["buildingId"],
       timeBucket: "day"
-    })
+    }),
+    context.providers.api.getComparisons(context.filters)
   ]);
 
   return {
     summary,
+    comparisonAnalyses,
     availableFilters: directory.filters,
     availableStations: directory.stations
   };
@@ -57,6 +62,7 @@ export function AnalyticsPage(props: {
   readonly context: DashboardPageLoadContext;
 }): JSX.Element {
   const display = createAnalyticsDisplayModel(props.model.summary);
+  const arrivedFromComparisons = props.context.match.requestedPath === "/comparisons";
   const visibleStationCount = props.model.availableStations.filter((station) => matchesStationFilters(station, props.context.filters)).length;
   const incorrectAttempts = Math.max(props.model.summary.totals.totalAttempts - props.model.summary.totals.totalCorrectSorts, 0);
   const contaminationRate = props.model.summary.totals.totalAttempts > 0
@@ -108,7 +114,7 @@ export function AnalyticsPage(props: {
           <div>
             <h2 className="dashboard-page-title">Analytics overview</h2>
             <p className="dashboard-page-copy">
-              Stitch-style KPI, comparison, and trend sections rendered on top of the existing analytics summary contract and current route-backed query state.
+              Stitch-style KPI, comparison, and trend sections rendered on top of the existing analytics summary contract, comparison scenarios, and current route-backed query state.
             </p>
           </div>
           <div className="dashboard-page-actions">
@@ -124,9 +130,28 @@ export function AnalyticsPage(props: {
           <span className="dashboard-chip dashboard-chip--active">{visibleStationCount} stations in scope</span>
           <span className="dashboard-chip">Generated {formatTimestamp(props.model.summary.generatedAt)}</span>
           <span className="dashboard-chip">Time window {props.context.filters.timeRange.label}</span>
+          <span className="dashboard-chip">{props.model.comparisonAnalyses.length} comparison scenarios loaded</span>
           <span className="dashboard-chip dashboard-chip--warning">Export and AI actions are intentionally non-functional</span>
         </div>
       </article>
+
+      {arrivedFromComparisons ? (
+        <article className="dashboard-card dashboard-secondary-route-card">
+          <div className="dashboard-row dashboard-row--baseline">
+            <div>
+              <p className="dashboard-page-kicker">Compatibility path</p>
+              <h3 className="dashboard-card-title">The legacy comparisons route now resolves into Analytics</h3>
+              <p className="dashboard-subtitle">
+                Existing demo links can continue to use /comparisons during rollout, but the visible information architecture keeps summary, grouped comparisons, and trends together under Analytics.
+              </p>
+            </div>
+            <div className="dashboard-page-actions dashboard-secondary-route-actions">
+              <a href="/analytics" className="dashboard-button dashboard-button--ghost">Canonical analytics route</a>
+              <button type="button" className="dashboard-button" disabled={true}>Standalone comparisons removed</button>
+            </div>
+          </div>
+        </article>
+      ) : null}
 
       <FilterControls
         actionPath={props.context.match.path}
@@ -206,6 +231,11 @@ export function AnalyticsPage(props: {
           )}
         </article>
       </section>
+
+      <ComparisonsCompatibilitySection
+        analyses={props.model.comparisonAnalyses}
+        requestedPath={props.context.match.requestedPath}
+      />
 
       <section className="dashboard-insight-grid" aria-label="Deferred analytics actions">
         <article className="dashboard-insight-card dashboard-insight-card--disabled">

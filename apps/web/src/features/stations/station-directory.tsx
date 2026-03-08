@@ -13,31 +13,36 @@ export function StationDirectory(props: StationDirectoryProps): JSX.Element {
   return (
     <section className="dashboard-section-stack">
       <div className="dashboard-row dashboard-row--baseline">
-        <h2 className="dashboard-card-title">Station directory</h2>
-        <p className="dashboard-muted">Each card keeps station metadata, rules context, and the existing detail and live route links.</p>
+        <h2 className="dashboard-card-title">Fleet roster</h2>
+        <p className="dashboard-muted">Each card preserves the current directory seam, the primary device detail route, and the secondary live route.</p>
       </div>
 
       <div className="dashboard-directory-grid">
         {props.stations.length > 0 ? props.stations.map((station) => (
           <article
             key={station.stationId}
-            className={`dashboard-card dashboard-directory-card ${station.stationId === props.selectedStationId ? "dashboard-card--selected" : "dashboard-card--accent"}`}
+            className={`dashboard-card dashboard-directory-card dashboard-device-card ${station.stationId === props.selectedStationId ? "dashboard-card--selected" : "dashboard-card--accent"}`}
           >
-            <div className="dashboard-directory-media" aria-hidden="true">
-              <p className="dashboard-directory-label">Station profile</p>
+            <div className="dashboard-directory-media dashboard-directory-media--device" aria-hidden="true">
+              <p className="dashboard-directory-label">Device profile</p>
               <p className="dashboard-directory-mark">{station.stationId}</p>
-              <span className="dashboard-directory-live-tag">Live route ready</span>
+              <div className="dashboard-device-card-media-meta">
+                <span className="dashboard-directory-live-tag">Live route ready</span>
+                <span className="dashboard-device-card-status">Rules active</span>
+              </div>
             </div>
 
             <div className="dashboard-directory-copy">
               <h3 className="dashboard-card-title">{station.stationName}</h3>
+              <p className="dashboard-device-card-subtitle">{station.buildingLabel} · {station.floorLabel}</p>
               <div className="dashboard-chip-row">
-                <span className="dashboard-chip dashboard-chip--active">{station.buildingLabel}</span>
-                <span className="dashboard-chip">{station.floorLabel}</span>
+                <span className="dashboard-chip dashboard-chip--active">{station.locationLabel}</span>
+                <span className="dashboard-chip">Signage {station.signageVariant}</span>
+                <span className="dashboard-chip">Layout {station.layoutVariant}</span>
               </div>
               <div className="dashboard-directory-location">
                 <p className="dashboard-field-label">Location</p>
-                <p className="dashboard-detail-value">{station.locationLabel}</p>
+                <p className="dashboard-detail-value">{station.buildingLabel}, {station.floorLabel}</p>
               </div>
             </div>
 
@@ -64,20 +69,21 @@ export function StationDirectory(props: StationDirectoryProps): JSX.Element {
               </div>
             </dl>
 
-            <div className="dashboard-directory-actions">
-              <a href={`/stations/${station.stationId}`} className="dashboard-button dashboard-button--ghost">
-                Station detail
+            <div className="dashboard-directory-actions dashboard-directory-actions--triad">
+              <a href={`/devices/${station.stationId}`} className="dashboard-button dashboard-button--ghost">
+                Details
               </a>
-              <a href={`/stations/${station.stationId}/live`} className="dashboard-button dashboard-button--primary">
-                Live view
+              <a href={`/devices/${station.stationId}/live`} className="dashboard-button dashboard-button--primary">
+                Live route
               </a>
+              <button type="button" className="dashboard-button dashboard-button--ghost" disabled={true}>Settings deferred</button>
             </div>
           </article>
         )) : (
           <article className="dashboard-card dashboard-directory-empty">
-            <p className="dashboard-page-kicker">No stations in scope</p>
+            <p className="dashboard-page-kicker">No devices in scope</p>
             <h3 className="dashboard-card-title">Adjust the current filters</h3>
-            <p className="dashboard-subtitle">The route query excluded all known stations from the current directory view.</p>
+            <p className="dashboard-subtitle">The route query excluded all known devices from the current directory view.</p>
           </article>
         )}
       </div>
