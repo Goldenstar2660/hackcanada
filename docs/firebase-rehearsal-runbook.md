@@ -121,6 +121,7 @@ cat > devices/pi-station/.env <<EOF
 STATION_ID=demo-station-001
 RULES_PRESET_ID=demo-canada-ottawa
 RULES_PRESET_VERSION=1.0.0
+ITEM_CLASSIFIER_MODEL_DIR=models/item_classifier
 ESP_ENDPOINT=http://192.168.4.1
 BINSIGHT_FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
 FIREBASE_FUNCTIONS_REGION=us-central1
@@ -131,7 +132,22 @@ BINSIGHT_PUBLICATION_TIMEOUT_SECONDS=5.0
 PRESENCE_DEBOUNCE_SECONDS=0.35
 DISPOSAL_TIMEOUT_SECONDS=12.0
 RESET_COOLDOWN_SECONDS=1.5
+CAMERA_CAPTURE_WIDTH=640
+CAMERA_CAPTURE_HEIGHT=480
+CAMERA_CAPTURE_FORMAT=jpg
+CAMERA_CAPTURE_ROTATION_DEGREES=180
 EOF
+```
+
+Create the Pi model asset directory and copy the active classifier assets into place:
+
+```bash
+cd /home/handwash/Projects/hackcanada
+mkdir -p devices/pi-station/models/item_classifier
+cp /absolute/path/to/model.tflite devices/pi-station/models/item_classifier/model.tflite
+cp /absolute/path/to/manifest.json devices/pi-station/models/item_classifier/manifest.json
+cp /absolute/path/to/labels.txt devices/pi-station/models/item_classifier/labels.txt
+cp /absolute/path/to/aliases.json devices/pi-station/models/item_classifier/aliases.json
 ```
 
 Update the placeholder values before you continue:
@@ -140,6 +156,8 @@ Update the placeholder values before you continue:
 * Replace `replace-with-demo-secret` in both `devices/pi-station/.env` and `services/backend-functions/.env.$FIREBASE_PROJECT_ID` with the same shared secret
 * Keep `FIREBASE_PROJECT_ID` out of `services/backend-functions/.env.$FIREBASE_PROJECT_ID`; use `BINSIGHT_FIREBASE_PROJECT_ID` for repo-local config and pass the actual Firebase project id through `--project`, shell exports for seed commands, `apps/web/.env`, and the Pi runtime env
 * Keep `demo-station-001` and `pi-demo-001` unchanged unless you also update both files to a new station and device pair
+* Copy the active `model.tflite`, `manifest.json`, and `labels.txt` files into `devices/pi-station/models/item_classifier/` before starting the runtime
+* Copy `aliases.json` too when the model labels do not already match the rules preset item ids after normalization
 
 ## Build the Backend
 

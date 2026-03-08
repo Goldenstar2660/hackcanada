@@ -98,6 +98,47 @@ Run the placeholder station entry point:
 uv run binsight-station
 ```
 
+## Model asset layout
+
+The Pi runtime now expects the item-classifier assets in `devices/pi-station/models/item_classifier/` by default. You can override that location with `ITEM_CLASSIFIER_MODEL_DIR` in `devices/pi-station/.env`.
+
+Place these files in that directory before running the live station with real inference:
+
+```text
+devices/pi-station/models/item_classifier/
+├── model.tflite
+├── manifest.json
+├── labels.txt
+└── aliases.json
+```
+
+Asset responsibilities:
+
+* `model.tflite`: quantized TensorFlow Lite classifier
+* `manifest.json`: preprocessing and runtime metadata such as layout, normalization, resize method, and thread count
+* `labels.txt`: ordered output labels matching the model outputs
+* `aliases.json`: optional mapping from model labels to rules-preset item ids such as `plastic-bottle`
+
+The runtime inspects TensorFlow Lite tensor metadata at startup, then combines it with `manifest.json` so compatible model swaps do not require code changes.
+
+Example manifest:
+
+```json
+{
+	"labelsFile": "labels.txt",
+	"aliasesFile": "aliases.json",
+	"inputLayout": "auto",
+	"colorSpace": "RGB",
+	"resizeMethod": "bilinear",
+	"normalizeMean": [127.5],
+	"normalizeStd": [127.5],
+	"outputActivation": "auto",
+	"numThreads": 4
+}
+```
+
+If your model labels already match the rules preset item ids after normalization, you can omit `aliases.json` by setting `"aliasesFile": ""` in the manifest.
+
 ## Training photo capture for AI datasets
 
 Use this exact command from `devices/pi-station/`:
@@ -164,6 +205,7 @@ The minimum Phase 1 configuration set is:
 * `STATION_ID`: Station document identifier used in local runtime state and device ingress payloads
 * `RULES_PRESET_ID`: Active rules preset id, currently `demo-canada-ottawa`
 * `RULES_PRESET_VERSION`: Active rules preset version, currently `1.0.0`
+* `ITEM_CLASSIFIER_MODEL_DIR`: model asset directory, relative to `devices/pi-station/` by default
 * `ESP_ENDPOINT`: ESP8266 base URL on the shared network, for example `http://192.168.4.1`
 * `FIREBASE_PROJECT_ID` or `BINSIGHT_FIREBASE_PROJECT_ID`: Firebase project id for the demo environment. The runtime prefers `FIREBASE_PROJECT_ID` when both are set, but it accepts the non-reserved `BINSIGHT_FIREBASE_PROJECT_ID` fallback for repo-local config.
 * `BINSIGHT_DEVICE_ID`: Device id that will be used for authenticated backend publication
@@ -171,8 +213,18 @@ The minimum Phase 1 configuration set is:
 * `PRESENCE_DEBOUNCE_SECONDS`: Stable presence window before identification starts
 * `DISPOSAL_TIMEOUT_SECONDS`: Wait window for disposal before the runtime resets
 * `RESET_COOLDOWN_SECONDS`: Cooldown window before the station returns to idle after reset
+* `CAMERA_CAPTURE_WIDTH`: captured image width for item identification
+* `CAMERA_CAPTURE_HEIGHT`: captured image height for item identification
+* `CAMERA_CAPTURE_FORMAT`: image format passed to the Pi camera CLI, typically `jpg`
+* `CAMERA_CAPTURE_ROTATION_DEGREES`: rotation applied during capture, usually `180` for the current mounted camera orientation
 
 Phase 1 keeps the Pi runtime on its local seams, but these values are the minimum environment story for this cycle and match the device-auth boundary the backend already validates.
+
+TensorFlow Lite runtime notes:
+
+* The Pi package now depends on `numpy`, `Pillow`, and `tflite-runtime` for supported Linux Python versions.
+* The runtime prefers `tflite_runtime.interpreter` and falls back to `tensorflow.lite.Interpreter` when TensorFlow is already available.
+* The current development environment in this repository uses Python 3.13. TensorFlow Lite wheels may lag new Python releases, so Pi deployments should stay on a supported Python version when provisioning the runtime.
 
 The Pi-to-ESP transport is fixed to local HTTP plus JSON over Wi-Fi. Set `ESP_ENDPOINT` to the ESP8266 base URL on the shared network.
 

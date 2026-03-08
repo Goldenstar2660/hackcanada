@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 from binsight_station.classification import ClassificationResult
+from binsight_station.camera_capture import CapturedImageSource
 from binsight_station.esp_client import EspClient, MemoryEspTransport
 from binsight_station.main import DeterministicHandTracker, StationRuntime, load_runtime_settings
 from binsight_station.publishers import PublicationAdapter
@@ -20,6 +21,14 @@ class StubClassifier:
         return next(self._results)
 
 
+class StaticImageSourceProvider:
+    def __init__(self, image_source: str) -> None:
+        self.image_source = image_source
+
+    def capture_image_source(self) -> CapturedImageSource:
+        return CapturedImageSource(self.image_source)
+
+
 def _sequence_clock(*values: float) -> Iterator[float]:
     return iter(values)
 
@@ -27,6 +36,7 @@ def _sequence_clock(*values: float) -> Iterator[float]:
 def _build_runtime(
     *clock_values: float,
     transport: MemoryEspTransport | None = None,
+    image_source: str = "demo://plastic-bottle",
 ) -> StationRuntime:
     clock = _sequence_clock(*clock_values)
     resolved_transport = transport or MemoryEspTransport()
@@ -35,6 +45,7 @@ def _build_runtime(
         monotonic_clock=lambda: next(clock),
         esp_client=EspClient("serial://test", transport=resolved_transport),
         publication_client=PublicationAdapter("test-project"),
+        image_source_provider=StaticImageSourceProvider(image_source),
     )
 
 

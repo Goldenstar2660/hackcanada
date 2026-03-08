@@ -1,6 +1,6 @@
 {
   "outputDir": "training_data",
-  "label": "engaged",
+  "label": "granola bar",
   "intervalSeconds": 0.1,
   "width": 640,
   "height": 480,

@@ -1,4 +1,5 @@
 from binsight_station.classification import ClassificationResult
+from binsight_station.camera_capture import CapturedImageSource
 from binsight_station.esp_client import BackendIngressIdentity
 from binsight_station.esp_client import EspClient
 from binsight_station.esp_client import GuidanceCommand
@@ -37,6 +38,14 @@ class RecordingClassifier:
         return self.result
 
 
+class StaticImageSourceProvider:
+    def __init__(self, image_source: str) -> None:
+        self.image_source = image_source
+
+    def capture_image_source(self) -> CapturedImageSource:
+        return CapturedImageSource(self.image_source)
+
+
 def test_runtime_starts_session_from_stable_esp_presence_frames() -> None:
     transport = MemoryEspTransport()
     runtime = StationRuntime(
@@ -44,6 +53,7 @@ def test_runtime_starts_session_from_stable_esp_presence_frames() -> None:
         monotonic_clock=iter([0.0, 0.4, 0.5, 1.0]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
+        image_source_provider=StaticImageSourceProvider("demo://plastic-bottle"),
     )
 
     transport.queue_incoming(
@@ -81,6 +91,7 @@ def test_runtime_cancels_presence_arming_when_stable_presence_drops() -> None:
         monotonic_clock=iter([5.0, 5.2]).__next__,
         esp_client=EspClient("serial://test", transport=transport),
         publication_client=PublicationAdapter("test-project"),
+        image_source_provider=StaticImageSourceProvider("demo://plastic-bottle"),
     )
     runtime.classifier = RecordingClassifier(
         ClassificationResult(

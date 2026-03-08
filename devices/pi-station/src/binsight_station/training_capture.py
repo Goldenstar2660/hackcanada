@@ -14,6 +14,7 @@ import json
 import logging
 import shutil
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -160,40 +161,51 @@ def main() -> int:
     print("=" * 64)
     print("  Command: uv run binsight-training-capture")
     print(f"  Config: {_CONFIG_PATH}")
-    print("  Config is reloaded each time you press Enter to CAPTURE")
-    print("  Control: Press Enter to capture one photo, Ctrl+C to quit")
+    print("  Control: Capturing automatically at interval, Ctrl+C to quit")
     print("  Camera backend: rpicam-still/libcamera-still")
     print("=" * 64)
 
+    cfg = _load_config()
+    output_root = base_dir / cfg["outputDir"]
+    output_dir = output_root / cfg["label"]
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print("[CONFIG] Loaded:")
+    print(f"  Label: {cfg['label']}")
+    print(f"  Output: {output_dir}")
+    print(f"  Resolution: {cfg['width']}x{cfg['height']}")
+    print(f"  Interval: {cfg['intervalSeconds']}s")
+    print(f"  maxPhotosPerRun: {cfg['maxPhotosPerRun']}")
+    print(f"  Format: {cfg['imageFormat']} | jpegQuality: {cfg['jpegQuality']}")
+    print(f"  flip180: {cfg['flip180']} | swapRedBlue: {cfg['swapRedBlue']}")
+    print("=" * 64)
+
+    camera = PiCameraCapture(width=cfg["width"], height=cfg["height"])
     try:
+        camera.start()
+        photos_captured = 0
+        
         while True:
-            input()
-            cfg = _load_config()
-            output_root = base_dir / cfg["outputDir"]
-            output_dir = output_root / cfg["label"]
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-            print("[CONFIG] Loaded:")
-            print(f"  Label: {cfg['label']}")
-            print(f"  Output: {output_dir}")
-            print(f"  Resolution: {cfg['width']}x{cfg['height']}")
-            print(f"  Interval: {cfg['intervalSeconds']}s (ignored in manual mode)")
-            print(f"  maxPhotosPerRun: {cfg['maxPhotosPerRun']} (ignored in manual mode)")
-            print(f"  Format: {cfg['imageFormat']} | jpegQuality: {cfg['jpegQuality']}")
-            print(f"  flip180: {cfg['flip180']} | swapRedBlue: {cfg['swapRedBlue']}")
-
-            camera = PiCameraCapture(width=cfg["width"], height=cfg["height"])
-            try:
-                camera.start()
-                captured = _capture_loop(camera, output_dir, cfg)
-            finally:
-                camera.stop()
-
-            print(f"[STATE] Photos captured this keypress: {captured}")
-            print("[STATE] Press Enter to capture another photo, or Ctrl+C to quit.")
+            if cfg["maxPhotosPerRun"] > 0 and photos_captured >= cfg["maxPhotosPerRun"]:
+                print(f"[INFO] Reached maxPhotosPerRun limit ({cfg['maxPhotosPerRun']}). Exiting...")
+                break
+                
+            captured = _capture_loop(camera, output_dir, cfg)
+            photos_captured += captured
+            
+            if captured:
+                print(f"[STATE] Total photos captured: {photos_captured}")
+                if cfg["maxPhotosPerRun"] > 0:
+                    remaining = cfg["maxPhotosPerRun"] - photos_captured
+                    print(f"[STATE] Remaining photos: {remaining}")
+            
+            print(f"[STATE] Waiting {cfg['intervalSeconds']}s before next capture...")
+            time.sleep(cfg["intervalSeconds"])
 
     except (KeyboardInterrupt, EOFError):
         print("\n[INFO] Exiting...")
+    finally:
+        camera.stop()
 
     return 0
 
