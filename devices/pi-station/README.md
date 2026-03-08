@@ -72,6 +72,18 @@ Install dependencies with `uv`:
 uv sync
 ```
 
+## LCD wiring
+
+The Pi runtime now includes a real 16x2 HD44780-compatible LCD driver over Raspberry Pi BCM GPIO in 4-bit mode.
+
+Default wiring:
+
+* `rs=25`
+* `e=24`
+* `data=23,17,18,22`
+
+When GPIO access is unavailable, such as local desktop tests, the LCD client falls back to in-memory rendering so the runtime and test suite still work off-device.
+
 For the training photo capture tool on a Raspberry Pi, this is the one command to run:
 
 ```bash

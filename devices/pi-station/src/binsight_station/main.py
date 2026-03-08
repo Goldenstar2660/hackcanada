@@ -368,15 +368,21 @@ class StationRuntime:
 
         return self.session.snapshot, event
 
+    def close(self) -> None:
+        self.lcd_client.close()
+
 
 def main() -> int:
     runtime = StationRuntime(load_runtime_settings())
-    snapshot, status = runtime.start_session()
-    print(
-        f"station={status.station_id} phase={status.phase} item={snapshot.predicted_item} "
-        f"disposal={snapshot.correct_disposal_method}"
-    )
-    return 0
+    try:
+        snapshot, status = runtime.start_session()
+        print(
+            f"station={status.station_id} phase={status.phase} item={snapshot.predicted_item} "
+            f"disposal={snapshot.correct_disposal_method}"
+        )
+        return 0
+    finally:
+        runtime.close()
 
 
 if __name__ == "__main__":

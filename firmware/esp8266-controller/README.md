@@ -7,7 +7,7 @@ description: PlatformIO firmware scaffold for the Binsight ESP8266 controller
 
 This project contains the embedded firmware for the Binsight ESP8266 controller.
 
-The controller owns ultrasonic sensing, LED output, acknowledgements, and health telemetry. It does not own dashboard contracts, Firebase payloads, or disposal event creation.
+The controller owns LED output, acknowledgements, and health telemetry. It does not own dashboard contracts, Firebase payloads, or disposal event creation.
 
 ## Boundary
 
@@ -21,7 +21,7 @@ The controller now runs in standard Wi-Fi station mode and exposes a local HTTP 
 
 Supported endpoints:
 
-* `GET /health` returns JSON health and presence telemetry
+* `GET /health` returns JSON health and static no-sensor presence telemetry
 * `POST /signal` accepts JSON guidance commands
 * `POST /reset` clears active guidance
 
@@ -38,7 +38,7 @@ Failure policy:
 * `platformio.ini` defines the PlatformIO environment
 * `include/protocol.h` declares the local command and telemetry seam
 * `src/protocol.cpp` contains placeholder encode and decode helpers
-* `src/main.cpp` runs the local HTTP controller loop, samples the ultrasonic sensor, exposes JSON health and guidance endpoints, and keeps the Pi-to-ESP boundary local-facing
+* `src/main.cpp` runs the local HTTP controller loop, drives the RGB indicator pins, exposes JSON health and guidance endpoints, and keeps the Pi-to-ESP boundary local-facing
 * `test/` is reserved for firmware-native tests when behavior expands
 
 ## Flashing And Validation
@@ -60,4 +60,5 @@ Use the workspace-local command when the repository virtual environment provides
 If your board is connected, you can upload later with the standard PlatformIO upload workflow for the selected environment.
 
 To override the default Wi-Fi credentials at build time, add `-D BINSIGHT_WIFI_SSID=\"your-ssid\"` and `-D BINSIGHT_WIFI_PASS=\"your-password\"` to `build_flags` in `platformio.ini`.
+
 
