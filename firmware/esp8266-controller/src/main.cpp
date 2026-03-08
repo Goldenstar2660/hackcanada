@@ -10,6 +10,7 @@ constexpr uint32_t kWifiReconnectIntervalMs = 5000;
 constexpr uint8_t kRedIndicatorPin = D5;
 constexpr uint8_t kGreenIndicatorPin = D6;
 constexpr uint8_t kBlueIndicatorPin = D7;
+constexpr char kWifiHostname[] = "handwashled";
 constexpr bool kPresenceSensorOnline = false;
 constexpr bool kHandPresent = false;
 constexpr bool kStablePresenceDetected = false;
@@ -18,13 +19,13 @@ constexpr uint32_t kPresenceSequence = 0;
 #ifdef BINSIGHT_WIFI_SSID
 constexpr char kWifiSsid[] = BINSIGHT_WIFI_SSID;
 #else
-constexpr char kWifiSsid[] = "Golden's iPhone";
+constexpr char kWifiSsid[] = "Golden’s iPhone";
 #endif
 
 #ifdef BINSIGHT_WIFI_PASS
 constexpr char kWifiPass[] = BINSIGHT_WIFI_PASS;
 #else
-constexpr char kWifiPass[] = "";
+constexpr char kWifiPass[] = "winners!";
 #endif
 
 binsight::IndicatorZone activeZone = binsight::IndicatorZone::Off;
@@ -223,6 +224,7 @@ void ensureWifiConnected() {
 
   lastWifiReconnectAttemptMs = now;
   WiFi.disconnect();
+  WiFi.hostname(kWifiHostname);
   WiFi.begin(kWifiSsid, kWifiPass);
   Serial.println("binsight wifi reconnect attempt");
 }
@@ -245,6 +247,7 @@ void setup() {
 
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
+  WiFi.hostname(kWifiHostname);
   WiFi.begin(kWifiSsid, kWifiPass);
   configureHttpServer();
   lastWifiReconnectAttemptMs = millis();
