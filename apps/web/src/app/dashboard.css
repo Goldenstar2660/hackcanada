@@ -1886,6 +1886,17 @@ select:focus-visible {
   width: 2.5rem;
 }
 
+.dashboard-home-brand-image {
+  background: var(--dashboard-surface);
+  border: 1px solid var(--dashboard-border);
+  box-shadow: var(--dashboard-shadow-sm);
+  display: block;
+  height: auto;
+  max-width: clamp(11rem, 18vw, 14rem);
+  padding: 0.55rem 0.8rem;
+  width: 100%;
+}
+
 .dashboard-home-brand-name,
 .dashboard-home-brand-subtitle,
 .dashboard-home-kicker,
@@ -1933,8 +1944,6 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.dashboard-home-brand-subtitle,
-.dashboard-home-profile-status,
 .dashboard-home-panel-kicker,
 .dashboard-home-meta-label,
 .dashboard-home-field-label {
@@ -1961,12 +1970,6 @@ select:focus-visible {
 
 .dashboard-home-nav-link.is-disabled {
   color: rgba(18, 25, 32, 0.45);
-}
-
-.dashboard-home-profile {
-  align-items: center;
-  display: flex;
-  gap: 0.75rem;
 }
 
 .dashboard-home-hero {
@@ -2029,7 +2032,13 @@ select:focus-visible {
   background: var(--dashboard-surface);
   border: 0;
   color: var(--dashboard-ink);
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--dashboard-ink) 50%), linear-gradient(135deg, var(--dashboard-ink) 50%, transparent 50%);
+  background-position: calc(100% - 1.3rem) calc(50% - 0.12rem), calc(100% - 0.95rem) calc(50% - 0.12rem);
+  background-repeat: no-repeat;
+  background-size: 0.4rem 0.4rem, 0.4rem 0.4rem;
   padding: 0.95rem 1rem;
+  padding-right: 2.4rem;
   width: 100%;
 }
 
@@ -2148,13 +2157,23 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.dashboard-home-map-placeholder {
+.dashboard-home-map-placeholder,
+.dashboard-home-map-frame {
   background:
     linear-gradient(180deg, rgba(36, 122, 212, 0.12), rgba(36, 122, 212, 0.04)),
     var(--dashboard-surface-muted);
   border: 1px solid var(--dashboard-border);
   min-height: 18rem;
+  overflow: hidden;
   position: relative;
+}
+
+.dashboard-home-map-image {
+  display: block;
+  height: 100%;
+  min-height: 18rem;
+  object-fit: cover;
+  width: 100%;
 }
 
 .dashboard-home-map-node {
@@ -2366,10 +2385,6 @@ select:focus-visible {
 
   .dashboard-home-title {
     font-size: clamp(3.25rem, 18vw, 5rem);
-  }
-
-  .dashboard-home-profile {
-    width: 100%;
   }
 
   .dashboard-home-actions,
